@@ -41,23 +41,28 @@ const data = {
   },
   navMain: [
     {
+      title: "Overview",
+      view: "overview",
+      icon: IconDashboard,
+    },
+    {
       title: "Testing Suites",
-      url: "/dashboard/test-suites",
+      view: "test-suites",
       icon: IconCamera,
     },
     {
       title: "Agents",
-      url: "/dashboard/agents",
+      view: "agents",
       icon: IconFileAi,
     },
     {
       title: "Test Run History",
-      url: "/dashboard/history",
+      view: "history",
       icon: IconListDetails,
     },
     {
       title: "Analytics",
-      url: "#",
+      view: "analytics",
       icon: IconChartBar,
     },
   ],
@@ -73,18 +78,13 @@ const data = {
       url: "#",
       icon: IconFileDescription,
     },
-    {
-      title: "Support",
-      url: "#",
-      icon: IconHelp,
-    },
   ],
   documents: [], // Removed unused documents section for now or can repurpose
 }
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar({ onViewChange, currentView, ...props }: React.ComponentProps<typeof Sidebar> & { onViewChange?: (view: string) => void; currentView?: string }) {
   return (
-    <Sidebar collapsible="offcanvas" {...props}>
+    <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
@@ -101,7 +101,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
+        <NavMain items={data.navMain} onViewChange={onViewChange} currentView={currentView} />
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>

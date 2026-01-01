@@ -27,10 +27,14 @@ export function NavSecondary({
         <SidebarMenu>
           {items.map((item) => (
             <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton asChild>
+              <SidebarMenuButton
+                tooltip={item.title}
+                asChild
+                className="transition-all duration-200 ease-in-out hover:bg-accent hover:text-accent-foreground"
+              >
                 <a href={item.url}>
-                  <item.icon />
-                  <span>{item.title}</span>
+                  <item.icon className="transition-transform duration-200 group-hover:scale-105" />
+                  <span className="font-medium">{item.title}</span>
                 </a>
               </SidebarMenuButton>
             </SidebarMenuItem>

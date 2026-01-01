@@ -1,8 +1,8 @@
 "use client"
 
-import { IconCirclePlusFilled, IconMail, type Icon } from "@tabler/icons-react"
+import { type Icon } from "@tabler/icons-react"
+import { cn } from "@/lib/utils"
 
-import { Button } from "@/components/ui/button"
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -13,42 +13,52 @@ import {
 
 export function NavMain({
   items,
+  onViewChange,
+  currentView,
 }: {
   items: {
     title: string
-    url: string
+    url?: string
+    view?: string
     icon?: Icon
   }[]
+  onViewChange?: (view: string) => void
+  currentView?: string
 }) {
   return (
     <SidebarGroup>
-      <SidebarGroupContent className="flex flex-col gap-2">
-        <SidebarMenu>
-          <SidebarMenuItem className="flex items-center gap-2">
-            <SidebarMenuButton
-              tooltip="Quick Create"
-              className="bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground min-w-8 duration-200 ease-linear"
-            >
-              <IconCirclePlusFilled />
-              <span>Quick Create</span>
-            </SidebarMenuButton>
-            <Button
-              size="icon"
-              className="size-8 group-data-[collapsible=icon]:opacity-0"
-              variant="outline"
-            >
-              <IconMail />
-              <span className="sr-only">Inbox</span>
-            </Button>
-          </SidebarMenuItem>
-        </SidebarMenu>
+      <SidebarGroupContent>
         <SidebarMenu>
           {items.map((item) => (
             <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton tooltip={item.title}>
-                {item.icon && <item.icon />}
-                <span>{item.title}</span>
-              </SidebarMenuButton>
+              {item.view ? (
+                <SidebarMenuButton
+                  tooltip={item.title}
+                  onClick={() => onViewChange?.(item.view!)}
+                  isActive={currentView === item.view}
+                  className={cn(
+                    "transition-all duration-200 ease-in-out hover:bg-accent hover:text-accent-foreground",
+                    currentView === item.view && "bg-accent text-accent-foreground shadow-sm"
+                  )}
+                >
+                  {item.icon && <item.icon className={cn(
+                    "transition-transform duration-200 group-hover:scale-105",
+                    currentView === item.view && "text-accent-foreground"
+                  )} />}
+                  <span className="font-medium">{item.title}</span>
+                </SidebarMenuButton>
+              ) : (
+                <SidebarMenuButton
+                  tooltip={item.title}
+                  asChild
+                  className="transition-all duration-200 ease-in-out hover:bg-accent hover:text-accent-foreground"
+                >
+                  <a href={item.url}>
+                    {item.icon && <item.icon className="transition-transform duration-200 group-hover:scale-105" />}
+                    <span className="font-medium">{item.title}</span>
+                  </a>
+                </SidebarMenuButton>
+              )}
             </SidebarMenuItem>
           ))}
         </SidebarMenu>
