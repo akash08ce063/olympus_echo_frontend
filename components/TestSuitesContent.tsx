@@ -16,7 +16,9 @@ import {
     Sparkles,
     User,
     X,
-    Info
+    Info,
+    Check,
+    ChevronsUpDown
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -27,7 +29,6 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
     Select,
@@ -44,15 +45,6 @@ import {
 } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import {
     Table,
@@ -63,18 +55,66 @@ import {
     TableRow,
 } from "@/components/ui/table"
 import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import {
     Tooltip,
     TooltipContent,
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip"
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover"
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+    CommandSeparator,
+} from "@/components/ui/command"
 import { cn } from "@/lib/utils"
 import { AddAssistantDialog, type Assistant } from "@/components/AddAssistantDialog"
+import { TestCasesSection } from "@/components/TestCasesSection"
+import { TestSuitesService } from "@/services/testSuites"
+import { toast } from "sonner"
+import { useAuth } from "@/hooks/useAuth"
 
 // Types
 interface TestSuite {
     id: string
     name: string
+    description?: string
+    target_agent_id?: string
+    user_agent_id?: string
     createdAt: string
     testCount: number
 }
@@ -123,12 +163,15 @@ const initialTestCases: TestCase[] = [
 ]
 
 export function TestSuitesContent() {
+    const { user } = useAuth()
+    const [suites, setSuites] = useState<TestSuite[]>(initialSuites)
     const [selectedSuiteId, setSelectedSuiteId] = useState<string>(initialSuites[0].id)
     const [searchQuery, setSearchQuery] = useState("")
     const [testCases, setTestCases] = useState<TestCase[]>(initialTestCases)
-    const [isAddTestOpen, setIsAddTestOpen] = useState(false)
     const [isCreateSuiteOpen, setIsCreateSuiteOpen] = useState(false)
     const [isAddAssistantOpen, setIsAddAssistantOpen] = useState(false)
+    const [openCombobox, setOpenCombobox] = useState(false)
+    const [selectedAssistant, setSelectedAssistant] = useState<string>("")
     const [assistants, setAssistants] = useState<Assistant[]>([
         {
             id: "1",
@@ -149,14 +192,8 @@ export function TestSuitesContent() {
     ])
     const [newSuite, setNewSuite] = useState({
         name: "",
+        description: "",
         uuid: "",
-    })
-    const [newTest, setNewTest] = useState<Partial<TestCase>>({
-        name: "New Test",
-        type: "voice",
-        script: "",
-        rubric: "",
-        attempts: 1,
     })
 
     const selectedSuite = initialSuites.find(s => s.id === selectedSuiteId) || initialSuites[0]
@@ -165,11 +202,19 @@ export function TestSuitesContent() {
         suite.name.toLowerCase().includes(searchQuery.toLowerCase())
     )
 
-    const handleCreateSuite = useCallback(() => {
-        if (newSuite.name) {
+    const handleCreateSuite = useCallback(async () => {
+        if (!newSuite.name.trim() || !user?.id) return
+
+        try {
+            await TestSuitesService.createTestSuite(user.id, {
+                name: newSuite.name,
+                description: newSuite.description
+            })
+
             const suite: TestSuite = {
                 id: newSuite.uuid || crypto.randomUUID(),
                 name: newSuite.name,
+                description: newSuite.description,
                 createdAt: new Date().toLocaleDateString('en-US', {
                     month: 'short',
                     day: '2-digit',
@@ -177,14 +222,43 @@ export function TestSuitesContent() {
                 }),
                 testCount: 0,
             }
-            // Note: In a real app, you'd update the suites state here
+
+            setSuites(prev => [suite, ...prev])
+            setSelectedSuiteId(suite.id)
+
             setNewSuite({
                 name: "",
+                description: "",
                 uuid: "",
             })
             setIsCreateSuiteOpen(false)
+            toast.success("Test suite created successfully")
+        } catch (error) {
+            console.error("Failed to create test suite:", error)
+            toast.error("Failed to create test suite")
         }
     }, [newSuite])
+
+    const handleUpdateSuiteAgent = useCallback(async (field: 'target_agent_id' | 'user_agent_id', agentId: string) => {
+        if (!selectedSuite) return;
+
+        try {
+            await TestSuitesService.updateTestSuite(selectedSuite.id, {
+                [field]: agentId
+            });
+
+            setSuites(prev => prev.map(s =>
+                s.id === selectedSuite.id
+                    ? { ...s, [field]: agentId }
+                    : s
+            ));
+
+            toast.success(`${field === 'target_agent_id' ? 'Target' : 'Tester'} agent updated`)
+        } catch (error) {
+            console.error(`Failed to update ${field}:`, error);
+            toast.error(`Failed to update ${field === 'target_agent_id' ? 'target' : 'tester'} agent`)
+        }
+    }, [selectedSuite])
 
     const handleAddAssistant = useCallback((assistantData: Omit<Assistant, 'id' | 'createdAt'>) => {
         const newAssistant: Assistant = {
@@ -199,27 +273,6 @@ export function TestSuitesContent() {
         setAssistants(prev => [...prev, newAssistant])
     }, [])
 
-    const handleAddTest = useCallback(() => {
-        if (newTest.name && newTest.type) {
-            const test: TestCase = {
-                id: `tc-${Date.now()}`,
-                name: newTest.name || "Untitled Test",
-                type: newTest.type as "voice" | "chat",
-                script: newTest.script || "",
-                rubric: newTest.rubric || "",
-                attempts: newTest.attempts || 1,
-            }
-            setTestCases(prev => [...prev, test])
-            setNewTest({
-                name: "New Test",
-                type: "voice",
-                script: "",
-                rubric: "",
-                attempts: 1,
-            })
-            setIsAddTestOpen(false)
-        }
-    }, [newTest])
 
     return (
         <TooltipProvider>
@@ -262,7 +315,16 @@ export function TestSuitesContent() {
                                             className="bg-background/50 border-border/50 focus:border-primary/50"
                                         />
                                     </div>
-                                    
+                                    <div className="space-y-2">
+                                        <Label>Description</Label>
+                                        <Textarea
+                                            placeholder="Describe the purpose of this test suite..."
+                                            value={newSuite.description}
+                                            onChange={(e) => setNewSuite(prev => ({ ...prev, description: e.target.value }))}
+                                            className="bg-background/50 border-border/50 focus:border-primary/50 min-h-[80px]"
+                                        />
+                                    </div>
+
                                 </div>
                                 <DialogFooter className="gap-2 sm:gap-0">
                                     <Button variant="outline" onClick={() => setIsCreateSuiteOpen(false)} className="border-border/50">
@@ -322,9 +384,36 @@ export function TestSuitesContent() {
                             <Button className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 transition-all duration-300 hover:shadow-primary/40">
                                 <Play className="mr-2 h-4 w-4 fill-current" /> Run Tests
                             </Button>
-                            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
-                                <MoreHorizontal className="h-4 w-4" />
-                            </Button>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+                                        <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                            <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:text-destructive">
+                                                Delete Test Suite
+                                            </DropdownMenuItem>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                    This action cannot be undone. This will permanently delete the test suite and all its test cases.
+                                                </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                                    Delete
+                                                </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                         </div>
                     </div>
 
@@ -369,22 +458,21 @@ export function TestSuitesContent() {
                                             <CardContent className="space-y-4">
                                                 <div className="space-y-2">
                                                     <Label className="text-xs text-muted-foreground">Select tester assistant configuration</Label>
-                                                    <div className="flex gap-2">
-                                                        <Select defaultValue="basic">
-                                                            <SelectTrigger className="bg-background/50 border-border/50 flex-1">
-                                                                <SelectValue />
-                                                            </SelectTrigger>
-                                                            <SelectContent>
-                                                                <SelectItem value="basic">Basic</SelectItem>
-                                                                <SelectItem value="angry">Angry Customer</SelectItem>
-                                                                <SelectItem value="confused">Confused User</SelectItem>
-                                                            </SelectContent>
-                                                        </Select>
-                                                        <Button variant="outline" size="sm" className="shrink-0 border-border/50 hover:border-primary/30 hover:text-primary transition-colors">
-                                                            <Eye className="w-4 h-4 mr-2" />
-                                                            View Config
-                                                        </Button>
-                                                    </div>
+                                                    <Select
+                                                        value={selectedSuite?.user_agent_id || ""}
+                                                        onValueChange={(value) => handleUpdateSuiteAgent('user_agent_id', value)}
+                                                    >
+                                                        <SelectTrigger className="w-full bg-background/50 border-border/50">
+                                                            <SelectValue placeholder="Select Tester Agent" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            {assistants.map((assistant) => (
+                                                                <SelectItem key={assistant.id} value={assistant.id}>
+                                                                    {assistant.name}
+                                                                </SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
                                                 </div>
                                                 <p className="text-xs text-muted-foreground leading-relaxed">
                                                     This is the assistant that will call or chat with your assistant to test them.
@@ -393,7 +481,7 @@ export function TestSuitesContent() {
                                         </Card>
 
                                         {/* Arrow */}
-                                        <div className="flex items-center justify-center lg:flex-shrink-0">
+                                        <div className="flex items-center justify-center lg:shrink-0">
                                             <ArrowRight className="w-6 h-6 text-muted-foreground/50 lg:rotate-0 rotate-90" />
                                         </div>
 
@@ -413,13 +501,12 @@ export function TestSuitesContent() {
                                             <CardContent className="space-y-4">
                                                 <div className="space-y-2">
                                                     <Label className="text-xs text-muted-foreground">Select target agent</Label>
-                                                    <Select onValueChange={(value) => {
-                                                        if (value === "add-assistant") {
-                                                            setIsAddAssistantOpen(true)
-                                                        }
-                                                    }}>
-                                                        <SelectTrigger className="bg-background/50 border-border/50">
-                                                            <SelectValue placeholder="Select assistant" />
+                                                    <Select
+                                                        value={selectedSuite?.target_agent_id || ""}
+                                                        onValueChange={(value) => handleUpdateSuiteAgent('target_agent_id', value)}
+                                                    >
+                                                        <SelectTrigger className="w-full bg-background/50 border-border/50">
+                                                            <SelectValue placeholder="Select Target Agent" />
                                                         </SelectTrigger>
                                                         <SelectContent>
                                                             {assistants.map((assistant) => (
@@ -427,14 +514,17 @@ export function TestSuitesContent() {
                                                                     {assistant.name}
                                                                 </SelectItem>
                                                             ))}
-                                                            <SelectItem value="add-assistant" className="text-primary font-medium">
-                                                                <div className="flex items-center gap-2">
-                                                                    <Plus className="w-4 h-4" />
-                                                                    Add Assistant
-                                                                </div>
-                                                            </SelectItem>
                                                         </SelectContent>
                                                     </Select>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="w-full border-primary/30 text-primary hover:bg-primary/10 hover:text-primary transition-colors mt-2"
+                                                        onClick={() => setIsAddAssistantOpen(true)}
+                                                    >
+                                                        <Plus className="w-4 h-4 mr-2" />
+                                                        Add Assistant
+                                                    </Button>
                                                 </div>
                                                 <p className="text-xs text-muted-foreground leading-relaxed">
                                                     This is the agent that will call or chat with your agent to test them.
@@ -444,198 +534,24 @@ export function TestSuitesContent() {
                                     </div>
 
                                     {/* Test Cases Section */}
-                                    <div className="space-y-4">
-                                        <div className="flex items-center justify-between">
-                                            <div>
-                                                <h3 className="text-lg font-semibold">Test cases</h3>
-                                                <p className="text-sm text-muted-foreground">Create tests that the assistant will be tested on</p>
-                                            </div>
-                                            <div className="flex gap-2">
-                                                <Button variant="outline" size="sm" className="border-primary/30 text-primary hover:bg-primary/10 hover:text-primary transition-colors">
-                                                    <Sparkles className="w-4 h-4 mr-2" />
-                                                    Generate tests
-                                                </Button>
-                                                <Dialog open={isAddTestOpen} onOpenChange={setIsAddTestOpen}>
-                                                    <DialogTrigger asChild>
-                                                        <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/25 transition-all duration-300">
-                                                            <Plus className="w-4 h-4 mr-2" /> Add Test
-                                                        </Button>
-                                                    </DialogTrigger>
-                                                    <DialogContent className="sm:max-w-lg bg-card border-border/50">
-                                                        <DialogHeader>
-                                                            <DialogTitle className="flex items-center gap-2">
-                                                                <div className="p-1.5 rounded-md bg-primary/10">
-                                                                    <Beaker className="w-4 h-4 text-primary" />
-                                                                </div>
-                                                                Add Test
-                                                            </DialogTitle>
-                                                            <DialogDescription>
-                                                                Describe how the assistant will be tested.
-                                                            </DialogDescription>
-                                                        </DialogHeader>
-                                                        <div className="space-y-5 py-4">
-                                                            <div className="space-y-2">
-                                                                <Label>Name</Label>
-                                                                <Input
-                                                                    placeholder="e.g. Greeting Flow"
-                                                                    value={newTest.name || ""}
-                                                                    onChange={(e) => setNewTest(prev => ({ ...prev, name: e.target.value }))}
-                                                                    className="bg-background/50 border-border/50 focus:border-primary/50"
-                                                                />
-                                                            </div>
-
-                                                            <div className="space-y-2">
-                                                                <div className="flex items-center gap-2">
-                                                                    <Label>Type</Label>
-                                                                    <Tooltip>
-                                                                        <TooltipTrigger asChild>
-                                                                            <Info className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
-                                                                        </TooltipTrigger>
-                                                                        <TooltipContent>
-                                                                            <p>Voice tests simulate phone calls, Chat tests simulate text conversations</p>
-                                                                        </TooltipContent>
-                                                                    </Tooltip>
-                                                                </div>
-                                                                <Select
-                                                                    value={newTest.type}
-                                                                    onValueChange={(value) => setNewTest(prev => ({ ...prev, type: value as "voice" | "chat" }))}
-                                                                >
-                                                                    <SelectTrigger className="bg-background/50 border-border/50">
-                                                                        <SelectValue />
-                                                                    </SelectTrigger>
-                                                                    <SelectContent>
-                                                                        <SelectItem value="voice">Voice</SelectItem>
-                                                                        <SelectItem value="chat">Chat</SelectItem>
-                                                                    </SelectContent>
-                                                                </Select>
-                                                            </div>
-
-                                                            <div className="space-y-2">
-                                                                <div className="flex items-center gap-2">
-                                                                    <Label>Script</Label>
-                                                                    <Tooltip>
-                                                                        <TooltipTrigger asChild>
-                                                                            <Info className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
-                                                                        </TooltipTrigger>
-                                                                        <TooltipContent>
-                                                                            <p>Step-by-step instructions for the tester to follow</p>
-                                                                        </TooltipContent>
-                                                                    </Tooltip>
-                                                                </div>
-                                                                <Textarea
-                                                                    className="min-h-[120px] resize-none bg-background/50 border-border/50 focus:border-primary/50"
-                                                                    placeholder={"1: Greet the caller.\n2: Ask \"How much larger is the sun than the moon?\"\n3: Ask the same question again.\n4: End the call."}
-                                                                    value={newTest.script || ""}
-                                                                    onChange={(e) => setNewTest(prev => ({ ...prev, script: e.target.value }))}
-                                                                />
-                                                            </div>
-
-                                                            <div className="space-y-2">
-                                                                <div className="flex items-center gap-2">
-                                                                    <Label>Rubric</Label>
-                                                                    <Tooltip>
-                                                                        <TooltipTrigger asChild>
-                                                                            <Info className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
-                                                                        </TooltipTrigger>
-                                                                        <TooltipContent>
-                                                                            <p>Criteria used to evaluate if the test passed</p>
-                                                                        </TooltipContent>
-                                                                    </Tooltip>
-                                                                </div>
-                                                                <Textarea
-                                                                    className="min-h-[100px] resize-none bg-background/50 border-border/50 focus:border-primary/50"
-                                                                    placeholder="The assistant should refuse to answer the question since it's not related to the caller's business."
-                                                                    value={newTest.rubric || ""}
-                                                                    onChange={(e) => setNewTest(prev => ({ ...prev, rubric: e.target.value }))}
-                                                                />
-                                                            </div>
-
-                                                            <div className="space-y-2">
-                                                                <div className="flex items-center gap-2">
-                                                                    <Label>Attempts</Label>
-                                                                    <Tooltip>
-                                                                        <TooltipTrigger asChild>
-                                                                            <Info className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
-                                                                        </TooltipTrigger>
-                                                                        <TooltipContent>
-                                                                            <p>Number of times to run this test</p>
-                                                                        </TooltipContent>
-                                                                    </Tooltip>
-                                                                </div>
-                                                                <Input
-                                                                    type="number"
-                                                                    min={1}
-                                                                    value={newTest.attempts || 1}
-                                                                    onChange={(e) => setNewTest(prev => ({ ...prev, attempts: parseInt(e.target.value) || 1 }))}
-                                                                    className="bg-background/50 border-border/50 focus:border-primary/50"
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                        <DialogFooter className="gap-2 sm:gap-0">
-                                                            <Button variant="outline" onClick={() => setIsAddTestOpen(false)} className="border-border/50">
-                                                                Cancel
-                                                            </Button>
-                                                            <Button onClick={handleAddTest} className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/25">
-                                                                Save Changes
-                                                            </Button>
-                                                        </DialogFooter>
-                                                    </DialogContent>
-                                                </Dialog>
-                                            </div>
-                                        </div>
-
-                                        {/* Add Assistant Modal */}
-                                        <AddAssistantDialog
-                                            open={isAddAssistantOpen}
-                                            onOpenChange={setIsAddAssistantOpen}
-                                            onAddAssistant={handleAddAssistant}
-                                        />
-
-                                        {/* Test Cases Table */}
-                                        {/* <div className="rounded-md border border-border/50">
-                                            <Table>
-                                                <TableHeader>
-                                                    <TableRow className="border-border/50">
-                                                        <TableHead className="font-semibold">Name</TableHead>
-                                                        <TableHead className="font-semibold">Type</TableHead>
-                                                        <TableHead className="font-semibold">Script</TableHead>
-                                                        <TableHead className="font-semibold">Rubric</TableHead>
-                                                        <TableHead className="font-semibold">Attempts</TableHead>
-                                                    </TableRow>
-                                                </TableHeader>
-                                                <TableBody>
-                                                    {testCases.length === 0 ? (
-                                                        <TableRow>
-                                                            <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                                                                <Beaker className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                                                                No test cases added yet.
-                                                                <br />
-                                                                <span className="text-sm">Click "Generate tests" or "Add Test" to start.</span>
-                                                            </TableCell>
-                                                        </TableRow>
-                                                    ) : (
-                                                        testCases.map((test) => (
-                                                            <TableRow key={test.id} className="border-border/50">
-                                                                <TableCell className="font-medium">{test.name}</TableCell>
-                                                                <TableCell>
-                                                                    <Badge variant="secondary" className="text-xs capitalize bg-primary/10 text-primary border-0">
-                                                                        {test.type}
-                                                                    </Badge>
-                                                                </TableCell>
-                                                                <TableCell className="max-w-xs truncate text-sm text-muted-foreground">
-                                                                    {test.script}
-                                                                </TableCell>
-                                                                <TableCell className="max-w-xs truncate text-sm text-muted-foreground">
-                                                                    {test.rubric}
-                                                                </TableCell>
-                                                                <TableCell className="text-center">{test.attempts}</TableCell>
-                                                            </TableRow>
-                                                        ))
-                                                    )}
-                                                </TableBody>
-                                            </Table>
-                                        </div> */}
-                                    </div>
+                                    <TestCasesSection
+                                        testCases={testCases}
+                                        onAddTestCase={(testCase) => {
+                                            const newTest: TestCase = {
+                                                ...testCase,
+                                                id: `tc-${Date.now()}`,
+                                            }
+                                            setTestCases(prev => [...prev, newTest])
+                                        }}
+                                        onUpdateTestCase={(id, updatedTestCase) => {
+                                            setTestCases(prev => prev.map(test =>
+                                                test.id === id ? { ...test, ...updatedTestCase } : test
+                                            ))
+                                        }}
+                                        onDeleteTestCase={(id) => {
+                                            setTestCases(prev => prev.filter(test => test.id !== id))
+                                        }}
+                                    />
 
                                 </TabsContent>
 

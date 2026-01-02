@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Bot, Plus } from "lucide-react"
+import { Bot, Plus, MoreHorizontal } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -12,6 +12,23 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { AddAssistantDialog, type Assistant } from "@/components/AddAssistantDialog"
 
 export function AgentsContent() {
@@ -34,18 +51,45 @@ export function AgentsContent() {
         },
     ])
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+    const [editingAssistant, setEditingAssistant] = useState<Assistant | null>(null)
 
     const handleAddAssistant = (assistantData: Omit<Assistant, 'id' | 'createdAt'>) => {
-        const newAssistant: Assistant = {
-            ...assistantData,
-            id: Date.now().toString(),
-            createdAt: new Date().toLocaleDateString('en-US', {
-                month: 'short',
-                day: '2-digit',
-                year: 'numeric'
-            }),
+        if (editingAssistant) {
+            // Update existing assistant
+            setAssistants(prev => prev.map(assistant =>
+                assistant.id === editingAssistant.id
+                    ? { ...assistant, ...assistantData }
+                    : assistant
+            ))
+            setEditingAssistant(null)
+        } else {
+            // Add new assistant
+            const newAssistant: Assistant = {
+                ...assistantData,
+                id: Date.now().toString(),
+                createdAt: new Date().toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: '2-digit',
+                    year: 'numeric'
+                }),
+            }
+            setAssistants(prev => [...prev, newAssistant])
         }
-        setAssistants(prev => [...prev, newAssistant])
+        setIsAddDialogOpen(false)
+    }
+
+    const handleEditAssistant = (assistant: Assistant) => {
+        setEditingAssistant(assistant)
+        setIsAddDialogOpen(true)
+    }
+
+    const handleDeleteAssistant = (id: string) => {
+        setAssistants(prev => prev.filter(assistant => assistant.id !== id))
+    }
+
+    const handleCloseDialog = () => {
+        setIsAddDialogOpen(false)
+        setEditingAssistant(null)
     }
 
     return (
@@ -62,7 +106,7 @@ export function AgentsContent() {
                 </Button>
                 <AddAssistantDialog
                     open={isAddDialogOpen}
-                    onOpenChange={setIsAddDialogOpen}
+                    onOpenChange={handleCloseDialog}
                     onAddAssistant={handleAddAssistant}
                 />
             </div>
@@ -77,12 +121,13 @@ export function AgentsContent() {
                             <TableHead className="font-semibold">Sample Rate</TableHead>
                             <TableHead className="font-semibold">Encoding</TableHead>
                             <TableHead className="font-semibold">Created</TableHead>
+                            <TableHead className="font-semibold w-[50px]"></TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {assistants.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                                     <Bot className="w-8 h-8 mx-auto mb-2 opacity-50" />
                                     No assistants created yet.
                                 </TableCell>
@@ -95,6 +140,44 @@ export function AgentsContent() {
                                     <TableCell>{assistant.sampleRate}</TableCell>
                                     <TableCell>{assistant.encoding}</TableCell>
                                     <TableCell className="text-muted-foreground">{assistant.createdAt}</TableCell>
+                                    <TableCell>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                    <MoreHorizontal className="h-4 w-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuItem onClick={() => handleEditAssistant(assistant)}>
+                                                    Edit
+                                                </DropdownMenuItem>
+                                                <AlertDialog>
+                                                    <AlertDialogTrigger asChild>
+                                                        <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:text-destructive">
+                                                            Delete
+                                                        </DropdownMenuItem>
+                                                    </AlertDialogTrigger>
+                                                    <AlertDialogContent>
+                                                        <AlertDialogHeader>
+                                                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                                            <AlertDialogDescription>
+                                                                This action cannot be undone. This will permanently delete the assistant "{assistant.name}".
+                                                            </AlertDialogDescription>
+                                                        </AlertDialogHeader>
+                                                        <AlertDialogFooter>
+                                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                            <AlertDialogAction
+                                                                onClick={() => handleDeleteAssistant(assistant.id)}
+                                                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                                            >
+                                                                Delete
+                                                            </AlertDialogAction>
+                                                        </AlertDialogFooter>
+                                                    </AlertDialogContent>
+                                                </AlertDialog>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </TableCell>
                                 </TableRow>
                             ))
                         )}

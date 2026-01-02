@@ -75,7 +75,7 @@ export type CaseResult = {
 export type Experiment = {
   id: string;
   datasetId: string;
-  status: 'running' | 'completed' | 'aborted';
+  status: 'running' | 'completed' | 'aborted' | 'failed';
   results: Record<string, CaseResult>; // caseId -> Result
   startedAt: string;
   completedAt?: string;

@@ -1,25 +1,22 @@
 "use client"
 
+import Link from "next/link"
+
 import * as React from "react"
 import {
-  IconCamera,
+  IconFlask,
   IconChartBar,
   IconDashboard,
-  IconDatabase,
-  IconFileAi,
   IconFileDescription,
-  IconFileWord,
-  IconFolder,
-  IconHelp,
+  IconHistory,
   IconInnerShadowTop,
-  IconListDetails,
-  IconReport,
-  IconSearch,
+  IconNotification,
+  IconRobot,
   IconSettings,
+  IconTestPipe,
   IconUsers,
 } from "@tabler/icons-react"
 
-import { NavDocuments } from "@/components/nav-documents"
 import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
@@ -32,59 +29,54 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import { useAuth } from "@/hooks/useAuth"
 
-const data = {
-  user: {
-    name: "Admin User",
-    email: "admin@olympusecho.ai",
-    avatar: "",
+const navMain = [
+  {
+    title: "Dashboard",
+    url: "/dashboard",
+    icon: IconDashboard,
   },
-  navMain: [
-    {
-      title: "Overview",
-      view: "overview",
-      icon: IconDashboard,
-    },
-    {
-      title: "Testing Suites",
-      view: "test-suites",
-      icon: IconCamera,
-    },
-    {
-      title: "Agents",
-      view: "agents",
-      icon: IconFileAi,
-    },
-    {
-      title: "Test Run History",
-      view: "history",
-      icon: IconListDetails,
-    },
-    {
-      title: "Analytics",
-      view: "analytics",
-      icon: IconChartBar,
-    },
-  ],
-  navClouds: [], // Removed as requested to focus on these tabs
-  navSecondary: [
-    {
-      title: "Settings",
-      url: "#",
-      icon: IconSettings,
-    },
-    {
-      title: "Documentation",
-      url: "#",
-      icon: IconFileDescription,
-    },
-  ],
-  documents: [], // Removed unused documents section for now or can repurpose
-}
+  {
+    title: "Test Suites",
+    url: "/test_suits",
+    icon: IconFlask,
+  },
+  {
+    title: "Tester Agents",
+    url: "/tester_agents",
+    icon: IconRobot,
+  },
+  {
+    title: "Test History",
+    url: "/dashboard/history",
+    icon: IconHistory,
+  },
+  {
+    title: "Analytics",
+    url: "/dashboard/agents",
+    icon: IconChartBar,
+  },
+]
 
-export function AppSidebar({ onViewChange, currentView, ...props }: React.ComponentProps<typeof Sidebar> & { onViewChange?: (view: string) => void; currentView?: string }) {
+const navSecondary = [
+  {
+    title: "Notifications",
+    url: "/notifications",
+    icon: IconNotification,
+  },
+  {
+    title: "Settings",
+    url: "/settings",
+    icon: IconSettings,
+  },
+]
+
+export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { user } = useAuth()
+
   return (
-    <Sidebar collapsible="icon" {...props}>
+    <Sidebar collapsible="icon" className="w-64" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
@@ -92,20 +84,28 @@ export function AppSidebar({ onViewChange, currentView, ...props }: React.Compon
               asChild
               className="data-[slot=sidebar-menu-button]:!p-1.5"
             >
-              <a href="#">
+              <Link href="/dashboard">
                 <IconInnerShadowTop className="!size-5" />
                 <span className="text-base font-semibold">OlympusEcho</span>
-              </a>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} onViewChange={onViewChange} currentView={currentView} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
+        <NavMain items={navMain} />
+        <NavSecondary items={navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser user={user ? {
+          name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
+          email: user.email || '',
+          avatar: user.user_metadata?.avatar_url || '',
+        } : {
+          name: 'Loading...',
+          email: '',
+          avatar: '',
+        }} />
       </SidebarFooter>
     </Sidebar >
   )

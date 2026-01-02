@@ -1,14 +1,12 @@
 import type { Metadata } from "next";
-import { Space_Grotesk, Inter } from "next/font/google";
+import { Poppins } from "next/font/google";
 import "./globals.css";
+import { AuthProvider } from "@/context/AuthContext";
+import { Toaster } from "sonner";
 
-const spaceGrotesk = Space_Grotesk({
-  variable: "--font-space",
-  subsets: ["latin"],
-});
-
-const inter = Inter({
-  variable: "--font-inter",
+const poppins = Poppins({
+  weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
+  variable: "--font-poppins",
   subsets: ["latin"],
 });
 
@@ -25,9 +23,12 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body
-        className={`${inter.variable} ${spaceGrotesk.variable} antialiased bg-background text-foreground font-sans`}
+        className={`${poppins.variable} antialiased bg-background text-foreground font-sans`}
       >
-        {children}
+        <AuthProvider>
+          {children}
+          <Toaster position="top-right" richColors />
+        </AuthProvider>
       </body>
     </html>
   );

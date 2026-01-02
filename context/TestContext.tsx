@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { Dataset, Experiment, TestCase, TestMessage, CaseResult, RubricResult, TargetAgent } from "@/types/test-suite";
+import { useNotifications } from "@/context/NotificationContext";
 
 interface TestContextType {
     datasets: Dataset[];
@@ -92,6 +93,9 @@ export function TestProvider({ children }: { children: React.ReactNode }) {
     const [activeExperiment, setActiveExperiment] = useState<Experiment | null>(null);
     const [history, setHistory] = useState<Experiment[]>([]);
 
+    // Use notifications hook - this is safe now that NotificationProvider wraps TestProvider
+    const { addNotification } = useNotifications();
+
     // --- CRUD for Datasets ---
     const addDataset = (dataset: Dataset) => {
         setDatasets((prev) => [...prev, dataset]);
@@ -139,13 +143,22 @@ export function TestProvider({ children }: { children: React.ReactNode }) {
         const runNextCase = async () => {
             if (currentCaseIndex >= dataset.cases.length) {
                 // Finished
-                setActiveExperiment((prev) =>
-                    prev ? { ...prev, status: "completed", completedAt: new Date().toISOString() } : null
-                );
-                setHistory((prev) => [
-                    { ...newExperiment, status: "completed", completedAt: new Date().toISOString(), results: newExperiment.results },
-                    ...prev
-                ]);
+                const completedExperiment = { ...newExperiment, status: "completed" as const, completedAt: new Date().toISOString(), results: newExperiment.results };
+                setActiveExperiment(completedExperiment);
+                setHistory((prev) => [completedExperiment, ...prev]);
+
+                // Calculate results
+                const totalCases = dataset.cases.length;
+                const passedCases = Object.values(completedExperiment.results).filter(result => result.status === 'passed').length;
+
+                // Add notification
+                addNotification({
+                    title: `Test Suite ${passedCases === totalCases ? 'Completed' : 'Finished'}`,
+                    message: `Your test suite "${dataset.name}" has finished with ${passedCases}/${totalCases} tests passing.`,
+                    type: passedCases === totalCases ? 'success' : passedCases === 0 ? 'error' : 'warning',
+                    testRunId: completedExperiment.id
+                });
+
                 return;
             }
 
