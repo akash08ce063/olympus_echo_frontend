@@ -39,8 +39,8 @@ export function AddAssistantDialog({
   const [formData, setFormData] = useState({
     name: "",
     websocketUrl: "",
-    sampleRate: "",
-    encoding: "",
+    sampleRate: "8000",
+    encoding: "mulaw",
   });
 
   const handleSubmit = useCallback(() => {
@@ -58,9 +58,13 @@ export function AddAssistantDialog({
 
   const handleInputChange =
     (field: keyof typeof formData) =>
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setFormData((prev) => ({ ...prev, [field]: e.target.value }));
-    };
+      (e: React.ChangeEvent<HTMLInputElement>) => {
+        setFormData((prev) => ({ ...prev, [field]: e.target.value }));
+      };
+
+  const handleSelectChange = (field: keyof typeof formData) => (value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -100,28 +104,34 @@ export function AddAssistantDialog({
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Sample Rate</Label>
-             
 
-              <Select >
+
+              <Select
+                value={formData.sampleRate}
+                onValueChange={handleSelectChange("sampleRate")}
+              >
                 <SelectTrigger >
-                  <SelectValue placeholder="Sample Rate"  />
+                  <SelectValue placeholder="Sample Rate" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="8 kHz">8 kHz</SelectItem>
-                  <SelectItem value="16 kHz">16 kHz</SelectItem>
-                  <SelectItem value="22.05 kHz">22.05 kHz</SelectItem>
-                  <SelectItem value="24 kHz">24 kHz</SelectItem>
-                  <SelectItem value="44.1 kHz">44.1 kHz</SelectItem>
-                  <SelectItem value="48 kHz">48 kHz</SelectItem>
+                  <SelectItem value="8000">8 kHz</SelectItem>
+                  <SelectItem value="16000">16 kHz</SelectItem>
+                  <SelectItem value="22050">22.05 kHz</SelectItem>
+                  <SelectItem value="24000">24 kHz</SelectItem>
+                  <SelectItem value="44100">44.1 kHz</SelectItem>
+                  <SelectItem value="48000">48 kHz</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
               <Label>Encoding</Label>
-              <Select >
+              <Select
+                value={formData.encoding}
+                onValueChange={handleSelectChange("encoding")}
+              >
                 <SelectTrigger >
-                  <SelectValue placeholder="Encoding"  />
+                  <SelectValue placeholder="Encoding" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="pcm_s16le">PCM 16-bit</SelectItem>
@@ -136,10 +146,9 @@ export function AddAssistantDialog({
                   <SelectItem value="ogg_vorbis">OGG Vorbis</SelectItem>
                   <SelectItem value="flac">FLAC</SelectItem>
                   <SelectItem value="wav">WAV</SelectItem>
-
                 </SelectContent>
               </Select>
-             
+
             </div>
           </div>
         </div>

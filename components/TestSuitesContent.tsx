@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import {
     ArrowRight,
     Beaker,
@@ -105,6 +105,7 @@ import { cn } from "@/lib/utils"
 import { AddAssistantDialog, type Assistant } from "@/components/AddAssistantDialog"
 import { TestCasesSection } from "@/components/TestCasesSection"
 import { TestSuitesService } from "@/services/testSuites"
+import { TargetAgentsService } from "@/services/targetAgents"
 import { toast } from "sonner"
 import { useAuth } from "@/hooks/useAuth"
 
@@ -164,8 +165,9 @@ const initialTestCases: TestCase[] = [
 
 export function TestSuitesContent() {
     const { user } = useAuth()
-    const [suites, setSuites] = useState<TestSuite[]>(initialSuites)
-    const [selectedSuiteId, setSelectedSuiteId] = useState<string>(initialSuites[0].id)
+    const [suites, setSuites] = useState<TestSuite[]>([])
+    const [selectedSuiteId, setSelectedSuiteId] = useState<string | null>(null)
+    const [isLoading, setIsLoading] = useState(true)
     const [searchQuery, setSearchQuery] = useState("")
     const [testCases, setTestCases] = useState<TestCase[]>(initialTestCases)
     const [isCreateSuiteOpen, setIsCreateSuiteOpen] = useState(false)
@@ -196,9 +198,31 @@ export function TestSuitesContent() {
         uuid: "",
     })
 
-    const selectedSuite = initialSuites.find(s => s.id === selectedSuiteId) || initialSuites[0]
+    const fetchSuites = useCallback(async () => {
+        if (!user?.id) return
+        setIsLoading(true)
+        try {
+            const response = await TestSuitesService.getTestSuites(user.id)
+            const fetchedSuites = response.data || []
+            setSuites(fetchedSuites)
+            if (fetchedSuites.length > 0 && !selectedSuiteId) {
+                setSelectedSuiteId(fetchedSuites[0].id)
+            }
+        } catch (error) {
+            console.error("Failed to fetch test suites:", error)
+            toast.error("Failed to load test suites")
+        } finally {
+            setIsLoading(false)
+        }
+    }, [user, selectedSuiteId])
 
-    const filteredSuites = initialSuites.filter(suite =>
+    useEffect(() => {
+        fetchSuites()
+    }, [fetchSuites])
+
+    const selectedSuite = suites.find(s => s.id === selectedSuiteId) || suites[0]
+
+    const filteredSuites = suites.filter(suite =>
         suite.name.toLowerCase().includes(searchQuery.toLowerCase())
     )
 
@@ -260,18 +284,36 @@ export function TestSuitesContent() {
         }
     }, [selectedSuite])
 
-    const handleAddAssistant = useCallback((assistantData: Omit<Assistant, 'id' | 'createdAt'>) => {
-        const newAssistant: Assistant = {
-            ...assistantData,
-            id: Date.now().toString(),
-            createdAt: new Date().toLocaleDateString('en-US', {
-                month: 'short',
-                day: '2-digit',
-                year: 'numeric'
-            }),
+    const handleAddAssistant = useCallback(async (assistantData: Omit<Assistant, 'id' | 'createdAt'>) => {
+        if (!user?.id) return
+
+        try {
+            const payload = {
+                name: assistantData.name,
+                websocket_url: assistantData.websocketUrl,
+                sample_rate: parseInt(assistantData.sampleRate, 10),
+                encoding: assistantData.encoding
+            }
+
+            const response = await TargetAgentsService.createTargetAgent(user.id, payload)
+
+            // Assuming the backend returns the created assistant with an id
+            const newAssistant: Assistant = {
+                ...assistantData,
+                id: response.data?.id || Date.now().toString(),
+                createdAt: new Date().toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: '2-digit',
+                    year: 'numeric'
+                }),
+            }
+            setAssistants(prev => [...prev, newAssistant])
+            toast.success("Assistant added successfully")
+        } catch (error) {
+            console.error("Failed to add assistant:", error)
+            toast.error("Failed to add assistant")
         }
-        setAssistants(prev => [...prev, newAssistant])
-    }, [])
+    }, [user])
 
 
     return (
@@ -340,31 +382,42 @@ export function TestSuitesContent() {
 
                     <ScrollArea className="flex-1 p-3">
                         <div className="space-y-1">
-                            {filteredSuites.map((suite) => (
-                                <button
-                                    key={suite.id}
-                                    type="button"
-                                    onClick={() => setSelectedSuiteId(suite.id)}
-                                    className={cn(
-                                        "w-full text-left p-3 rounded-lg transition-all duration-200 border border-transparent space-y-1 group",
-                                        selectedSuiteId === suite.id
-                                            ? "bg-primary/10 border-primary/30"
-                                            : "hover:bg-accent/50 hover:border-border/50"
-                                    )}
-                                >
-                                    <div className="flex items-center justify-between">
-                                        <span className={cn(
-                                            "font-medium truncate text-sm transition-colors",
-                                            selectedSuiteId === suite.id ? "text-primary" : "text-foreground group-hover:text-primary"
-                                        )}>
-                                            {suite.name}
-                                        </span>
-                                    </div>
-                                    <div className="text-xs text-muted-foreground">
-                                        {suite.createdAt}
-                                    </div>
-                                </button>
-                            ))}
+                            {isLoading ? (
+                                <div className="flex flex-col items-center justify-center py-10 space-y-2">
+                                    <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                                    <span className="text-xs text-muted-foreground font-medium">Loading suites...</span>
+                                </div>
+                            ) : filteredSuites.length === 0 ? (
+                                <div className="p-4 text-center">
+                                    <p className="text-xs text-muted-foreground">No test suites found</p>
+                                </div>
+                            ) : (
+                                filteredSuites.map((suite) => (
+                                    <button
+                                        key={suite.id}
+                                        type="button"
+                                        onClick={() => setSelectedSuiteId(suite.id)}
+                                        className={cn(
+                                            "w-full text-left p-3 rounded-lg transition-all duration-200 border border-transparent space-y-1 group",
+                                            selectedSuiteId === suite.id
+                                                ? "bg-primary/10 border-primary/30"
+                                                : "hover:bg-accent/50 hover:border-border/50"
+                                        )}
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <span className={cn(
+                                                "font-medium truncate text-sm transition-colors",
+                                                selectedSuiteId === suite.id ? "text-primary" : "text-foreground group-hover:text-primary"
+                                            )}>
+                                                {suite.name}
+                                            </span>
+                                        </div>
+                                        <div className="text-xs text-muted-foreground">
+                                            {suite.createdAt}
+                                        </div>
+                                    </button>
+                                ))
+                            )}
                         </div>
                     </ScrollArea>
                 </div>
@@ -375,198 +428,230 @@ export function TestSuitesContent() {
                     <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl pointer-events-none" />
 
                     {/* Header */}
-                    <div className="h-16 border-b border-border/50 flex items-center justify-between px-6 bg-card/30 backdrop-blur-sm z-10">
-                        <div className="space-y-0.5">
-                            <h1 className="text-xl font-semibold tracking-tight">{selectedSuite.name}</h1>
-                            <p className="text-xs text-muted-foreground font-mono">Test Suite ID: {selectedSuite.id}</p>
+                    {!isLoading && suites.length > 0 && (
+                        <div className="h-16 border-b border-border/50 flex items-center justify-between px-6 bg-card/30 backdrop-blur-sm z-10">
+                            <div className="space-y-0.5">
+                                <h1 className="text-xl font-semibold tracking-tight">{selectedSuite?.name || "Select a Suite"}</h1>
+                                <p className="text-xs text-muted-foreground font-mono">Test Suite ID: {selectedSuite?.id || "---"}</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Button className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 transition-all duration-300 hover:shadow-primary/40">
+                                    <Play className="mr-2 h-4 w-4 fill-current" /> Run Tests
+                                </Button>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+                                            <MoreHorizontal className="h-4 w-4" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:text-destructive">
+                                                    Delete Test Suite
+                                                </DropdownMenuItem>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        This action cannot be undone. This will permanently delete the test suite and all its test cases.
+                                                    </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                    <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                                        Delete
+                                                    </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <Button className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 transition-all duration-300 hover:shadow-primary/40">
-                                <Play className="mr-2 h-4 w-4 fill-current" /> Run Tests
-                            </Button>
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
-                                        <MoreHorizontal className="h-4 w-4" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                    <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                            <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:text-destructive">
-                                                Delete Test Suite
-                                            </DropdownMenuItem>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                            <AlertDialogHeader>
-                                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                                <AlertDialogDescription>
-                                                    This action cannot be undone. This will permanently delete the test suite and all its test cases.
-                                                </AlertDialogDescription>
-                                            </AlertDialogHeader>
-                                            <AlertDialogFooter>
-                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                                    Delete
-                                                </AlertDialogAction>
-                                            </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                    </AlertDialog>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </div>
-                    </div>
+                    )}
 
                     {/* Content */}
                     <ScrollArea className="flex-1">
-                        <div className="p-6 lg:p-8 space-y-8">
-                            <Tabs defaultValue="configure" className="space-y-6">
-                                <TabsList className="bg-muted/30 p-1 border border-border/50 inline-flex">
-                                    <TabsTrigger
-                                        value="configure"
-                                        className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm transition-all duration-200"
-                                    >
-                                        <Settings className="w-4 h-4 mr-2" />
-                                        Configure Tests
-                                    </TabsTrigger>
-                                    <TabsTrigger
-                                        value="runs"
-                                        className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all duration-200"
-                                    >
-                                        <Play className="w-4 h-4 mr-2" />
-                                        Runs
-                                    </TabsTrigger>
-                                </TabsList>
+                        {!isLoading && suites.length === 0 ? (
+                            <div className="h-full flex flex-col items-center justify-center p-8 text-center animate-in fade-in zoom-in duration-500">
+                                <div className="relative mb-6">
+                                    <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full" />
+                                    <div className="relative p-4 rounded-2xl bg-card border border-border/50 shadow-2xl">
+                                        <Beaker className="w-8 h-8 text-primary" />
+                                    </div>
+                                </div>
+                                <h2 className="text-2xl font-bold tracking-tight mb-2">Create your first test suite</h2>
+                                <p className="text-muted-foreground max-w-[420px] mb-8">
+                                    Test suites help you organize and run automated tests for your AI assistants.
+                                    Start by creating a suite to define your test cases.
+                                </p>
+                                <Button
+                                    onClick={() => setIsCreateSuiteOpen(true)}
+                                    size="lg"
+                                    className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-xl shadow-primary/20 h-11 px-8 font-medium transition-all duration-300 hover:scale-105 active:scale-95"
+                                >
+                                    <Plus className="mr-2 h-4 w-4" />
+                                    Create Test Suite
+                                </Button>
+                            </div>
+                        ) : (
+                            <div className="p-6 lg:p-8 space-y-8">
+                                <Tabs defaultValue="configure" className="space-y-6">
+                                    <TabsList className="bg-muted/30 p-1 border border-border/50 inline-flex">
+                                        <TabsTrigger
+                                            value="configure"
+                                            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm transition-all duration-200"
+                                        >
+                                            <Settings className="w-4 h-4 mr-2" />
+                                            Configure Tests
+                                        </TabsTrigger>
+                                        <TabsTrigger
+                                            value="runs"
+                                            className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all duration-200"
+                                        >
+                                            <Play className="w-4 h-4 mr-2" />
+                                            Runs
+                                        </TabsTrigger>
+                                    </TabsList>
 
-                                <TabsContent value="configure" className="space-y-8 outline-none">
+                                    <TabsContent value="configure" className="space-y-8 outline-none">
 
-                                    {/* Assistants Config Flow */}
-                                    <div className="flex flex-col lg:flex-row items-center gap-6 lg:gap-8">
-                                        {/* Tester Assistant */}
-                                        <Card className="bg-card/30 border-border/50 hover:border-primary/30 transition-all duration-300 group flex-1 w-full lg:w-auto">
-                                            <CardHeader className="pb-4">
-                                                <div className="flex items-start gap-3">
-                                                    <div className="p-2 rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-300">
-                                                        <User className="w-5 h-5" />
+                                        {/* Assistants Config Flow */}
+                                        <div className="flex flex-col lg:flex-row items-center gap-6 lg:gap-8">
+                                            {/* Tester Assistant */}
+                                            <Card className="bg-card/30 border-border/50 hover:border-primary/30 transition-all duration-300 group flex-1 w-full lg:w-auto">
+                                                <CardHeader className="pb-4">
+                                                    <div className="flex items-start gap-3">
+                                                        <div className="p-2 rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-300">
+                                                            <User className="w-5 h-5" />
+                                                        </div>
+                                                        <div className="flex-1 space-y-1">
+                                                            <CardTitle className="text-base font-semibold">Tester Assistant</CardTitle>
+                                                            <CardDescription className="text-xs">This is the assistant that will call or chat with your assistant to test them.</CardDescription>
+                                                        </div>
                                                     </div>
-                                                    <div className="flex-1 space-y-1">
-                                                        <CardTitle className="text-base font-semibold">Tester Assistant</CardTitle>
-                                                        <CardDescription className="text-xs">This is the assistant that will call or chat with your assistant to test them.</CardDescription>
+                                                </CardHeader>
+                                                <CardContent className="space-y-4">
+                                                    <div className="space-y-2">
+                                                        <Label className="text-xs text-muted-foreground">Select tester assistant configuration</Label>
+                                                        <Select
+                                                            value={selectedSuite?.user_agent_id || ""}
+                                                            onValueChange={(value) => handleUpdateSuiteAgent('user_agent_id', value)}
+                                                        >
+                                                            <SelectTrigger className="w-full bg-background/50 border-border/50">
+                                                                <SelectValue placeholder="Select Tester Agent" />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                {assistants.map((assistant) => (
+                                                                    <SelectItem key={assistant.id} value={assistant.id}>
+                                                                        {assistant.name}
+                                                                    </SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
                                                     </div>
-                                                </div>
-                                            </CardHeader>
-                                            <CardContent className="space-y-4">
-                                                <div className="space-y-2">
-                                                    <Label className="text-xs text-muted-foreground">Select tester assistant configuration</Label>
-                                                    <Select
-                                                        value={selectedSuite?.user_agent_id || ""}
-                                                        onValueChange={(value) => handleUpdateSuiteAgent('user_agent_id', value)}
-                                                    >
-                                                        <SelectTrigger className="w-full bg-background/50 border-border/50">
-                                                            <SelectValue placeholder="Select Tester Agent" />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            {assistants.map((assistant) => (
-                                                                <SelectItem key={assistant.id} value={assistant.id}>
-                                                                    {assistant.name}
-                                                                </SelectItem>
-                                                            ))}
-                                                        </SelectContent>
-                                                    </Select>
-                                                </div>
-                                                <p className="text-xs text-muted-foreground leading-relaxed">
-                                                    This is the assistant that will call or chat with your assistant to test them.
-                                                </p>
-                                            </CardContent>
-                                        </Card>
+                                                    <p className="text-xs text-muted-foreground leading-relaxed">
+                                                        This is the assistant that will call or chat with your assistant to test them.
+                                                    </p>
+                                                </CardContent>
+                                            </Card>
 
-                                        {/* Arrow */}
-                                        <div className="flex items-center justify-center lg:shrink-0">
-                                            <ArrowRight className="w-6 h-6 text-muted-foreground/50 lg:rotate-0 rotate-90" />
+                                            {/* Arrow */}
+                                            <div className="flex items-center justify-center lg:shrink-0">
+                                                <ArrowRight className="w-6 h-6 text-muted-foreground/50 lg:rotate-0 rotate-90" />
+                                            </div>
+
+                                            {/* Target Assistant */}
+                                            <Card className="bg-card/30 border-border/50 hover:border-primary/30 transition-all duration-300 group flex-1 w-full lg:w-auto">
+                                                <CardHeader className="pb-4">
+                                                    <div className="flex items-start gap-3">
+                                                        <div className="p-2 rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-300">
+                                                            <Bot className="w-5 h-5" />
+                                                        </div>
+                                                        <div className="flex-1 space-y-1">
+                                                            <CardTitle className="text-base font-semibold">Target Assistant</CardTitle>
+                                                            <CardDescription className="text-xs">This is the agent that will be tested</CardDescription>
+                                                        </div>
+                                                    </div>
+                                                </CardHeader>
+                                                <CardContent className="space-y-4">
+                                                    <div className="space-y-2">
+                                                        <Label className="text-xs text-muted-foreground">Select target agent</Label>
+                                                        <Select
+                                                            value={selectedSuite?.target_agent_id || ""}
+                                                            onValueChange={(value) => handleUpdateSuiteAgent('target_agent_id', value)}
+                                                        >
+                                                            <SelectTrigger className="w-full bg-background/50 border-border/50">
+                                                                <SelectValue placeholder="Select Target Agent" />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                {assistants.map((assistant) => (
+                                                                    <SelectItem key={assistant.id} value={assistant.id}>
+                                                                        {assistant.name}
+                                                                    </SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="w-full border-primary/30 text-primary hover:bg-primary/10 hover:text-primary transition-colors mt-2"
+                                                            onClick={() => setIsAddAssistantOpen(true)}
+                                                        >
+                                                            <Plus className="w-4 h-4 mr-2" />
+                                                            Add Assistant
+                                                        </Button>
+                                                    </div>
+                                                    <p className="text-xs text-muted-foreground leading-relaxed">
+                                                        This is the agent that will call or chat with your agent to test them.
+                                                    </p>
+                                                </CardContent>
+                                            </Card>
                                         </div>
 
-                                        {/* Target Assistant */}
-                                        <Card className="bg-card/30 border-border/50 hover:border-primary/30 transition-all duration-300 group flex-1 w-full lg:w-auto">
-                                            <CardHeader className="pb-4">
-                                                <div className="flex items-start gap-3">
-                                                    <div className="p-2 rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-300">
-                                                        <Bot className="w-5 h-5" />
-                                                    </div>
-                                                    <div className="flex-1 space-y-1">
-                                                        <CardTitle className="text-base font-semibold">Target Assistant</CardTitle>
-                                                        <CardDescription className="text-xs">This is the agent that will be tested</CardDescription>
-                                                    </div>
-                                                </div>
-                                            </CardHeader>
-                                            <CardContent className="space-y-4">
-                                                <div className="space-y-2">
-                                                    <Label className="text-xs text-muted-foreground">Select target agent</Label>
-                                                    <Select
-                                                        value={selectedSuite?.target_agent_id || ""}
-                                                        onValueChange={(value) => handleUpdateSuiteAgent('target_agent_id', value)}
-                                                    >
-                                                        <SelectTrigger className="w-full bg-background/50 border-border/50">
-                                                            <SelectValue placeholder="Select Target Agent" />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            {assistants.map((assistant) => (
-                                                                <SelectItem key={assistant.id} value={assistant.id}>
-                                                                    {assistant.name}
-                                                                </SelectItem>
-                                                            ))}
-                                                        </SelectContent>
-                                                    </Select>
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        className="w-full border-primary/30 text-primary hover:bg-primary/10 hover:text-primary transition-colors mt-2"
-                                                        onClick={() => setIsAddAssistantOpen(true)}
-                                                    >
-                                                        <Plus className="w-4 h-4 mr-2" />
-                                                        Add Assistant
-                                                    </Button>
-                                                </div>
-                                                <p className="text-xs text-muted-foreground leading-relaxed">
-                                                    This is the agent that will call or chat with your agent to test them.
-                                                </p>
-                                            </CardContent>
-                                        </Card>
-                                    </div>
+                                        {/* Test Cases Section */}
+                                        <TestCasesSection
+                                            testCases={testCases}
+                                            onAddTestCase={(testCase) => {
+                                                const newTest: TestCase = {
+                                                    ...testCase,
+                                                    id: `tc-${Date.now()}`,
+                                                }
+                                                setTestCases(prev => [...prev, newTest])
+                                            }}
+                                            onUpdateTestCase={(id, updatedTestCase) => {
+                                                setTestCases(prev => prev.map(test =>
+                                                    test.id === id ? { ...test, ...updatedTestCase } : test
+                                                ))
+                                            }}
+                                            onDeleteTestCase={(id) => {
+                                                setTestCases(prev => prev.filter(test => test.id !== id))
+                                            }}
+                                        />
 
-                                    {/* Test Cases Section */}
-                                    <TestCasesSection
-                                        testCases={testCases}
-                                        onAddTestCase={(testCase) => {
-                                            const newTest: TestCase = {
-                                                ...testCase,
-                                                id: `tc-${Date.now()}`,
-                                            }
-                                            setTestCases(prev => [...prev, newTest])
-                                        }}
-                                        onUpdateTestCase={(id, updatedTestCase) => {
-                                            setTestCases(prev => prev.map(test =>
-                                                test.id === id ? { ...test, ...updatedTestCase } : test
-                                            ))
-                                        }}
-                                        onDeleteTestCase={(id) => {
-                                            setTestCases(prev => prev.filter(test => test.id !== id))
-                                        }}
-                                    />
+                                    </TabsContent>
 
-                                </TabsContent>
-
-                                <TabsContent value="runs" className="space-y-6 outline-none">
-                                    <div className="border border-dashed border-border/50 rounded-lg p-12 text-center bg-muted/5">
-                                        <Play className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
-                                        <p className="text-muted-foreground">No test runs yet.</p>
-                                        <p className="text-sm text-muted-foreground/70 mt-1">Click &quot;Run Tests&quot; to execute your test suite.</p>
-                                    </div>
-                                </TabsContent>
-                            </Tabs>
-                        </div>
+                                    <TabsContent value="runs" className="space-y-6 outline-none">
+                                        <div className="border border-dashed border-border/50 rounded-lg p-12 text-center bg-muted/5">
+                                            <Play className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
+                                            <p className="text-muted-foreground">No test runs yet.</p>
+                                            <p className="text-sm text-muted-foreground/70 mt-1">Click &quot;Run Tests&quot; to execute your test suite.</p>
+                                        </div>
+                                    </TabsContent>
+                                </Tabs>
+                            </div>
+                        )}
                     </ScrollArea>
                 </div>
             </div>
+
+            <AddAssistantDialog
+                open={isAddAssistantOpen}
+                onOpenChange={setIsAddAssistantOpen}
+                onAddAssistant={handleAddAssistant}
+            />
         </TooltipProvider>
     )
 }

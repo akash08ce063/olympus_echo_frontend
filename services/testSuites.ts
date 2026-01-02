@@ -32,9 +32,9 @@ export const TestSuitesService = {
     updateTestSuite: (id: string, data: UpdateTestSuitePayload) =>
         apiClient.put(`/test_suites/${id}`, data),
 
-    // Get all test suites (optional, but likely needed later)
-    getTestSuites: () =>
-        apiClient.get("/test_suites"),
+    // Get all test suites
+    getTestSuites: (userId: string) =>
+        apiClient.get(TESTSUITS.test_suit.getAll(userId)),
 
     // Get a specific test suite (optional)
     getTestSuite: (id: string) =>

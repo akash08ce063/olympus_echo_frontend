@@ -1,10 +1,16 @@
 
 //App URL
 const GLOBAL = "/api/v1/";
+const TEST_SUITS = "test-suites/";
+const TARGET_AGENTS = "target-agents/";
 
 //agents endpoints
 export const TESTSUITS = {
     test_suit: {
-        create: (user_id: string) => GLOBAL + `test-suites/${user_id}`,
+        create: (user_id: string) => GLOBAL + TEST_SUITS + `?user_id=${user_id}`,
+        getAll: (user_id: string) => GLOBAL + TEST_SUITS + `?user_id=${user_id}`,
     },
+    target_agents: {
+        create: (user_id: string) => GLOBAL + TARGET_AGENTS + `?user_id=${user_id}`,
+    }
 };
