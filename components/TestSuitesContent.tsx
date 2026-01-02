@@ -167,9 +167,11 @@ export function TestSuitesContent() {
     const { user } = useAuth()
     const [suites, setSuites] = useState<TestSuite[]>([])
     const [selectedSuiteId, setSelectedSuiteId] = useState<string | null>(null)
+    const [selectedSuiteDetails, setSelectedSuiteDetails] = useState<any>(null)
     const [isLoading, setIsLoading] = useState(true)
+    const [isDetailsLoading, setIsDetailsLoading] = useState(false)
     const [searchQuery, setSearchQuery] = useState("")
-    const [testCases, setTestCases] = useState<TestCase[]>(initialTestCases)
+    const [testCases, setTestCases] = useState<TestCase[]>([])
     const [isCreateSuiteOpen, setIsCreateSuiteOpen] = useState(false)
     const [isAddAssistantOpen, setIsAddAssistantOpen] = useState(false)
     const [openCombobox, setOpenCombobox] = useState(false)
@@ -198,15 +200,40 @@ export function TestSuitesContent() {
         uuid: "",
     })
 
+    const fetchSuiteDetails = useCallback(async (id: string) => {
+        setIsDetailsLoading(true)
+        try {
+            const response: any = await TestSuitesService.getTestSuiteDetails(id)
+            console.log("Fetched suite details:", response)
+            setSelectedSuiteDetails(response)
+            if (response?.test_cases) {
+                setTestCases(response.test_cases)
+            } else {
+                setTestCases([])
+            }
+        } catch (error) {
+            console.error("Failed to fetch suite details:", error)
+            // toast.error("Failed to load suite details")
+        } finally {
+            setIsDetailsLoading(false)
+        }
+    }, [])
+
     const fetchSuites = useCallback(async () => {
         if (!user?.id) return
         setIsLoading(true)
         try {
-            const response = await TestSuitesService.getTestSuites(user.id)
-            const fetchedSuites = response.data || []
+            const response: any = await TestSuitesService.getTestSuites(user.id)
+            console.log("Fetched suites:", response)
+
+            const fetchedSuites = response?.test_suites || []
             setSuites(fetchedSuites)
-            if (fetchedSuites.length > 0 && !selectedSuiteId) {
-                setSelectedSuiteId(fetchedSuites[0].id)
+
+            // Always select first suite on load or if none selected
+            if (fetchedSuites.length > 0) {
+                const firstSuiteId = fetchedSuites[0].id
+                setSelectedSuiteId(firstSuiteId)
+                fetchSuiteDetails(firstSuiteId)
             }
         } catch (error) {
             console.error("Failed to fetch test suites:", error)
@@ -214,7 +241,12 @@ export function TestSuitesContent() {
         } finally {
             setIsLoading(false)
         }
-    }, [user, selectedSuiteId])
+    }, [user, fetchSuiteDetails])
+
+    const handleSuiteSelect = useCallback((id: string) => {
+        setSelectedSuiteId(id)
+        fetchSuiteDetails(id)
+    }, [fetchSuiteDetails])
 
     useEffect(() => {
         fetchSuites()
@@ -284,36 +316,9 @@ export function TestSuitesContent() {
         }
     }, [selectedSuite])
 
-    const handleAddAssistant = useCallback(async (assistantData: Omit<Assistant, 'id' | 'createdAt'>) => {
-        if (!user?.id) return
-
-        try {
-            const payload = {
-                name: assistantData.name,
-                websocket_url: assistantData.websocketUrl,
-                sample_rate: parseInt(assistantData.sampleRate, 10),
-                encoding: assistantData.encoding
-            }
-
-            const response = await TargetAgentsService.createTargetAgent(user.id, payload)
-
-            // Assuming the backend returns the created assistant with an id
-            const newAssistant: Assistant = {
-                ...assistantData,
-                id: response.data?.id || Date.now().toString(),
-                createdAt: new Date().toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: '2-digit',
-                    year: 'numeric'
-                }),
-            }
-            setAssistants(prev => [...prev, newAssistant])
-            toast.success("Assistant added successfully")
-        } catch (error) {
-            console.error("Failed to add assistant:", error)
-            toast.error("Failed to add assistant")
-        }
-    }, [user])
+    const handleAddAssistant = useCallback((newAssistant: Assistant) => {
+        setAssistants(prev => [...prev, newAssistant])
+    }, [])
 
 
     return (
@@ -396,7 +401,7 @@ export function TestSuitesContent() {
                                     <button
                                         key={suite.id}
                                         type="button"
-                                        onClick={() => setSelectedSuiteId(suite.id)}
+                                        onClick={() => handleSuiteSelect(suite.id)}
                                         className={cn(
                                             "w-full text-left p-3 rounded-lg transition-all duration-200 border border-transparent space-y-1 group",
                                             selectedSuiteId === suite.id
@@ -431,8 +436,8 @@ export function TestSuitesContent() {
                     {!isLoading && suites.length > 0 && (
                         <div className="h-16 border-b border-border/50 flex items-center justify-between px-6 bg-card/30 backdrop-blur-sm z-10">
                             <div className="space-y-0.5">
-                                <h1 className="text-xl font-semibold tracking-tight">{selectedSuite?.name || "Select a Suite"}</h1>
-                                <p className="text-xs text-muted-foreground font-mono">Test Suite ID: {selectedSuite?.id || "---"}</p>
+                                <h1 className="text-xl font-semibold tracking-tight">{selectedSuiteDetails?.name || selectedSuite?.name || "Select a Suite"}</h1>
+                                <p className="text-xs text-muted-foreground font-mono">Test Suite ID: {selectedSuiteDetails?.id || selectedSuite?.id || "---"}</p>
                             </div>
                             <div className="flex items-center gap-2">
                                 <Button className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 transition-all duration-300 hover:shadow-primary/40">
@@ -537,7 +542,7 @@ export function TestSuitesContent() {
                                                     <div className="space-y-2">
                                                         <Label className="text-xs text-muted-foreground">Select tester assistant configuration</Label>
                                                         <Select
-                                                            value={selectedSuite?.user_agent_id || ""}
+                                                            value={selectedSuiteDetails?.user_assistant?.id || selectedSuite?.user_agent_id || ""}
                                                             onValueChange={(value) => handleUpdateSuiteAgent('user_agent_id', value)}
                                                         >
                                                             <SelectTrigger className="w-full bg-background/50 border-border/50">
@@ -580,7 +585,7 @@ export function TestSuitesContent() {
                                                     <div className="space-y-2">
                                                         <Label className="text-xs text-muted-foreground">Select target agent</Label>
                                                         <Select
-                                                            value={selectedSuite?.target_agent_id || ""}
+                                                            value={selectedSuiteDetails?.target_assistant?.id || selectedSuite?.target_agent_id || ""}
                                                             onValueChange={(value) => handleUpdateSuiteAgent('target_agent_id', value)}
                                                         >
                                                             <SelectTrigger className="w-full bg-background/50 border-border/50">

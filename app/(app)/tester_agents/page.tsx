@@ -76,24 +76,15 @@ export default function TesterAgentsPage() {
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
     const [editingAssistant, setEditingAssistant] = useState<Assistant | null>(null)
 
-    const handleAddAssistant = (assistantData: Omit<Assistant, 'id' | 'createdAt'>) => {
+    const handleAddAssistant = (newAssistant: Assistant) => {
         if (editingAssistant) {
             setAgents(prev => prev.map(assistant =>
                 assistant.id === editingAssistant.id
-                    ? { ...assistant, ...assistantData }
+                    ? { ...newAssistant, id: editingAssistant.id } // Keep existing ID if editing
                     : assistant
             ))
             setEditingAssistant(null)
         } else {
-            const newAssistant: Assistant = {
-                ...assistantData,
-                id: Date.now().toString(),
-                createdAt: new Date().toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: '2-digit',
-                    year: 'numeric'
-                }),
-            }
             setAgents(prev => [newAssistant, ...prev])
         }
         setIsAddDialogOpen(false)
@@ -229,6 +220,7 @@ export default function TesterAgentsPage() {
                     open={isAddDialogOpen}
                     onOpenChange={handleCloseDialog}
                     onAddAssistant={handleAddAssistant}
+                    initialData={editingAssistant}
                 />
             </div>
         </div>

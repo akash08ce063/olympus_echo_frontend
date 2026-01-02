@@ -39,4 +39,8 @@ export const TestSuitesService = {
     // Get a specific test suite (optional)
     getTestSuite: (id: string) =>
         apiClient.get(`/test_suites/${id}`),
+
+    // Get test suite details (including test cases, etc.)
+    getTestSuiteDetails: (id: string) =>
+        apiClient.get(TESTSUITS.test_suit.getById(id)),
 };

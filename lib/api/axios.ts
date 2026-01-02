@@ -63,7 +63,7 @@ const apiClient = axios.create({
     baseURL: APP_BASE_URL,
     headers: {
         "Content-Type": "application/json",
-        // "ngrok-skip-browser-warning": true, // Enable if needed for local dev through ngrok
+        "ngrok-skip-browser-warning": "true",
     },
 });
 
@@ -71,7 +71,7 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use(
     async (config) => {
         try {
-            config.headers["x-pranthora-callid"] = uuidv4();
+            // config.headers["x-pranthora-callid"] = uuidv4();
 
             const token = await getValidToken();
             if (token) {

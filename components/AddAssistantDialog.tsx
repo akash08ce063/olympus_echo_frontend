@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { Bot, Plus } from "lucide-react";
+import { useState, useCallback, useEffect } from "react";
+import { Bot, Plus, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { useAuth } from "@/hooks/useAuth";
+import { TargetAgentsService } from "@/services/targetAgents";
+import { toast } from "sonner";
 
 export interface Assistant {
   id: string;
@@ -28,14 +31,18 @@ export interface Assistant {
 interface AddAssistantDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAddAssistant: (assistant: Omit<Assistant, "id" | "createdAt">) => void;
+  onAddAssistant: (assistant: Assistant) => void;
+  initialData?: Assistant | null;
 }
 
 export function AddAssistantDialog({
   open,
   onOpenChange,
   onAddAssistant,
+  initialData,
 }: AddAssistantDialogProps) {
+  const { user } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     websocketUrl: "",
@@ -43,18 +50,84 @@ export function AddAssistantDialog({
     encoding: "mulaw",
   });
 
-  const handleSubmit = useCallback(() => {
-    if (formData.name && formData.websocketUrl) {
-      onAddAssistant(formData);
+  useEffect(() => {
+    if (open) {
+      if (initialData) {
+        setFormData({
+          name: initialData.name,
+          websocketUrl: initialData.websocketUrl,
+          sampleRate: initialData.sampleRate,
+          encoding: initialData.encoding,
+        });
+      } else {
+        setFormData({
+          name: "",
+          websocketUrl: "",
+          sampleRate: "8000",
+          encoding: "mulaw",
+        });
+      }
+    }
+  }, [open, initialData]);
+
+  const handleSubmit = useCallback(async () => {
+    if (!formData.name || !formData.websocketUrl) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+
+    if (!user?.id) {
+      toast.error("You must be logged in to add an assistant");
+      return;
+    }
+
+    // If editing, skip API for now and just notify parent
+    if (initialData) {
+      onAddAssistant({
+        ...initialData,
+        ...formData,
+      });
+      onOpenChange(false);
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const payload = {
+        name: formData.name,
+        websocket_url: formData.websocketUrl,
+        sample_rate: parseInt(formData.sampleRate, 10),
+        encoding: formData.encoding,
+      };
+
+      const response = await TargetAgentsService.createTargetAgent(user.id, payload);
+
+      const newAssistant: Assistant = {
+        ...formData,
+        id: response.data?.id || Date.now().toString(),
+        createdAt: new Date().toLocaleDateString('en-US', {
+          month: 'short',
+          day: '2-digit',
+          year: 'numeric'
+        }),
+      };
+
+      onAddAssistant(newAssistant);
       setFormData({
         name: "",
         websocketUrl: "",
-        sampleRate: "",
-        encoding: "",
+        sampleRate: "8000",
+        encoding: "mulaw",
       });
       onOpenChange(false);
+      toast.success("Assistant added successfully");
+    } catch (error) {
+      console.error("Failed to add assistant:", error);
+      toast.error("Failed to add assistant");
+    } finally {
+      setIsSubmitting(false);
     }
-  }, [formData, onAddAssistant, onOpenChange]);
+  }, [formData, user, onAddAssistant, onOpenChange]);
 
   const handleInputChange =
     (field: keyof typeof formData) =>
@@ -162,9 +235,17 @@ export function AddAssistantDialog({
           </Button>
           <Button
             onClick={handleSubmit}
+            disabled={isSubmitting}
             className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/25"
           >
-            Add Assistant
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Adding...
+              </>
+            ) : (
+              "Add Assistant"
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>
