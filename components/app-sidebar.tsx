@@ -43,9 +43,14 @@ const navMain = [
     icon: IconFlask,
   },
   {
-    title: "Tester Agents",
-    url: "/tester_agents",
+    title: "Target Agents",
+    url: "/tester_agents", // Keeping URL for now to avoid breaking existing logic, or I should rename folder later
     icon: IconRobot,
+  },
+  {
+    title: "Tester Agents",
+    url: "/user_agents",
+    icon: IconUsers,
   },
   {
     title: "Test History",

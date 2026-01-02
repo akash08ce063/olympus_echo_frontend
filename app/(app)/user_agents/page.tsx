@@ -45,13 +45,11 @@ import { DataTable } from "@/components/data-table"
 import { ColumnDef } from "@tanstack/react-table"
 import { AddAssistantDialog, type Assistant } from "@/components/AddAssistantDialog"
 import { useAuth } from "@/hooks/useAuth"
-import { TargetAgentsService } from "@/services/targetAgents"
+import { UserAgentsService } from "@/services/userAgents"
 import { toast } from "sonner"
 import { Skeleton } from "@/components/ui/skeleton"
 
-
-
-export default function TesterAgentsPage() {
+export default function UserAgentsPage() {
     const { user } = useAuth()
     const [agents, setAgents] = useState<Assistant[]>([])
     const [isLoading, setIsLoading] = useState(true)
@@ -62,15 +60,14 @@ export default function TesterAgentsPage() {
         if (!user?.id) return
         setIsLoading(true)
         try {
-            const response = await TargetAgentsService.getTargetAgents(user.id) as any
-            const agentsList = response?.target_agents || []
+            const response = await UserAgentsService.getUserAgents(user.id) as any
+            const agentsList = response?.user_agents || []
 
             const transformedAgents: Assistant[] = agentsList.map((agent: any) => ({
                 id: agent.id,
                 name: agent.name,
-                websocketUrl: agent.websocket_url,
-                sampleRate: agent.sample_rate.toString(),
-                encoding: agent.encoding,
+                systemPrompt: agent.system_prompt,
+                temperature: agent.temperature,
                 createdAt: new Date(agent.created_at).toLocaleDateString('en-US', {
                     month: 'short',
                     day: '2-digit',
@@ -80,8 +77,8 @@ export default function TesterAgentsPage() {
 
             setAgents(transformedAgents)
         } catch (error) {
-            console.error("Failed to fetch agents:", error)
-            toast.error("Failed to load agents")
+            console.error("Failed to fetch user agents:", error)
+            toast.error("Failed to load tester agents")
         } finally {
             setIsLoading(false)
         }
@@ -95,7 +92,7 @@ export default function TesterAgentsPage() {
         if (editingAssistant) {
             setAgents(prev => prev.map(assistant =>
                 assistant.id === editingAssistant.id
-                    ? { ...newAssistant, id: editingAssistant.id } // Keep existing ID if editing
+                    ? { ...newAssistant, id: editingAssistant.id }
                     : assistant
             ))
             setEditingAssistant(null)
@@ -133,22 +130,22 @@ export default function TesterAgentsPage() {
             )
         },
         {
-            accessorKey: "websocketUrl",
-            header: "Websocket URL",
+            accessorKey: "systemPrompt",
+            header: "System Prompt",
             cell: ({ row }) => (
-                <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">
-                    {row.getValue("websocketUrl")}
-                </code>
+                <div className="max-w-[300px] truncate text-sm text-muted-foreground" title={row.getValue("systemPrompt")}>
+                    {row.getValue("systemPrompt")}
+                </div>
             )
         },
         {
-            accessorKey: "sampleRate",
-            header: "Sample Rate",
-            cell: ({ row }) => <span>{row.getValue("sampleRate")} Hz</span>
-        },
-        {
-            accessorKey: "encoding",
-            header: "Encoding",
+            accessorKey: "temperature",
+            header: "Temp",
+            cell: ({ row }) => (
+                <Badge variant="outline" className="font-mono">
+                    {Number(row.getValue("temperature")).toFixed(1)}
+                </Badge>
+            )
         },
         {
             accessorKey: "createdAt",
@@ -211,14 +208,14 @@ export default function TesterAgentsPage() {
                 {/* Header */}
                 <div className="flex items-center justify-between">
                     <div className="space-y-1">
-                        <h1 className="text-3xl font-bold tracking-tight">Target Agents</h1>
+                        <h1 className="text-3xl font-bold tracking-tight">Tester Agents</h1>
                         <p className="text-muted-foreground">
-                            Manage the client agents you want to test
+                            Manage your evaluation bots that test the target agents
                         </p>
                     </div>
                     <Button onClick={() => setIsAddDialogOpen(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25">
                         <Plus className="mr-2 h-4 w-4" />
-                        Create Target Agent
+                        Create Tester Agent
                     </Button>
                 </div>
 
@@ -254,7 +251,7 @@ export default function TesterAgentsPage() {
                     onOpenChange={handleCloseDialog}
                     onAddAssistant={handleAddAssistant}
                     initialData={editingAssistant}
-                    agentType="target"
+                    agentType="tester"
                 />
             </div>
         </div>

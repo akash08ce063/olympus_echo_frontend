@@ -10,6 +10,14 @@ export interface CreateTargetAgentPayload {
 
 export const TargetAgentsService = {
     // Create a new target agent
-    createTargetAgent: (userId: string, data: CreateTargetAgentPayload) =>
-        apiClient.post(TESTSUITS.target_agents.create(userId), data),
+    createTargetAgent: (data: CreateTargetAgentPayload) =>
+        apiClient.post(TESTSUITS.target_agents.create, data),
+
+    // Get all target agents for a user
+    getTargetAgents: (userId: string) =>
+        apiClient.get(TESTSUITS.target_agents.getAll(userId)),
+
+    // Get a specific target agent
+    getTargetAgent: (id: string) =>
+        apiClient.get(`/v1/target-agents/${id}`),
 };

@@ -46,6 +46,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
     Table,
     TableBody,
@@ -106,6 +107,7 @@ import { AddAssistantDialog, type Assistant } from "@/components/AddAssistantDia
 import { TestCasesSection } from "@/components/TestCasesSection"
 import { TestSuitesService } from "@/services/testSuites"
 import { TargetAgentsService } from "@/services/targetAgents"
+import { UserAgentsService } from "@/services/userAgents"
 import { toast } from "sonner"
 import { useAuth } from "@/hooks/useAuth"
 
@@ -116,18 +118,16 @@ interface TestSuite {
     description?: string
     target_agent_id?: string
     user_agent_id?: string
-    createdAt: string
+    created_at: string
+    updated_at: string
+    user_id: string
+    targetAgentName?: string
+    userAgentName?: string
     testCount: number
+    createdAt?: string // For backward compatibility with mock data
 }
 
-interface TestCase {
-    id: string
-    name: string
-    type: "voice" | "chat"
-    script: string
-    rubric: string
-    attempts: number
-}
+import { TestCase } from "@/types/test-suite"
 
 
 // Mock Data
@@ -135,19 +135,25 @@ const initialSuites: TestSuite[] = [
     {
         id: "20ce1a33-68f8-4812-9d99-48ae7e68e3c0",
         name: "New Test Suite",
-        createdAt: "Dec 31, 2025",
+        created_at: "2025-12-31T00:00:00Z",
+        updated_at: "2025-12-31T00:00:00Z",
+        user_id: "mock-user-id",
         testCount: 3,
     },
     {
         id: "ts-002",
         name: "New Test Suite",
-        createdAt: "Dec 31, 2025",
+        created_at: "2025-12-31T00:00:00Z",
+        updated_at: "2025-12-31T00:00:00Z",
+        user_id: "mock-user-id",
         testCount: 0,
     },
     {
         id: "ts-003",
         name: "New Test Suite",
-        createdAt: "Dec 29, 2025",
+        created_at: "2025-12-29T00:00:00Z",
+        updated_at: "2025-12-29T00:00:00Z",
+        user_id: "mock-user-id",
         testCount: 0,
     },
 ]
@@ -155,11 +161,20 @@ const initialSuites: TestSuite[] = [
 const initialTestCases: TestCase[] = [
     {
         id: "tc-001",
+        test_suite_id: "20ce1a33-68f8-4812-9d99-48ae7e68e3c0",
         name: "Greeting Flow",
-        type: "voice",
-        script: "1: Greet the caller.\n2: Ask \"How much larger is the sun than the moon?\"\n3: Ask the same question again.\n4: End the call.",
-        rubric: "The assistant should refuse to answer the question since it's not related to the caller's business.",
-        attempts: 1,
+        steps: [
+            { action: 'speak', text: "Hello, can you help me?" }
+        ],
+        conditions: [
+            { type: 'response_contains', expected: "Hello" }
+        ],
+        expected_outcome: "Agent greets the customer",
+        timeout_seconds: 30,
+        order_index: 0,
+        is_active: true,
+        attempts: 3,
+        default_concurrent_calls: 1
     },
 ]
 
@@ -176,24 +191,11 @@ export function TestSuitesContent() {
     const [isAddAssistantOpen, setIsAddAssistantOpen] = useState(false)
     const [openCombobox, setOpenCombobox] = useState(false)
     const [selectedAssistant, setSelectedAssistant] = useState<string>("")
-    const [assistants, setAssistants] = useState<Assistant[]>([
-        {
-            id: "1",
-            name: "Main Support Bot",
-            websocketUrl: "ws://localhost:8080",
-            sampleRate: "16000",
-            encoding: "pcm_16",
-            createdAt: "Dec 31, 2025",
-        },
-        {
-            id: "2",
-            name: "Sales Assistant",
-            websocketUrl: "ws://localhost:8081",
-            sampleRate: "22050",
-            encoding: "pcm_16",
-            createdAt: "Dec 30, 2025",
-        },
-    ])
+    // Target agents for dropdown
+    const [targetAgents, setTargetAgents] = useState<{ id: string, name: string }[]>([])
+    // User/Tester agents for dropdown
+    const [userAgents, setUserAgents] = useState<{ id: string, name: string }[]>([])
+    const [assistants, setAssistants] = useState<Assistant[]>([])
     const [newSuite, setNewSuite] = useState({
         name: "",
         description: "",
@@ -223,17 +225,61 @@ export function TestSuitesContent() {
         if (!user?.id) return
         setIsLoading(true)
         try {
-            const response: any = await TestSuitesService.getTestSuites(user.id)
-            console.log("Fetched suites:", response)
+            // Note: axios interceptor already returns response.data, so use response directly
+            const response = await TestSuitesService.getTestSuites(user.id) as any
+            const apiData = response || {}
+            const fetchedSuites = apiData.test_suites || []
 
-            const fetchedSuites = response?.test_suites || []
-            setSuites(fetchedSuites)
+            // Transform the data and fetch agent names
+            const transformedSuites = await Promise.all(
+                fetchedSuites.map(async (suite: any) => {
+                    const transformedSuite: TestSuite = {
+                        id: suite.id,
+                        name: suite.name,
+                        description: suite.description,
+                        target_agent_id: suite.target_agent_id,
+                        user_agent_id: suite.user_agent_id,
+                        created_at: suite.created_at,
+                        updated_at: suite.updated_at,
+                        user_id: suite.user_id,
+                        testCount: 0, // We'll need to implement this later
+                        createdAt: new Date(suite.created_at).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: '2-digit',
+                            year: 'numeric'
+                        }),
+                    }
 
-            // Always select first suite on load or if none selected
-            if (fetchedSuites.length > 0) {
-                const firstSuiteId = fetchedSuites[0].id
+                    // Fetch agent names if IDs are present (response is already unwrapped by axios)
+                    if (suite.target_agent_id) {
+                        try {
+                            const targetAgentResponse = await TargetAgentsService.getTargetAgent(suite.target_agent_id) as any
+                            transformedSuite.targetAgentName = targetAgentResponse?.name || 'Unknown Agent'
+                        } catch (error) {
+                            console.warn(`Failed to fetch target agent ${suite.target_agent_id}:`, error)
+                            transformedSuite.targetAgentName = 'Unknown Agent'
+                        }
+                    }
+
+                    if (suite.user_agent_id) {
+                        try {
+                            const userAgentResponse = await UserAgentsService.getUserAgent(suite.user_agent_id) as any
+                            transformedSuite.userAgentName = userAgentResponse?.name || 'Unknown Agent'
+                        } catch (error) {
+                            console.warn(`Failed to fetch user agent ${suite.user_agent_id}:`, error)
+                            transformedSuite.userAgentName = 'Unknown Agent'
+                        }
+                    }
+
+                    return transformedSuite
+                })
+            )
+
+            setSuites(transformedSuites)
+            if (transformedSuites.length > 0 && !selectedSuiteId) {
+                const firstSuiteId = transformedSuites[0].id
                 setSelectedSuiteId(firstSuiteId)
-                fetchSuiteDetails(firstSuiteId)
+                fetchSuiteDetails(firstSuiteId) // Fetch details for the first suite on load
             }
         } catch (error) {
             console.error("Failed to fetch test suites:", error)
@@ -248,9 +294,28 @@ export function TestSuitesContent() {
         fetchSuiteDetails(id)
     }, [fetchSuiteDetails])
 
+    // Fetch agents for dropdown menus
+    const fetchAgents = useCallback(async () => {
+        if (!user?.id) return
+        try {
+            // Fetch target agents (response already unwrapped by axios)
+            const targetResponse = await TargetAgentsService.getTargetAgents(user.id) as any
+            const targetList = targetResponse?.target_agents || []
+            setTargetAgents(targetList.map((a: any) => ({ id: a.id, name: a.name })))
+
+            // Fetch user agents
+            const userResponse = await UserAgentsService.getUserAgents(user.id) as any
+            const userList = userResponse?.user_agents || []
+            setUserAgents(userList.map((a: any) => ({ id: a.id, name: a.name })))
+        } catch (error) {
+            console.warn("Failed to fetch agents for dropdowns:", error)
+        }
+    }, [user])
+
     useEffect(() => {
         fetchSuites()
-    }, [fetchSuites])
+        fetchAgents()
+    }, [fetchSuites, fetchAgents])
 
     const selectedSuite = suites.find(s => s.id === selectedSuiteId) || suites[0]
 
@@ -271,12 +336,15 @@ export function TestSuitesContent() {
                 id: newSuite.uuid || crypto.randomUUID(),
                 name: newSuite.name,
                 description: newSuite.description,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                user_id: user.id,
+                testCount: 0,
                 createdAt: new Date().toLocaleDateString('en-US', {
                     month: 'short',
                     day: '2-digit',
                     year: 'numeric'
                 }),
-                testCount: 0,
             }
 
             setSuites(prev => [suite, ...prev])
@@ -308,6 +376,9 @@ export function TestSuitesContent() {
                     ? { ...s, [field]: agentId }
                     : s
             ));
+
+            // Re-fetch details to get updated names and nested objects
+            fetchSuiteDetails(selectedSuite.id);
 
             toast.success(`${field === 'target_agent_id' ? 'Target' : 'Tester'} agent updated`)
         } catch (error) {
@@ -388,9 +459,13 @@ export function TestSuitesContent() {
                     <ScrollArea className="flex-1 p-3">
                         <div className="space-y-1">
                             {isLoading ? (
-                                <div className="flex flex-col items-center justify-center py-10 space-y-2">
-                                    <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                                    <span className="text-xs text-muted-foreground font-medium">Loading suites...</span>
+                                <div className="space-y-2">
+                                    {[1, 2, 3].map((i) => (
+                                        <div key={i} className="p-3 rounded-lg border border-border/50 space-y-2">
+                                            <Skeleton className="h-4 w-3/4" />
+                                            <Skeleton className="h-3 w-1/2" />
+                                        </div>
+                                    ))}
                                 </div>
                             ) : filteredSuites.length === 0 ? (
                                 <div className="p-4 text-center">
@@ -418,7 +493,11 @@ export function TestSuitesContent() {
                                             </span>
                                         </div>
                                         <div className="text-xs text-muted-foreground">
-                                            {suite.createdAt}
+                                            {suite.created_at || suite.createdAt ? new Date(suite.created_at || suite.createdAt!).toLocaleDateString('en-US', {
+                                                month: 'short',
+                                                day: '2-digit',
+                                                year: 'numeric'
+                                            }) : 'Unknown'}
                                         </div>
                                     </button>
                                 ))
@@ -542,18 +621,24 @@ export function TestSuitesContent() {
                                                     <div className="space-y-2">
                                                         <Label className="text-xs text-muted-foreground">Select tester assistant configuration</Label>
                                                         <Select
-                                                            value={selectedSuiteDetails?.user_assistant?.id || selectedSuite?.user_agent_id || ""}
+                                                            value={selectedSuiteDetails?.user_agent?.id || selectedSuite?.user_agent_id || ""}
                                                             onValueChange={(value) => handleUpdateSuiteAgent('user_agent_id', value)}
                                                         >
                                                             <SelectTrigger className="w-full bg-background/50 border-border/50">
-                                                                <SelectValue placeholder="Select Tester Agent" />
+                                                                <SelectValue placeholder="Select Tester Agent">
+                                                                    {selectedSuiteDetails?.user_agent?.name || selectedSuite?.userAgentName || userAgents.find(a => a.id === (selectedSuiteDetails?.user_agent?.id || selectedSuite?.user_agent_id))?.name || 'Select Agent'}
+                                                                </SelectValue>
                                                             </SelectTrigger>
                                                             <SelectContent>
-                                                                {assistants.map((assistant) => (
-                                                                    <SelectItem key={assistant.id} value={assistant.id}>
-                                                                        {assistant.name}
-                                                                    </SelectItem>
-                                                                ))}
+                                                                {userAgents.length === 0 ? (
+                                                                    <div className="p-2 text-sm text-muted-foreground">No tester agents available</div>
+                                                                ) : (
+                                                                    userAgents.map((agent) => (
+                                                                        <SelectItem key={agent.id} value={agent.id}>
+                                                                            {agent.name}
+                                                                        </SelectItem>
+                                                                    ))
+                                                                )}
                                                             </SelectContent>
                                                         </Select>
                                                     </div>
@@ -585,18 +670,24 @@ export function TestSuitesContent() {
                                                     <div className="space-y-2">
                                                         <Label className="text-xs text-muted-foreground">Select target agent</Label>
                                                         <Select
-                                                            value={selectedSuiteDetails?.target_assistant?.id || selectedSuite?.target_agent_id || ""}
+                                                            value={selectedSuiteDetails?.target_agent?.id || selectedSuite?.target_agent_id || ""}
                                                             onValueChange={(value) => handleUpdateSuiteAgent('target_agent_id', value)}
                                                         >
                                                             <SelectTrigger className="w-full bg-background/50 border-border/50">
-                                                                <SelectValue placeholder="Select Target Agent" />
+                                                                <SelectValue placeholder="Select Target Agent">
+                                                                    {selectedSuiteDetails?.target_agent?.name || selectedSuite?.targetAgentName || targetAgents.find(a => a.id === (selectedSuiteDetails?.target_agent?.id || selectedSuite?.target_agent_id))?.name || 'Select Agent'}
+                                                                </SelectValue>
                                                             </SelectTrigger>
                                                             <SelectContent>
-                                                                {assistants.map((assistant) => (
-                                                                    <SelectItem key={assistant.id} value={assistant.id}>
-                                                                        {assistant.name}
-                                                                    </SelectItem>
-                                                                ))}
+                                                                {targetAgents.length === 0 ? (
+                                                                    <div className="p-2 text-sm text-muted-foreground">No target agents available</div>
+                                                                ) : (
+                                                                    targetAgents.map((agent) => (
+                                                                        <SelectItem key={agent.id} value={agent.id}>
+                                                                            {agent.name}
+                                                                        </SelectItem>
+                                                                    ))
+                                                                )}
                                                             </SelectContent>
                                                         </Select>
                                                         <Button
@@ -619,11 +710,8 @@ export function TestSuitesContent() {
                                         {/* Test Cases Section */}
                                         <TestCasesSection
                                             testCases={testCases}
-                                            onAddTestCase={(testCase) => {
-                                                const newTest: TestCase = {
-                                                    ...testCase,
-                                                    id: `tc-${Date.now()}`,
-                                                }
+                                            testSuiteId={selectedSuiteId || ""}
+                                            onAddTestCase={(newTest) => {
                                                 setTestCases(prev => [...prev, newTest])
                                             }}
                                             onUpdateTestCase={(id, updatedTestCase) => {

@@ -16,13 +16,28 @@ export type RubricItem = {
   threshold?: number; // For latency (ms) or logic
 };
 
+export type TestStep = {
+  action: 'speak' | 'wait' | 'press_key';
+  text: string;
+};
+
+export type TestCondition = {
+  type: 'response_contains' | 'exact_match' | 'llm_eval' | 'latency_under';
+  expected: string;
+};
+
 export type TestCase = {
-  id: string;
-  title: string;
-  scenario: string; // Description for the human/dashboard
-  testerPersona: Persona; // The "User" agent configuration
-  script: string; // Specific instructions/script for the Tester Agent
-  rubric: RubricItem[];
+  id?: string;
+  test_suite_id: string;
+  name: string;
+  steps: TestStep[];
+  conditions: TestCondition[];
+  expected_outcome: string;
+  timeout_seconds: number;
+  order_index: number;
+  is_active: boolean;
+  attempts: number;
+  default_concurrent_calls: number;
 };
 
 export type TargetAgent = {

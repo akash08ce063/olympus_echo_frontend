@@ -49,7 +49,7 @@ export default function SuiteDetailPage() {
         const caseExists = dataset.cases.find(c => c.id === newCase.id);
         let updatedCases = caseExists
             ? dataset.cases.map(c => c.id === newCase.id ? newCase : c)
-            : [...dataset.cases, newCase];
+            : [...dataset.cases, { ...newCase, id: `tc-${Date.now()}` }];
         updateDataset({ ...dataset, cases: updatedCases });
         setIsSheetOpen(false);
         setEditingCase(undefined);
@@ -206,23 +206,27 @@ export default function SuiteDetailPage() {
                                     <TableHeader>
                                         <TableRow>
                                             <TableHead>Name</TableHead>
-                                            <TableHead>Type</TableHead>
-                                            <TableHead className="w-[300px]">Script</TableHead>
-                                            <TableHead>Rubric</TableHead>
+                                            <TableHead>Steps</TableHead>
+                                            <TableHead>Rules</TableHead>
+                                            <TableHead>Expected Outcome</TableHead>
                                             <TableHead>Attempts</TableHead>
-                                            <TableHead></TableHead>
+                                            <TableHead>Concurrency</TableHead>
+                                            <TableHead className="text-right">Actions</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
                                         {dataset.cases.map(tCase => (
                                             <TableRow key={tCase.id}>
-                                                <TableCell className="font-medium">{tCase.title}</TableCell>
-                                                <TableCell><Badge variant="secondary" className="font-normal text-xs">Voice</Badge></TableCell>
-                                                <TableCell className="text-muted-foreground text-xs line-clamp-2" title={tCase.script}>
-                                                    {tCase.script.substring(0, 60)}...
+                                                <TableCell className="font-medium">{tCase.name}</TableCell>
+                                                <TableCell>
+                                                    <Badge variant="outline" className="text-[10px]">{tCase.steps.length} Steps</Badge>
                                                 </TableCell>
-                                                <TableCell className="text-xs line-clamp-2">{tCase.rubric.map(r => r.criteria).join(", ")}</TableCell>
-                                                <TableCell>1</TableCell>
+                                                <TableCell>
+                                                    <Badge variant="secondary" className="text-[10px] bg-primary/10 text-primary">{tCase.conditions.length} Rules</Badge>
+                                                </TableCell>
+                                                <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">{tCase.expected_outcome}</TableCell>
+                                                <TableCell className="text-center font-mono">{tCase.attempts}</TableCell>
+                                                <TableCell className="text-center font-mono">{tCase.default_concurrent_calls}</TableCell>
                                                 <TableCell className="text-right">
                                                     <div className="flex justify-end gap-1">
                                                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditingCase(tCase); setIsSheetOpen(true); }}>
@@ -237,7 +241,7 @@ export default function SuiteDetailPage() {
                                         ))}
                                         {dataset.cases.length === 0 && (
                                             <TableRow>
-                                                <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                                                <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
                                                     No test cases found. Add one manually or generate with AI.
                                                 </TableCell>
                                             </TableRow>
@@ -263,6 +267,7 @@ export default function SuiteDetailPage() {
                 onClose={() => setIsSheetOpen(false)}
                 onSave={handleSaveCase}
                 initialData={editingCase}
+                testSuiteId={id as string}
             />
 
             <Dialog open={isTargetDialogOpen} onOpenChange={setIsTargetDialogOpen}>

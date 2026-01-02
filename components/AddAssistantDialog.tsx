@@ -15,8 +15,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { Textarea } from "./ui/textarea";
+import { Slider } from "./ui/slider";
 import { useAuth } from "@/hooks/useAuth";
 import { TargetAgentsService } from "@/services/targetAgents";
+import { UserAgentsService } from "@/services/userAgents";
 import { toast } from "sonner";
 
 export interface Assistant {
@@ -26,6 +29,8 @@ export interface Assistant {
   sampleRate: string;
   encoding: string;
   createdAt: string;
+  systemPrompt?: string;
+  temperature?: number;
 }
 
 interface AddAssistantDialogProps {
@@ -33,6 +38,7 @@ interface AddAssistantDialogProps {
   onOpenChange: (open: boolean) => void;
   onAddAssistant: (assistant: Assistant) => void;
   initialData?: Assistant | null;
+  agentType?: "target" | "tester";
 }
 
 export function AddAssistantDialog({
@@ -40,6 +46,7 @@ export function AddAssistantDialog({
   onOpenChange,
   onAddAssistant,
   initialData,
+  agentType = "target",
 }: AddAssistantDialogProps) {
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -48,6 +55,8 @@ export function AddAssistantDialog({
     websocketUrl: "",
     sampleRate: "8000",
     encoding: "mulaw",
+    systemPrompt: "",
+    temperature: 0.7,
   });
 
   useEffect(() => {
@@ -58,6 +67,8 @@ export function AddAssistantDialog({
           websocketUrl: initialData.websocketUrl,
           sampleRate: initialData.sampleRate,
           encoding: initialData.encoding,
+          systemPrompt: initialData.systemPrompt || "",
+          temperature: initialData.temperature ?? 0.7,
         });
       } else {
         setFormData({
@@ -65,13 +76,15 @@ export function AddAssistantDialog({
           websocketUrl: "",
           sampleRate: "8000",
           encoding: "mulaw",
+          systemPrompt: "",
+          temperature: 0.7,
         });
       }
     }
   }, [open, initialData]);
 
   const handleSubmit = useCallback(async () => {
-    if (!formData.name || !formData.websocketUrl) {
+    if (!formData.name || (agentType === "target" && !formData.websocketUrl) || (agentType === "tester" && !formData.systemPrompt)) {
       toast.error("Please fill in all required fields");
       return;
     }
@@ -93,14 +106,25 @@ export function AddAssistantDialog({
 
     setIsSubmitting(true);
     try {
-      const payload = {
-        name: formData.name,
-        websocket_url: formData.websocketUrl,
-        sample_rate: parseInt(formData.sampleRate, 10),
-        encoding: formData.encoding,
-      };
-
-      const response = await TargetAgentsService.createTargetAgent(user.id, payload);
+      let response;
+      if (agentType === "target") {
+        const payload = {
+          name: formData.name,
+          websocket_url: formData.websocketUrl,
+          sample_rate: parseInt(formData.sampleRate, 10),
+          encoding: formData.encoding,
+          user_id: user.id,
+        };
+        response = await TargetAgentsService.createTargetAgent(payload);
+      } else {
+        const payload = {
+          name: formData.name,
+          system_prompt: formData.systemPrompt,
+          temperature: formData.temperature,
+          user_id: user.id,
+        };
+        response = await UserAgentsService.createUserAgent(payload);
+      }
 
       const newAssistant: Assistant = {
         ...formData,
@@ -118,9 +142,11 @@ export function AddAssistantDialog({
         websocketUrl: "",
         sampleRate: "8000",
         encoding: "mulaw",
+        systemPrompt: "",
+        temperature: 0.7,
       });
       onOpenChange(false);
-      toast.success("Assistant added successfully");
+      toast.success(`${agentType === "target" ? "Target" : "Tester"} agent added successfully`);
     } catch (error) {
       console.error("Failed to add assistant:", error);
       toast.error("Failed to add assistant");
@@ -139,6 +165,10 @@ export function AddAssistantDialog({
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  const handleSliderChange = (value: number[]) => {
+    setFormData((prev) => ({ ...prev, temperature: value[0] }));
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg bg-card border-border/50">
@@ -147,10 +177,10 @@ export function AddAssistantDialog({
             <div className="p-1.5 rounded-md bg-primary/10">
               <Bot className="w-4 h-4 text-primary" />
             </div>
-            Add Assistant
+            {agentType === "target" ? "Add Target Agent" : "Add Tester Agent"}
           </DialogTitle>
           <DialogDescription>
-            Configure a new assistant for testing.
+            Configure a new {agentType === "target" ? "target agent" : "tester agent"} for testing.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
@@ -164,66 +194,96 @@ export function AddAssistantDialog({
             />
           </div>
 
-          <div className="space-y-2">
-            <Label>Websocket URL</Label>
-            <Input
-              placeholder="ws://localhost:8080"
-              value={formData.websocketUrl}
-              onChange={handleInputChange("websocketUrl")}
-              className="bg-background/50 border-border/50 focus:border-primary/50 font-mono text-sm"
-            />
-          </div>
+          {agentType === "target" ? (
+            <>
+              <div className="space-y-2">
+                <Label>Websocket URL</Label>
+                <Input
+                  placeholder="ws://localhost:8080"
+                  value={formData.websocketUrl}
+                  onChange={handleInputChange("websocketUrl")}
+                  className="bg-background/50 border-border/50 focus:border-primary/50 font-mono text-sm"
+                />
+              </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Sample Rate</Label>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Sample Rate</Label>
+                  <Select
+                    value={formData.sampleRate}
+                    onValueChange={handleSelectChange("sampleRate")}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sample Rate" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="8000">8 kHz</SelectItem>
+                      <SelectItem value="16000">16 kHz</SelectItem>
+                      <SelectItem value="22050">22.05 kHz</SelectItem>
+                      <SelectItem value="24000">24 kHz</SelectItem>
+                      <SelectItem value="44100">44.1 kHz</SelectItem>
+                      <SelectItem value="48000">48 kHz</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
+                <div className="space-y-2">
+                  <Label>Encoding</Label>
+                  <Select
+                    value={formData.encoding}
+                    onValueChange={handleSelectChange("encoding")}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Encoding" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pcm_s16le">PCM 16-bit</SelectItem>
+                      <SelectItem value="pcm_s24le">PCM 24-bit</SelectItem>
+                      <SelectItem value="pcm_s32le">PCM 32-bit</SelectItem>
+                      <SelectItem value="pcm_f32le">PCM 32-bit Float</SelectItem>
+                      <SelectItem value="mulaw">μ-law</SelectItem>
+                      <SelectItem value="alaw">A-law</SelectItem>
+                      <SelectItem value="opus">Opus</SelectItem>
+                      <SelectItem value="aac">AAC</SelectItem>
+                      <SelectItem value="mp3">MP3</SelectItem>
+                      <SelectItem value="ogg_vorbis">OGG Vorbis</SelectItem>
+                      <SelectItem value="flac">FLAC</SelectItem>
+                      <SelectItem value="wav">WAV</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="space-y-2">
+                <Label>System Prompt</Label>
+                <Textarea
+                  placeholder="Define the behavior and persona of this agent..."
+                  value={formData.systemPrompt}
+                  onChange={(e) => setFormData(prev => ({ ...prev, systemPrompt: e.target.value }))}
+                  className="bg-background/50 border-border/50 focus:border-primary/50 min-h-[120px] resize-none"
+                />
+              </div>
 
-              <Select
-                value={formData.sampleRate}
-                onValueChange={handleSelectChange("sampleRate")}
-              >
-                <SelectTrigger >
-                  <SelectValue placeholder="Sample Rate" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="8000">8 kHz</SelectItem>
-                  <SelectItem value="16000">16 kHz</SelectItem>
-                  <SelectItem value="22050">22.05 kHz</SelectItem>
-                  <SelectItem value="24000">24 kHz</SelectItem>
-                  <SelectItem value="44100">44.1 kHz</SelectItem>
-                  <SelectItem value="48000">48 kHz</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Encoding</Label>
-              <Select
-                value={formData.encoding}
-                onValueChange={handleSelectChange("encoding")}
-              >
-                <SelectTrigger >
-                  <SelectValue placeholder="Encoding" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pcm_s16le">PCM 16-bit</SelectItem>
-                  <SelectItem value="pcm_s24le">PCM 24-bit</SelectItem>
-                  <SelectItem value="pcm_s32le">PCM 32-bit</SelectItem>
-                  <SelectItem value="pcm_f32le">PCM 32-bit Float</SelectItem>
-                  <SelectItem value="mulaw">μ-law</SelectItem>
-                  <SelectItem value="alaw">A-law</SelectItem>
-                  <SelectItem value="opus">Opus</SelectItem>
-                  <SelectItem value="aac">AAC</SelectItem>
-                  <SelectItem value="mp3">MP3</SelectItem>
-                  <SelectItem value="ogg_vorbis">OGG Vorbis</SelectItem>
-                  <SelectItem value="flac">FLAC</SelectItem>
-                  <SelectItem value="wav">WAV</SelectItem>
-                </SelectContent>
-              </Select>
-
-            </div>
-          </div>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label>Temperature</Label>
+                  <span className="text-sm font-mono text-primary font-medium">{formData.temperature.toFixed(1)}</span>
+                </div>
+                <Slider
+                  value={[formData.temperature]}
+                  onValueChange={handleSliderChange}
+                  max={1}
+                  step={0.1}
+                  className="py-4"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Lower values (0.2) are more focused and deterministic, while higher values (0.8) are more creative and diverse.
+                </p>
+              </div>
+            </>
+          )}
         </div>
         <DialogFooter className="gap-2 sm:gap-0">
           <Button
@@ -244,7 +304,7 @@ export function AddAssistantDialog({
                 Adding...
               </>
             ) : (
-              "Add Assistant"
+              agentType === "target" ? "Add Target Agent" : "Add Tester Agent"
             )}
           </Button>
         </DialogFooter>

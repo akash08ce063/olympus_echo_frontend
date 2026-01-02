@@ -37,17 +37,16 @@ export function NavSecondary({
                 tooltip={item.title}
                 asChild
                 className={cn(
-                  "transition-all duration-200 ease-in-out hover:bg-accent hover:text-accent-foreground",
-                  item.title === "Notifications" && unreadCount > 0 && "relative"
+                  "transition-all duration-200 ease-in-out hover:bg-accent hover:text-accent-foreground"
                 )}
               >
-                <Link href={item.url} className="relative">
-                  <item.icon className="transition-transform duration-200 group-hover:scale-105" />
+                <Link href={item.url} className="flex items-center gap-2">
+                  <item.icon className="transition-transform duration-200 group-hover:scale-105 shrink-0" />
                   <span className="font-medium">{item.title}</span>
                   {item.title === "Notifications" && unreadCount > 0 && (
                     <Badge
                       variant="destructive"
-                      className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+                      className="ml-auto h-5 min-w-5 flex items-center justify-center px-1.5 text-xs font-medium rounded-full"
                     >
                       {unreadCount > 9 ? '9+' : unreadCount}
                     </Badge>

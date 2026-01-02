@@ -28,10 +28,6 @@ export const TestSuitesService = {
     createTestSuite: (userId: string, data: CreateTestSuitePayload) =>
         apiClient.post(TESTSUITS.test_suit.create(userId), data),
 
-    // Update an existing test suite
-    updateTestSuite: (id: string, data: UpdateTestSuitePayload) =>
-        apiClient.put(`/test_suites/${id}`, data),
-
     // Get all test suites
     getTestSuites: (userId: string) =>
         apiClient.get(TESTSUITS.test_suit.getAll(userId)),
@@ -43,4 +39,8 @@ export const TestSuitesService = {
     // Get test suite details (including test cases, etc.)
     getTestSuiteDetails: (id: string) =>
         apiClient.get(TESTSUITS.test_suit.getById(id)),
+
+    // Update test suite configuration
+    updateTestSuite: (id: string, data: UpdateTestSuitePayload) =>
+        apiClient.put(TESTSUITS.test_suit.update(id), data),
 };

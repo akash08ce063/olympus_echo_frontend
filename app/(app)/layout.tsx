@@ -7,6 +7,44 @@ import { NotificationProvider } from "@/context/NotificationContext"
 import { useAuth } from "@/hooks/useAuth"
 import { useRouter } from "next/navigation"
 import { useEffect, Suspense } from "react"
+import { Skeleton } from "@/components/ui/skeleton"
+
+// Skeleton layout matching the app structure
+function AppSkeleton() {
+  return (
+    <div className="flex h-screen w-full">
+      {/* Sidebar skeleton */}
+      <div className="w-64 border-r border-border/50 bg-card/20 p-4 space-y-4">
+        <Skeleton className="h-8 w-32" />
+        <div className="space-y-2 mt-8">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <Skeleton key={i} className="h-8 w-full" />
+          ))}
+        </div>
+        <div className="absolute bottom-4 left-4 right-4 space-y-2">
+          <Skeleton className="h-8 w-full" />
+          <Skeleton className="h-8 w-full" />
+        </div>
+      </div>
+      {/* Main content skeleton */}
+      <main className="flex-1 flex flex-col overflow-hidden">
+        <div className="h-16 border-b border-border/50 flex items-center px-4 bg-background/95">
+          <Skeleton className="h-8 w-8" />
+        </div>
+        <div className="flex-1 p-6 space-y-4">
+          <Skeleton className="h-8 w-64" />
+          <Skeleton className="h-4 w-96" />
+          <div className="grid grid-cols-3 gap-4 mt-8">
+            <Skeleton className="h-32 w-full" />
+            <Skeleton className="h-32 w-full" />
+            <Skeleton className="h-32 w-full" />
+          </div>
+          <Skeleton className="h-64 w-full mt-4" />
+        </div>
+      </main>
+    </div>
+  )
+}
 
 function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -19,11 +57,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   }, [user, loading, router])
 
   if (loading) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary" />
-      </div>
-    )
+    return <AppSkeleton />
   }
 
   if (!user) {
@@ -35,7 +69,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
       <div className="flex h-screen w-full">
         <AppSidebar />
         <main className="flex-1 flex flex-col overflow-hidden">
-          <div className="h-16 border-b border-border/50 flex items-center px-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="h-14 border-b border-border/50 flex items-center px-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <SidebarTrigger className="-ml-1" />
           </div>
           <div className="flex-1 overflow-auto">
@@ -55,11 +89,7 @@ export default function AppLayout({
   return (
     <NotificationProvider>
       <TestProvider>
-        <Suspense fallback={
-          <div className="flex h-screen items-center justify-center">
-            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary" />
-          </div>
-        }>
+        <Suspense fallback={<AppSkeleton />}>
           <AppLayoutContent>{children}</AppLayoutContent>
         </Suspense>
       </TestProvider>
