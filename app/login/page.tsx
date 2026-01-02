@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { IconBrandGoogle } from "@tabler/icons-react";
 import {
     Card,
     CardContent,
@@ -110,6 +111,7 @@ export default function LoginForm() {
                             className="w-full"
                             onClick={handleGoogleSignIn}
                         >
+                            <IconBrandGoogle className="mr-2 h-4 w-4" />
                             Login with Google
                         </Button>
                     </form>
