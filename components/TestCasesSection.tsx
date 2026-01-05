@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { MoreHorizontal, Plus, Sparkles, Trash2 } from "lucide-react"
+import { MoreHorizontal, Play, Plus, Sparkles, Trash2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -21,6 +21,7 @@ interface TestCasesSectionProps {
     onAddTestCase: (testCase: TestCase) => void
     onUpdateTestCase: (id: string, testCase: TestCase) => void
     onDeleteTestCase: (id: string) => void
+    onRunTestCase: (id: string, concurrentCalls: number) => void
     testSuiteId: string
 }
 
@@ -29,6 +30,7 @@ export function TestCasesSection({
     onAddTestCase,
     onUpdateTestCase,
     onDeleteTestCase,
+    onRunTestCase,
     testSuiteId
 }: TestCasesSectionProps) {
     const [isAddTestOpen, setIsAddTestOpen] = useState(false)
@@ -55,41 +57,31 @@ export function TestCasesSection({
             cell: ({ row }) => <div className="font-medium text-foreground">{row.getValue("name")}</div>
         },
         {
-            accessorKey: "steps",
-            header: "Steps",
+            accessorKey: "goals",
+            header: "Goal",
             cell: ({ row }) => {
-                const steps = row.original.steps || []
+                const goals = row.original.goals || []
+                const goalText = goals[0]?.text || (typeof goals[0] === 'string' ? goals[0] : "---")
                 return (
-                    <div className="flex items-center gap-1.5">
-                        <Badge variant="outline" className="text-[10px] font-mono py-0 h-5">
-                            {steps.length} {steps.length === 1 ? 'Step' : 'Steps'}
-                        </Badge>
+                    <div className="text-sm text-foreground truncate max-w-[300px]" title={goalText}>
+                        {goalText}
                     </div>
                 )
             }
         },
         {
-            accessorKey: "conditions",
-            header: "Rules",
+            accessorKey: "evaluation_criteria",
+            header: "Evaluation",
             cell: ({ row }) => {
-                const conditions = row.original.conditions || []
+                const criteria = row.original.evaluation_criteria || []
                 return (
                     <div className="flex items-center gap-1.5">
                         <Badge variant="outline" className="text-[10px] font-mono py-0 h-5 bg-primary/5 text-primary border-primary/20">
-                            {conditions.length} {conditions.length === 1 ? 'Rule' : 'Rules'}
+                            {criteria.length} {criteria.length === 1 ? 'Rule' : 'Rules'}
                         </Badge>
                     </div>
                 )
             }
-        },
-        {
-            accessorKey: "expected_outcome",
-            header: "Expected Outcome",
-            cell: ({ row }) => (
-                <div className="text-sm text-muted-foreground truncate max-w-[200px]" title={row.getValue("expected_outcome")}>
-                    {row.getValue("expected_outcome") || "---"}
-                </div>
-            )
         },
         {
             accessorKey: "attempts",
@@ -106,25 +98,36 @@ export function TestCasesSection({
             cell: ({ row }) => {
                 const test = row.original
                 return (
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleEdit(test)}>
-                                Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                                onClick={() => handleDelete(test.id!)}
-                                className="text-destructive font-medium"
-                            >
-                                <Trash2 className="w-4 h-4 mr-2" />
-                                Delete
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10"
+                            onClick={() => onRunTestCase(test.id!, test.default_concurrent_calls || 1)}
+                            title="Run single test"
+                        >
+                            <Play className="h-4 w-4 fill-current" />
+                        </Button>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleEdit(test)}>
+                                    Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    onClick={() => handleDelete(test.id!)}
+                                    className="text-destructive font-medium"
+                                >
+                                    <Trash2 className="w-4 h-4 mr-2" />
+                                    Delete
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
                 )
             }
         }

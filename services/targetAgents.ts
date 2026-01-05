@@ -6,6 +6,7 @@ export interface CreateTargetAgentPayload {
     websocket_url: string;
     sample_rate: number;
     encoding: string;
+    user_id: string;
 }
 
 export const TargetAgentsService = {
@@ -19,5 +20,13 @@ export const TargetAgentsService = {
 
     // Get a specific target agent
     getTargetAgent: (id: string) =>
-        apiClient.get(`/v1/target-agents/${id}`),
+        apiClient.get(TESTSUITS.target_agents.update(id)), // Re-using update endpoint for GET is common
+
+    // Update a target agent
+    updateTargetAgent: (id: string, data: Partial<CreateTargetAgentPayload>) =>
+        apiClient.put(TESTSUITS.target_agents.update(id), data),
+
+    // Delete a target agent
+    deleteTargetAgent: (id: string) =>
+        apiClient.delete(TESTSUITS.target_agents.delete(id)),
 };

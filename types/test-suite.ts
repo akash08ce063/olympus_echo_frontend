@@ -16,23 +16,13 @@ export type RubricItem = {
   threshold?: number; // For latency (ms) or logic
 };
 
-export type TestStep = {
-  action: 'speak' | 'wait' | 'press_key';
-  text: string;
-};
-
-export type TestCondition = {
-  type: 'response_contains' | 'exact_match' | 'llm_eval' | 'latency_under';
-  expected: string;
-};
 
 export type TestCase = {
   id?: string;
   test_suite_id: string;
   name: string;
-  steps: TestStep[];
-  conditions: TestCondition[];
-  expected_outcome: string;
+  goals: { text: string }[];
+  evaluation_criteria: { expected: string }[];
   timeout_seconds: number;
   order_index: number;
   is_active: boolean;

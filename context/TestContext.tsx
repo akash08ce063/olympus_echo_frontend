@@ -53,36 +53,23 @@ const MOCK_DATASETS: Dataset[] = [
         cases: [
             {
                 id: "case-1",
-                title: "Too Expensive",
-                scenario: "Customer thinks the price is high",
-                testerPersona: {
-                    id: "p-cfo",
-                    name: "Frugal CFO",
-                    role: "CFO",
-                    systemPrompt: "You are a skeptical CFO. You care only about ROI. Reject the first price.",
-                },
-                script: "Ask for the price. When they tell you, say it's too expensive and ask for a discount.",
-                rubric: [
-                    { id: "r-1", criteria: "Agent justifies value", type: "llm_eval" },
-                    { id: "r-2", criteria: "Agent offers payment plan", type: "contains_keywords", keywords: ["monthly", "installments", "plan"] },
+                test_suite_id: "ds-1",
+                name: "Too Expensive",
+                steps: [
+                    { action: "speak", text: "Ask for the price." },
+                    { action: "speak", text: "When they tell you, say it's too expensive and ask for a discount." }
                 ],
-            },
-            {
-                id: "case-2",
-                title: "Competitor Comparison",
-                scenario: "Customer asks about Competitor X",
-                testerPersona: {
-                    id: "p-tech",
-                    name: "Tech Lead",
-                    role: "Tech Lead",
-                    systemPrompt: "You are comparing this product to Competitor X.",
-                },
-                script: "Ask how this compares to 'Competitor X'. Press on feature parity.",
-                rubric: [
-                    { id: "r-3", criteria: "Agent mentions unique selling point", type: "llm_eval" },
-                    { id: "r-4", criteria: "No negative trash talking", type: "llm_eval" },
+                conditions: [
+                    { type: "llm_eval", expected: "Agent justifies value" },
+                    { type: "response_contains", expected: "monthly installments" }
                 ],
-            },
+                expected_outcome: "Agent should offer a payment plan or justify the price.",
+                timeout_seconds: 30,
+                order_index: 0,
+                is_active: true,
+                attempts: 1,
+                default_concurrent_calls: 1
+            }
         ],
     },
 ];
@@ -91,7 +78,54 @@ export function TestProvider({ children }: { children: React.ReactNode }) {
     const [datasets, setDatasets] = useState<Dataset[]>(MOCK_DATASETS);
     const [targetAgents, setTargetAgents] = useState<TargetAgent[]>(MOCK_TARGETS);
     const [activeExperiment, setActiveExperiment] = useState<Experiment | null>(null);
-    const [history, setHistory] = useState<Experiment[]>([]);
+    const [history, setHistory] = useState<Experiment[]>([
+        {
+            id: "exp-mock-1",
+            datasetId: "20ce1a33-68f8-4812-9d99-48ae7e68e3c0",
+            status: "completed",
+            startedAt: new Date(Date.now() - 3600000).toISOString(),
+            completedAt: new Date(Date.now() - 3500000).toISOString(),
+            results: {
+                "case-1": {
+                    caseId: "case-1",
+                    status: "passed",
+                    duration: 12,
+                    transcript: [
+                        { id: "m1", role: "user", content: "Hello, how much does the premium plan cost?", timestamp: Date.now() },
+                        { id: "m2", role: "assistant", content: "Our premium plan is $99/month, offering full access to all features.", timestamp: Date.now() + 1000 },
+                        { id: "m3", role: "user", content: "That's a bit high for us. Can we get a discount?", timestamp: Date.now() + 2000 },
+                        { id: "m4", role: "assistant", content: "I understand. We offer a 20% discount on annual billing, which brings the monthly cost down significantly. Would you like to hear more about that?", timestamp: Date.now() + 3000 }
+                    ],
+                    rubricResults: [
+                        { rubricId: "r-1", passed: true, reason: "Agent justified value by explaining plan benefits." },
+                        { rubricId: "r-2", passed: true, reason: "Agent mentioned discount options." }
+                    ]
+                }
+            }
+        },
+        {
+            id: "exp-mock-2",
+            datasetId: "20ce1a33-68f8-4812-9d99-48ae7e68e3c0",
+            status: "failed",
+            startedAt: new Date(Date.now() - 7200000).toISOString(),
+            completedAt: new Date(Date.now() - 7100000).toISOString(),
+            results: {
+                "case-1": {
+                    caseId: "case-1",
+                    status: "failed",
+                    duration: 8,
+                    transcript: [
+                        { id: "m1", role: "user", content: "The price is too high.", timestamp: Date.now() },
+                        { id: "m2", role: "assistant", content: "I'm sorry you feel that way. Let me know if you change your mind.", timestamp: Date.now() + 1000 }
+                    ],
+                    rubricResults: [
+                        { rubricId: "r-1", passed: false, reason: "Agent did not justify value or handle objection properly." },
+                        { rubricId: "r-2", passed: false, reason: "Agent did not offer any alternatives." }
+                    ]
+                }
+            }
+        }
+    ]);
 
     // Use notifications hook - this is safe now that NotificationProvider wraps TestProvider
     const { addNotification } = useNotifications();
@@ -163,6 +197,7 @@ export function TestProvider({ children }: { children: React.ReactNode }) {
             }
 
             const testCase = dataset.cases[currentCaseIndex];
+            const caseId = testCase.id || `temp-${currentCaseIndex}`;
 
             // Mark case as running
             setActiveExperiment((prev) => {
@@ -171,8 +206,8 @@ export function TestProvider({ children }: { children: React.ReactNode }) {
                     ...prev,
                     results: {
                         ...prev.results,
-                        [testCase.id]: {
-                            caseId: testCase.id,
+                        [caseId]: {
+                            caseId: caseId,
                             status: "running",
                             transcript: [],
                             rubricResults: [],
@@ -189,7 +224,7 @@ export function TestProvider({ children }: { children: React.ReactNode }) {
             const mockTranscript: TestMessage[] = [
                 { id: "m1", role: "user", content: "Hello, how much does this cost?", timestamp: Date.now() },
                 { id: "m2", role: "assistant", content: "Our enterprise plan starts at $500/month.", timestamp: Date.now() + 1500 },
-                { id: "m3", role: "user", content: testCase.script.includes("expensive") ? "That seems really expensive." : "Okay, tell me more.", timestamp: Date.now() + 3000 },
+                { id: "m3", role: "user", content: "That seems really expensive.", timestamp: Date.now() + 3000 },
                 { id: "m4", role: "assistant", content: "I understand. We do offer a quarterly payment plan to help with cash flow.", timestamp: Date.now() + 4500 },
             ];
 
@@ -198,12 +233,13 @@ export function TestProvider({ children }: { children: React.ReactNode }) {
                 await new Promise(r => setTimeout(r, 800)); // Simulate typing/speaking
                 setActiveExperiment((prev) => {
                     if (!prev) return null;
-                    const currentResults = prev.results[testCase.id];
+                    const currentResults = prev.results[caseId];
+                    if (!currentResults) return prev;
                     return {
                         ...prev,
                         results: {
                             ...prev.results,
-                            [testCase.id]: {
+                            [caseId]: {
                                 ...currentResults,
                                 transcript: [...currentResults.transcript, msg]
                             }
@@ -213,10 +249,10 @@ export function TestProvider({ children }: { children: React.ReactNode }) {
             }
 
             // Evaluate Rubric (Mock Logic)
-            const rubricResults: RubricResult[] = testCase.rubric.map(r => ({
-                rubricId: r.id,
+            const rubricResults: RubricResult[] = testCase.conditions.map((cond, idx) => ({
+                rubricId: `cond-${idx}`,
                 passed: Math.random() > 0.3, // Random 70% pass rate
-                reason: "Simulated evaluation result"
+                reason: `Simulated evaluation for ${cond.type}: target met expectation.`
             }));
 
             const isPass = rubricResults.every(r => r.passed);
@@ -224,12 +260,14 @@ export function TestProvider({ children }: { children: React.ReactNode }) {
             // Finish Case
             setActiveExperiment((prev) => {
                 if (!prev) return null;
+                const currentCaseResults = prev.results[caseId];
+                if (!currentCaseResults) return prev;
                 return {
                     ...prev,
                     results: {
                         ...prev.results,
-                        [testCase.id]: {
-                            ...prev.results[testCase.id],
+                        [caseId]: {
+                            ...currentCaseResults,
                             status: isPass ? "passed" : "failed",
                             rubricResults,
                             duration: 5000

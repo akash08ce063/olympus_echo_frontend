@@ -5,14 +5,16 @@ import { useTestContext } from "@/context/TestContext";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
+import { Experiment, TestMessage, RubricResult } from "@/types/test-suite";
 import { Mic, User, Server, StopCircle, CheckCircle, XCircle, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
-export function TestRunner({ datasetId }: { datasetId: string }) {
-    const { activeExperiment, stopExperiment } = useTestContext();
+export function TestRunner({ datasetId, experiment }: { datasetId: string, experiment?: Experiment | null }) {
+    const { activeExperiment: contextActive, stopExperiment } = useTestContext();
     const scrollRef = useRef<HTMLDivElement>(null);
+
+    const activeExperiment = experiment || contextActive;
 
     // Only show if relevant to this dataset
     if (!activeExperiment || activeExperiment.datasetId !== datasetId) {
@@ -44,13 +46,19 @@ export function TestRunner({ datasetId }: { datasetId: string }) {
                     <div>
                         <CardTitle className="flex items-center gap-2">
                             <span className="relative flex h-3 w-3">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                                {activeExperiment.status === 'running' && (
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                )}
+                                <span className={cn(
+                                    "relative inline-flex rounded-full h-3 w-3",
+                                    activeExperiment.status === 'running' ? "bg-green-500" : "bg-muted-foreground/30"
+                                )}></span>
                             </span>
-                            Live Simulation
+                            {activeExperiment.status === 'running' ? 'Live Simulation' : 'Run Result'}
                         </CardTitle>
                         <CardDescription>
-                            Running Case: <span className="font-semibold text-foreground">{activeCaseId}</span>
+                            {activeExperiment.status === 'running' ? 'Running Case: ' : 'Showing Case: '}
+                            <span className="font-semibold text-foreground">{activeCaseId}</span>
                         </CardDescription>
                     </div>
 
@@ -81,7 +89,7 @@ export function TestRunner({ datasetId }: { datasetId: string }) {
 
                         <ScrollArea className="flex-1 p-4">
                             <div className="space-y-4">
-                                {currentResult.transcript.map((msg) => (
+                                {currentResult.transcript.map((msg: TestMessage) => (
                                     <div key={msg.id} className={cn(
                                         "flex gap-3 max-w-[80%]",
                                         msg.role === 'user' ? "ml-auto flex-row-reverse" : "mr-auto"
@@ -145,7 +153,7 @@ export function TestRunner({ datasetId }: { datasetId: string }) {
                                         Waiting for results...
                                     </div>
                                 ) : (
-                                    currentResult.rubricResults.map((r, i) => (
+                                    currentResult.rubricResults.map((r: RubricResult, i: number) => (
                                         <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-background border shadow-sm">
                                             {r.passed ? (
                                                 <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />

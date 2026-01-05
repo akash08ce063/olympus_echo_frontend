@@ -94,49 +94,67 @@ export function AddAssistantDialog({
       return;
     }
 
-    // If editing, skip API for now and just notify parent
-    if (initialData) {
-      onAddAssistant({
-        ...initialData,
-        ...formData,
-      });
-      onOpenChange(false);
-      return;
-    }
-
     setIsSubmitting(true);
     try {
       let response;
-      if (agentType === "target") {
-        const payload = {
-          name: formData.name,
-          websocket_url: formData.websocketUrl,
-          sample_rate: parseInt(formData.sampleRate, 10),
-          encoding: formData.encoding,
-          user_id: user.id,
-        };
-        response = await TargetAgentsService.createTargetAgent(payload);
+      if (initialData?.id) {
+        // Update existing agent
+        if (agentType === "target") {
+          const payload = {
+            name: formData.name,
+            websocket_url: formData.websocketUrl,
+            sample_rate: parseInt(formData.sampleRate, 10),
+            encoding: formData.encoding,
+            user_id: user.id,
+          };
+          response = await TargetAgentsService.updateTargetAgent(initialData.id, payload);
+          toast.success("Target agent updated successfully");
+        } else {
+          // Update tester agent
+          const payload = {
+            name: formData.name,
+            system_prompt: formData.systemPrompt,
+            temperature: formData.temperature,
+            user_id: user.id,
+          };
+          response = await UserAgentsService.updateUserAgent(initialData.id, payload);
+          toast.success("Tester agent updated successfully");
+        }
       } else {
-        const payload = {
-          name: formData.name,
-          system_prompt: formData.systemPrompt,
-          temperature: formData.temperature,
-          user_id: user.id,
-        };
-        response = await UserAgentsService.createUserAgent(payload);
+        // Create new agent
+        if (agentType === "target") {
+          const payload = {
+            name: formData.name,
+            websocket_url: formData.websocketUrl,
+            sample_rate: parseInt(formData.sampleRate, 10),
+            encoding: formData.encoding,
+            user_id: user.id,
+          };
+          response = await TargetAgentsService.createTargetAgent(payload);
+          toast.success("Target agent created successfully");
+        } else {
+          const payload = {
+            name: formData.name,
+            system_prompt: formData.systemPrompt,
+            temperature: formData.temperature,
+            user_id: user.id,
+          };
+          response = await UserAgentsService.createUserAgent(payload);
+          toast.success("Tester agent created successfully");
+        }
       }
 
-      const newAssistant: Assistant = {
+      const updatedAssistant: Assistant = {
         ...formData,
-        id: response.data?.id || Date.now().toString(),
-        createdAt: new Date().toLocaleDateString('en-US', {
+        id: response?.data?.id || initialData?.id || Date.now().toString(),
+        createdAt: initialData?.createdAt || new Date().toLocaleDateString('en-US', {
           month: 'short',
           day: '2-digit',
           year: 'numeric'
         }),
       };
 
-      onAddAssistant(newAssistant);
+      onAddAssistant(updatedAssistant);
       setFormData({
         name: "",
         websocketUrl: "",
@@ -146,7 +164,6 @@ export function AddAssistantDialog({
         temperature: 0.7,
       });
       onOpenChange(false);
-      toast.success(`${agentType === "target" ? "Target" : "Tester"} agent added successfully`);
     } catch (error) {
       console.error("Failed to add assistant:", error);
       toast.error("Failed to add assistant");

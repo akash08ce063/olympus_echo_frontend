@@ -43,4 +43,16 @@ export const TestSuitesService = {
     // Update test suite configuration
     updateTestSuite: (id: string, data: UpdateTestSuitePayload) =>
         apiClient.put(TESTSUITS.test_suit.update(id), data),
+
+    // Delete a test suite
+    deleteTestSuite: (id: string) =>
+        apiClient.delete(TESTSUITS.test_suit.delete(id)),
+
+    // Run a test suite
+    runTestSuite: (testSuiteId: string, userId: string, concurrentCalls: number = 1) =>
+        apiClient.post(TESTSUITS.run_test.runAll(testSuiteId, userId), { concurrent_calls: concurrentCalls }),
+
+    // Run a single test case
+    runSingleTest: (testCaseId: string, userId: string, concurrentCalls: number = 1) =>
+        apiClient.post(TESTSUITS.run_test.runSingleTest(testCaseId, userId), { concurrent_calls: concurrentCalls }),
 };

@@ -55,6 +55,9 @@ export default function UserAgentsPage() {
     const [isLoading, setIsLoading] = useState(true)
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
     const [editingAssistant, setEditingAssistant] = useState<Assistant | null>(null)
+    const [isDeleteAgentOpen, setIsDeleteAgentOpen] = useState(false)
+    const [isDeletingAgent, setIsDeletingAgent] = useState(false)
+    const [agentToDelete, setAgentToDelete] = useState<Assistant | null>(null)
 
     const fetchAgents = useCallback(async () => {
         if (!user?.id) return
@@ -89,16 +92,8 @@ export default function UserAgentsPage() {
     }, [fetchAgents])
 
     const handleAddAssistant = (newAssistant: Assistant) => {
-        if (editingAssistant) {
-            setAgents(prev => prev.map(assistant =>
-                assistant.id === editingAssistant.id
-                    ? { ...newAssistant, id: editingAssistant.id }
-                    : assistant
-            ))
-            setEditingAssistant(null)
-        } else {
-            setAgents(prev => [newAssistant, ...prev])
-        }
+        fetchAgents() // Re-fetch all agents from the backend to ensure consistency
+        setEditingAssistant(null)
         setIsAddDialogOpen(false)
     }
 
@@ -107,8 +102,22 @@ export default function UserAgentsPage() {
         setIsAddDialogOpen(true)
     }
 
-    const handleDeleteAssistant = (id: string) => {
-        setAgents(prev => prev.filter(assistant => assistant.id !== id))
+    const handleDeleteAssistant = async () => {
+        if (!agentToDelete) return;
+
+        setIsDeletingAgent(true);
+        try {
+            await UserAgentsService.deleteUserAgent(agentToDelete.id);
+            setAgents(prev => prev.filter(assistant => assistant.id !== agentToDelete.id));
+            toast.success("Tester agent deleted successfully");
+            setIsDeleteAgentOpen(false);
+            setAgentToDelete(null);
+        } catch (error) {
+            console.error("Failed to delete tester agent:", error);
+            toast.error("Failed to delete tester agent");
+        } finally {
+            setIsDeletingAgent(false);
+        }
     }
 
     const handleCloseDialog = () => {
@@ -170,31 +179,16 @@ export default function UserAgentsPage() {
                                 <Edit className="w-4 h-4 mr-2" />
                                 Edit
                             </DropdownMenuItem>
-                            <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:text-destructive">
-                                        <Trash2 className="w-4 h-4 mr-2" />
-                                        Delete
-                                    </DropdownMenuItem>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            This action cannot be undone. This will permanently delete the agent "{assistant.name}".
-                                        </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                        <AlertDialogAction
-                                            onClick={() => handleDeleteAssistant(assistant.id)}
-                                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                        >
-                                            Delete
-                                        </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
+                            <DropdownMenuItem
+                                onClick={() => {
+                                    setAgentToDelete(assistant)
+                                    setIsDeleteAgentOpen(true)
+                                }}
+                                className="text-destructive focus:text-destructive"
+                            >
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                Delete
+                            </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
                 )
@@ -253,6 +247,35 @@ export default function UserAgentsPage() {
                     initialData={editingAssistant}
                     agentType="tester"
                 />
+
+                <AlertDialog open={isDeleteAgentOpen} onOpenChange={setIsDeleteAgentOpen}>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                This action cannot be undone. This will permanently delete the agent "{agentToDelete?.name}".
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel disabled={isDeletingAgent}>Cancel</AlertDialogCancel>
+                            <Button
+                                onClick={handleDeleteAssistant}
+                                disabled={isDeletingAgent}
+                                variant="destructive"
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                                {isDeletingAgent ? (
+                                    <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        Deleting...
+                                    </>
+                                ) : (
+                                    "Delete"
+                                )}
+                            </Button>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
             </div>
         </div>
     )

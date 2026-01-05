@@ -18,7 +18,9 @@ import {
     X,
     Info,
     Check,
-    ChevronsUpDown
+    ChevronsUpDown,
+    Trash2,
+    Loader2
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -108,8 +110,13 @@ import { TestCasesSection } from "@/components/TestCasesSection"
 import { TestSuitesService } from "@/services/testSuites"
 import { TargetAgentsService } from "@/services/targetAgents"
 import { UserAgentsService } from "@/services/userAgents"
-import { toast } from "sonner"
+import { TestCaseService } from "@/services/testCases"
 import { useAuth } from "@/hooks/useAuth"
+import { useTestContext } from "@/context/TestContext"
+import { RunsHistory } from "@/components/test-suite/RunsHistory"
+import { TestRunner } from "@/components/test-suite/TestRunner"
+import { Experiment } from "@/types/test-suite"
+import { toast } from "sonner"
 
 // Types
 interface TestSuite {
@@ -163,13 +170,8 @@ const initialTestCases: TestCase[] = [
         id: "tc-001",
         test_suite_id: "20ce1a33-68f8-4812-9d99-48ae7e68e3c0",
         name: "Greeting Flow",
-        steps: [
-            { action: 'speak', text: "Hello, can you help me?" }
-        ],
-        conditions: [
-            { type: 'response_contains', expected: "Hello" }
-        ],
-        expected_outcome: "Agent greets the customer",
+        goals: [{ text: "Hello, can you help me?" }],
+        evaluation_criteria: [{ expected: "Response contains Hello" }],
         timeout_seconds: 30,
         order_index: 0,
         is_active: true,
@@ -196,6 +198,31 @@ export function TestSuitesContent() {
     // User/Tester agents for dropdown
     const [userAgents, setUserAgents] = useState<{ id: string, name: string }[]>([])
     const [assistants, setAssistants] = useState<Assistant[]>([])
+    const [selectedHistoryRun, setSelectedHistoryRun] = useState<Experiment | null>(null)
+    const [isDeleteSuiteOpen, setIsDeleteSuiteOpen] = useState(false)
+    const [isDeletingSuite, setIsDeletingSuite] = useState(false)
+    const [isCreatingSuite, setIsCreatingSuite] = useState(false)
+
+    const {
+        runExperiment,
+        activeExperiment,
+        history,
+    } = useTestContext()
+
+    const suiteHistory = history.filter(h => h.datasetId === selectedSuiteId)
+
+    const handleRunTests = async () => {
+        if (!selectedSuiteId || !user?.id) return
+
+        try {
+            await TestSuitesService.runTestSuite(selectedSuiteId, user.id)
+            runExperiment(selectedSuiteId)
+            toast.success("Test run started")
+        } catch (error) {
+            console.error("Failed to start test run:", error)
+            toast.error("Failed to start test run")
+        }
+    }
     const [newSuite, setNewSuite] = useState({
         name: "",
         description: "",
@@ -326,29 +353,25 @@ export function TestSuitesContent() {
     const handleCreateSuite = useCallback(async () => {
         if (!newSuite.name.trim() || !user?.id) return
 
+        setIsCreatingSuite(true)
         try {
-            await TestSuitesService.createTestSuite(user.id, {
+            const response: any = await TestSuitesService.createTestSuite(user.id, {
                 name: newSuite.name,
                 description: newSuite.description
             })
 
-            const suite: TestSuite = {
-                id: newSuite.uuid || crypto.randomUUID(),
-                name: newSuite.name,
-                description: newSuite.description,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-                user_id: user.id,
-                testCount: 0,
-                createdAt: new Date().toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: '2-digit',
-                    year: 'numeric'
-                }),
-            }
+            toast.success("Test suite created successfully")
+            await fetchSuites()
 
-            setSuites(prev => [suite, ...prev])
-            setSelectedSuiteId(suite.id)
+            // If the response contains the new suite, select it
+            if (response?.data?.id) {
+                setSelectedSuiteId(response.data.id)
+                fetchSuiteDetails(response.data.id)
+            } else if (response?.id) {
+                // some APIs return data directly
+                setSelectedSuiteId(response.id)
+                fetchSuiteDetails(response.id)
+            }
 
             setNewSuite({
                 name: "",
@@ -356,12 +379,13 @@ export function TestSuitesContent() {
                 uuid: "",
             })
             setIsCreateSuiteOpen(false)
-            toast.success("Test suite created successfully")
         } catch (error) {
             console.error("Failed to create test suite:", error)
             toast.error("Failed to create test suite")
+        } finally {
+            setIsCreatingSuite(false)
         }
-    }, [newSuite])
+    }, [newSuite, user?.id, fetchSuites, fetchSuiteDetails])
 
     const handleUpdateSuiteAgent = useCallback(async (field: 'target_agent_id' | 'user_agent_id', agentId: string) => {
         if (!selectedSuite) return;
@@ -371,11 +395,11 @@ export function TestSuitesContent() {
                 [field]: agentId
             });
 
-            setSuites(prev => prev.map(s =>
-                s.id === selectedSuite.id
-                    ? { ...s, [field]: agentId }
-                    : s
-            ));
+            // Refresh systems from API
+            await fetchSuites();
+            if (selectedSuite.id) {
+                fetchSuiteDetails(selectedSuite.id);
+            }
 
             // Re-fetch details to get updated names and nested objects
             fetchSuiteDetails(selectedSuite.id);
@@ -385,11 +409,57 @@ export function TestSuitesContent() {
             console.error(`Failed to update ${field}:`, error);
             toast.error(`Failed to update ${field === 'target_agent_id' ? 'target' : 'tester'} agent`)
         }
-    }, [selectedSuite])
+    }, [selectedSuite, fetchSuites, fetchSuiteDetails])
 
     const handleAddAssistant = useCallback((newAssistant: Assistant) => {
         setAssistants(prev => [...prev, newAssistant])
     }, [])
+
+
+    const handleDeleteSuite = useCallback(async () => {
+        if (!selectedSuiteId) return;
+
+        setIsDeletingSuite(true);
+        try {
+            await TestSuitesService.deleteTestSuite(selectedSuiteId);
+            toast.success("Test suite deleted successfully");
+
+            const deletedSuiteIndex = suites.findIndex(s => s.id === selectedSuiteId);
+
+            // Re-fetch suites to get the latest list
+            const response: any = await TestSuitesService.getTestSuites(user?.id || "");
+            const updatedSuites = response.data || [];
+            setSuites(updatedSuites);
+
+            if (updatedSuites.length > 0) {
+                // Select another suite (either the previous one or the new first one)
+                const nextSuite = updatedSuites[Math.max(0, deletedSuiteIndex - 1)];
+                setSelectedSuiteId(nextSuite.id);
+                fetchSuiteDetails(nextSuite.id);
+            } else {
+                setSelectedSuiteId(null);
+                setSelectedSuiteDetails(null);
+                setTestCases([]);
+            }
+            setIsDeleteSuiteOpen(false);
+        } catch (error) {
+            console.error("Failed to delete test suite:", error);
+            toast.error("Failed to delete test suite");
+        } finally {
+            setIsDeletingSuite(false);
+        }
+    }, [selectedSuiteId, suites, fetchSuiteDetails, user?.id]);
+
+    const handleRunSingleTest = useCallback(async (testCaseId: string, concurrentCalls: number) => {
+        if (!user?.id) return;
+        try {
+            await TestSuitesService.runSingleTest(testCaseId, user.id, concurrentCalls);
+            toast.success("Test run initiated");
+        } catch (error) {
+            console.error("Failed to run single test:", error);
+            toast.error("Failed to initiate test run");
+        }
+    }, [user?.id]);
 
 
     return (
@@ -448,8 +518,19 @@ export function TestSuitesContent() {
                                     <Button variant="outline" onClick={() => setIsCreateSuiteOpen(false)} className="border-border/50">
                                         Cancel
                                     </Button>
-                                    <Button onClick={handleCreateSuite} className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/25">
-                                        Create Suite
+                                    <Button
+                                        onClick={handleCreateSuite}
+                                        disabled={isCreatingSuite}
+                                        className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/25 min-w-[120px]"
+                                    >
+                                        {isCreatingSuite ? (
+                                            <>
+                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                Creating...
+                                            </>
+                                        ) : (
+                                            "Create Suite"
+                                        )}
                                     </Button>
                                 </DialogFooter>
                             </DialogContent>
@@ -519,8 +600,13 @@ export function TestSuitesContent() {
                                 <p className="text-xs text-muted-foreground font-mono">Test Suite ID: {selectedSuiteDetails?.id || selectedSuite?.id || "---"}</p>
                             </div>
                             <div className="flex items-center gap-2">
-                                <Button className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 transition-all duration-300 hover:shadow-primary/40">
-                                    <Play className="mr-2 h-4 w-4 fill-current" /> Run Tests
+                                <Button
+                                    onClick={handleRunTests}
+                                    disabled={activeExperiment?.status === 'running' && activeExperiment.datasetId === selectedSuiteId}
+                                    className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 transition-all duration-300 hover:shadow-primary/40"
+                                >
+                                    <Play className={cn("mr-2 h-4 w-4 fill-current", activeExperiment?.status === 'running' && "animate-spin")} />
+                                    {activeExperiment?.status === 'running' && activeExperiment.datasetId === selectedSuiteId ? 'Running...' : 'Run Tests'}
                                 </Button>
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
@@ -529,27 +615,13 @@ export function TestSuitesContent() {
                                         </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
-                                        <AlertDialog>
-                                            <AlertDialogTrigger asChild>
-                                                <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:text-destructive">
-                                                    Delete Test Suite
-                                                </DropdownMenuItem>
-                                            </AlertDialogTrigger>
-                                            <AlertDialogContent>
-                                                <AlertDialogHeader>
-                                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                                    <AlertDialogDescription>
-                                                        This action cannot be undone. This will permanently delete the test suite and all its test cases.
-                                                    </AlertDialogDescription>
-                                                </AlertDialogHeader>
-                                                <AlertDialogFooter>
-                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                    <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                                        Delete
-                                                    </AlertDialogAction>
-                                                </AlertDialogFooter>
-                                            </AlertDialogContent>
-                                        </AlertDialog>
+                                        <DropdownMenuItem
+                                            onSelect={() => setIsDeleteSuiteOpen(true)}
+                                            className="text-destructive focus:text-destructive"
+                                        >
+                                            <Trash2 className="w-4 h-4 mr-2" />
+                                            Delete Test Suite
+                                        </DropdownMenuItem>
                                     </DropdownMenuContent>
                                 </DropdownMenu>
                             </div>
@@ -711,27 +783,66 @@ export function TestSuitesContent() {
                                         <TestCasesSection
                                             testCases={testCases}
                                             testSuiteId={selectedSuiteId || ""}
-                                            onAddTestCase={(newTest) => {
-                                                setTestCases(prev => [...prev, newTest])
+                                            onAddTestCase={() => {
+                                                if (selectedSuiteId) fetchSuiteDetails(selectedSuiteId)
                                             }}
-                                            onUpdateTestCase={(id, updatedTestCase) => {
-                                                setTestCases(prev => prev.map(test =>
-                                                    test.id === id ? { ...test, ...updatedTestCase } : test
-                                                ))
+                                            onUpdateTestCase={() => {
+                                                if (selectedSuiteId) fetchSuiteDetails(selectedSuiteId)
                                             }}
-                                            onDeleteTestCase={(id) => {
-                                                setTestCases(prev => prev.filter(test => test.id !== id))
+                                            onRunTestCase={handleRunSingleTest}
+                                            onDeleteTestCase={async (id) => {
+                                                try {
+                                                    await TestCaseService.deleteTestCase(id);
+                                                    toast.success("Test case deleted successfully");
+                                                    if (selectedSuiteId) fetchSuiteDetails(selectedSuiteId);
+                                                } catch (error) {
+                                                    console.error("Failed to delete test case:", error);
+                                                    toast.error("Failed to delete test case");
+                                                }
                                             }}
                                         />
 
                                     </TabsContent>
 
                                     <TabsContent value="runs" className="space-y-6 outline-none">
-                                        <div className="border border-dashed border-border/50 rounded-lg p-12 text-center bg-muted/5">
-                                            <Play className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
-                                            <p className="text-muted-foreground">No test runs yet.</p>
-                                            <p className="text-sm text-muted-foreground/70 mt-1">Click &quot;Run Tests&quot; to execute your test suite.</p>
-                                        </div>
+                                        {activeExperiment && activeExperiment.datasetId === selectedSuiteId && (
+                                            <div className="space-y-4">
+                                                <div className="flex items-center justify-between">
+                                                    <h3 className="text-lg font-semibold">Active Run</h3>
+                                                    <Button variant="outline" size="sm" onClick={() => setSelectedHistoryRun(null)}>
+                                                        View All History
+                                                    </Button>
+                                                </div>
+                                                <TestRunner datasetId={selectedSuiteId || ""} />
+                                            </div>
+                                        )}
+
+                                        {selectedHistoryRun ? (
+                                            <div className="space-y-4">
+                                                <div className="flex items-center justify-between">
+                                                    <Button variant="ghost" size="sm" onClick={() => setSelectedHistoryRun(null)}>
+                                                        ← Back to History
+                                                    </Button>
+                                                    <h3 className="text-sm font-medium text-muted-foreground">
+                                                        Run ID: {selectedHistoryRun.id}
+                                                    </h3>
+                                                </div>
+                                                <TestRunner
+                                                    datasetId={selectedSuiteId || ""}
+                                                    experiment={selectedHistoryRun}
+                                                />
+                                            </div>
+                                        ) : (
+                                            (!activeExperiment || activeExperiment.datasetId !== selectedSuiteId) && (
+                                                <div className="space-y-4">
+                                                    <h3 className="text-lg font-semibold tracking-tight">Run History</h3>
+                                                    <RunsHistory
+                                                        history={suiteHistory}
+                                                        onViewDetails={(run) => setSelectedHistoryRun(run)}
+                                                    />
+                                                </div>
+                                            )
+                                        )}
                                     </TabsContent>
                                 </Tabs>
                             </div>
@@ -745,6 +856,34 @@ export function TestSuitesContent() {
                 onOpenChange={setIsAddAssistantOpen}
                 onAddAssistant={handleAddAssistant}
             />
+            <AlertDialog open={isDeleteSuiteOpen} onOpenChange={setIsDeleteSuiteOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete the test suite "{selectedSuiteDetails?.name || selectedSuite?.name}" and all its test cases.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isDeletingSuite}>Cancel</AlertDialogCancel>
+                        <Button
+                            onClick={handleDeleteSuite}
+                            disabled={isDeletingSuite}
+                            variant="destructive"
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                            {isDeletingSuite ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Deleting...
+                                </>
+                            ) : (
+                                "Delete"
+                            )}
+                        </Button>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </TooltipProvider>
     )
 }

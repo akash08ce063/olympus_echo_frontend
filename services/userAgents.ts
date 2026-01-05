@@ -19,5 +19,13 @@ export const UserAgentsService = {
 
     // Get a specific user agent
     getUserAgent: (id: string) =>
-        apiClient.get(`/v1/user-agents/${id}`),
+        apiClient.get(TESTSUITS.user_agents.update(id)),
+
+    // Update an existing user agent
+    updateUserAgent: (id: string, data: Partial<CreateUserAgentPayload>) =>
+        apiClient.put(TESTSUITS.user_agents.update(id), data),
+
+    // Delete a user agent
+    deleteUserAgent: (id: string) =>
+        apiClient.delete(TESTSUITS.user_agents.delete(id)),
 };
