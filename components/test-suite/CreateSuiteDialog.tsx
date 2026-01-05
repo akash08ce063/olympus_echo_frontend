@@ -75,7 +75,7 @@ export function CreateSuiteDialog({ isOpen, onClose }: CreateSuiteDialogProps) {
 
     return (
         <Dialog open={isOpen} onOpenChange={handleClose}>
-            <DialogContent className="sm:max-w-[500px]">
+            <DialogContent className="sm:max-w-125">
                 <DialogHeader>
                     <DialogTitle>{step === 1 ? "Create New Test Suite" : "Select Target Agent"}</DialogTitle>
                     <DialogDescription>

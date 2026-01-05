@@ -63,7 +63,7 @@ export function TestCasesSection({
                 const goals = row.original.goals || []
                 const goalText = goals[0]?.text || (typeof goals[0] === 'string' ? goals[0] : "---")
                 return (
-                    <div className="text-sm text-foreground truncate max-w-[300px]" title={goalText}>
+                    <div className="text-sm text-foreground truncate max-w-75" title={goalText}>
                         {goalText}
                     </div>
                 )

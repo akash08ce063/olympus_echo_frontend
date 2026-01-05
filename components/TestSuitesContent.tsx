@@ -5,20 +5,11 @@ import {
     ArrowRight,
     Beaker,
     Bot,
-    Eye,
-    MessageSquare,
     MoreHorizontal,
-    Phone,
     Play,
     Plus,
-    Search,
     Settings,
-    Sparkles,
     User,
-    X,
-    Info,
-    Check,
-    ChevronsUpDown,
     Trash2,
     Loader2
 } from "lucide-react"
@@ -45,18 +36,11 @@ import {
     TabsList,
     TabsTrigger,
 } from "@/components/ui/tabs"
-import { Badge } from "@/components/ui/badge"
+
 import { Textarea } from "@/components/ui/textarea"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Skeleton } from "@/components/ui/skeleton"
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table"
+
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -65,14 +49,13 @@ import {
 } from "@/components/ui/dropdown-menu"
 import {
     AlertDialog,
-    AlertDialogAction,
     AlertDialogCancel,
     AlertDialogContent,
     AlertDialogDescription,
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
-    AlertDialogTrigger,
+
 } from "@/components/ui/alert-dialog"
 import {
     Dialog,
@@ -85,25 +68,9 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import {
-    Tooltip,
-    TooltipContent,
     TooltipProvider,
-    TooltipTrigger,
 } from "@/components/ui/tooltip"
-import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from "@/components/ui/popover"
-import {
-    Command,
-    CommandEmpty,
-    CommandGroup,
-    CommandInput,
-    CommandItem,
-    CommandList,
-    CommandSeparator,
-} from "@/components/ui/command"
+
 import { cn } from "@/lib/utils"
 import { AddAssistantDialog, type Assistant } from "@/components/AddAssistantDialog"
 import { TestCasesSection } from "@/components/TestCasesSection"
@@ -137,49 +104,6 @@ interface TestSuite {
 import { TestCase } from "@/types/test-suite"
 
 
-// Mock Data
-const initialSuites: TestSuite[] = [
-    {
-        id: "20ce1a33-68f8-4812-9d99-48ae7e68e3c0",
-        name: "New Test Suite",
-        created_at: "2025-12-31T00:00:00Z",
-        updated_at: "2025-12-31T00:00:00Z",
-        user_id: "mock-user-id",
-        testCount: 3,
-    },
-    {
-        id: "ts-002",
-        name: "New Test Suite",
-        created_at: "2025-12-31T00:00:00Z",
-        updated_at: "2025-12-31T00:00:00Z",
-        user_id: "mock-user-id",
-        testCount: 0,
-    },
-    {
-        id: "ts-003",
-        name: "New Test Suite",
-        created_at: "2025-12-29T00:00:00Z",
-        updated_at: "2025-12-29T00:00:00Z",
-        user_id: "mock-user-id",
-        testCount: 0,
-    },
-]
-
-const initialTestCases: TestCase[] = [
-    {
-        id: "tc-001",
-        test_suite_id: "20ce1a33-68f8-4812-9d99-48ae7e68e3c0",
-        name: "Greeting Flow",
-        goals: [{ text: "Hello, can you help me?" }],
-        evaluation_criteria: [{ expected: "Response contains Hello" }],
-        timeout_seconds: 30,
-        order_index: 0,
-        is_active: true,
-        attempts: 3,
-        default_concurrent_calls: 1
-    },
-]
-
 export function TestSuitesContent() {
     const { user } = useAuth()
     const [suites, setSuites] = useState<TestSuite[]>([])
@@ -191,8 +115,7 @@ export function TestSuitesContent() {
     const [testCases, setTestCases] = useState<TestCase[]>([])
     const [isCreateSuiteOpen, setIsCreateSuiteOpen] = useState(false)
     const [isAddAssistantOpen, setIsAddAssistantOpen] = useState(false)
-    const [openCombobox, setOpenCombobox] = useState(false)
-    const [selectedAssistant, setSelectedAssistant] = useState<string>("")
+  
     // Target agents for dropdown
     const [targetAgents, setTargetAgents] = useState<{ id: string, name: string }[]>([])
     // User/Tester agents for dropdown
@@ -509,7 +432,7 @@ export function TestSuitesContent() {
                                             placeholder="Describe the purpose of this test suite..."
                                             value={newSuite.description}
                                             onChange={(e) => setNewSuite(prev => ({ ...prev, description: e.target.value }))}
-                                            className="bg-background/50 border-border/50 focus:border-primary/50 min-h-[80px]"
+                                            className="bg-background/50 border-border/50 focus:border-primary/50 min-h-20"
                                         />
                                     </div>
 
@@ -521,7 +444,7 @@ export function TestSuitesContent() {
                                     <Button
                                         onClick={handleCreateSuite}
                                         disabled={isCreatingSuite}
-                                        className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/25 min-w-[120px]"
+                                        className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/25 min-w-30"
                                     >
                                         {isCreatingSuite ? (
                                             <>
@@ -590,7 +513,7 @@ export function TestSuitesContent() {
                 {/* Main Content */}
                 <div className="flex-1 flex flex-col bg-background relative overflow-hidden">
                     {/* Decorative background glow */}
-                    <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl pointer-events-none" />
+                    <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-150 h-150 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
 
                     {/* Header */}
                     {!isLoading && suites.length > 0 && (
@@ -639,7 +562,7 @@ export function TestSuitesContent() {
                                     </div>
                                 </div>
                                 <h2 className="text-2xl font-bold tracking-tight mb-2">Create your first test suite</h2>
-                                <p className="text-muted-foreground max-w-[420px] mb-8">
+                                <p className="text-muted-foreground max-w-105 mb-8">
                                     Test suites help you organize and run automated tests for your AI assistants.
                                     Start by creating a suite to define your test cases.
                                 </p>

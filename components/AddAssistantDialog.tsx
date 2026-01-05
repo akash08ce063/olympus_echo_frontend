@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { Bot, Plus, Loader2 } from "lucide-react";
+import { Bot, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -279,7 +279,7 @@ export function AddAssistantDialog({
                   placeholder="Define the behavior and persona of this agent..."
                   value={formData.systemPrompt}
                   onChange={(e) => setFormData(prev => ({ ...prev, systemPrompt: e.target.value }))}
-                  className="bg-background/50 border-border/50 focus:border-primary/50 min-h-[120px] resize-none"
+                  className="bg-background/50 border-border/50 focus:border-primary/50 min-h-30 resize-none"
                 />
               </div>
 

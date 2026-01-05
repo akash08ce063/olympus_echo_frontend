@@ -55,15 +55,14 @@ const MOCK_DATASETS: Dataset[] = [
                 id: "case-1",
                 test_suite_id: "ds-1",
                 name: "Too Expensive",
-                steps: [
-                    { action: "speak", text: "Ask for the price." },
-                    { action: "speak", text: "When they tell you, say it's too expensive and ask for a discount." }
+                goals: [
+                    { text: "Ask for the price." },
+                    { text: "When they tell you, say it's too expensive and ask for a discount." }
                 ],
-                conditions: [
-                    { type: "llm_eval", expected: "Agent justifies value" },
-                    { type: "response_contains", expected: "monthly installments" }
+                evaluation_criteria: [
+                    { expected: "Agent justifies value" },
+                    { expected: "response_contains: monthly installments" }
                 ],
-                expected_outcome: "Agent should offer a payment plan or justify the price.",
                 timeout_seconds: 30,
                 order_index: 0,
                 is_active: true,
@@ -249,10 +248,10 @@ export function TestProvider({ children }: { children: React.ReactNode }) {
             }
 
             // Evaluate Rubric (Mock Logic)
-            const rubricResults: RubricResult[] = testCase.conditions.map((cond, idx) => ({
+            const rubricResults: RubricResult[] = testCase.evaluation_criteria.map((criteria, idx) => ({
                 rubricId: `cond-${idx}`,
                 passed: Math.random() > 0.3, // Random 70% pass rate
-                reason: `Simulated evaluation for ${cond.type}: target met expectation.`
+                reason: `Simulated evaluation for criteria "${criteria.expected}": target met expectation.`
             }));
 
             const isPass = rubricResults.every(r => r.passed);

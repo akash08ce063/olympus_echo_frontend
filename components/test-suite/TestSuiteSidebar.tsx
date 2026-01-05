@@ -25,7 +25,7 @@ export function TestSuiteSidebar() {
         .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
     return (
-        <div className="w-[300px] border-r bg-muted/10 flex flex-col h-full bg-card">
+        <div className="w-75 border-r bg-cardflex flex-col h-full bg-card">
             <div className="p-4 border-b space-y-4">
                 <div className="flex items-center justify-between">
                     <h2 className="font-semibold text-lg tracking-tight">Test Suites</h2>

@@ -66,7 +66,7 @@ export function RunsHistory({ history, onViewDetails }: RunsHistoryProps) {
             <Table>
                 <TableHeader className="bg-muted/30">
                     <TableRow className="hover:bg-transparent">
-                        <TableHead className="w-[180px]">Run Date</TableHead>
+                        <TableHead className="w-45">Run Date</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Results</TableHead>
                         <TableHead>Duration</TableHead>

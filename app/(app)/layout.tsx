@@ -69,7 +69,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
       <div className="flex h-screen w-full">
         <AppSidebar />
         <main className="flex-1 flex flex-col overflow-hidden">
-          <div className="h-14 border-b border-border/50 flex items-center px-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="h-14 border-b border-border/50 flex items-center px-4 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
             <SidebarTrigger className="-ml-1" />
           </div>
           <div className="flex-1 overflow-auto">

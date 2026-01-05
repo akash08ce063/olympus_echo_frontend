@@ -1,12 +1,11 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { TestCase } from "@/types/test-suite";
-import { Info, Plus, Trash2, MessageSquare, ClipboardCheck, Timer, RefreshCw } from "lucide-react";
+import {  Plus, Trash2, MessageSquare, ClipboardCheck, Timer, RefreshCw } from "lucide-react";
 import { TestCaseService } from "@/services/testCases";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -202,7 +201,7 @@ export function TestCaseSheet({ isOpen, onClose, onSave, initialData, testSuiteI
                                         placeholder="Describe the agent's goal and the conversation flow..."
                                         value={formData.goals?.[0]?.text || ""}
                                         onChange={(e) => handleGoalChange(e.target.value)}
-                                        className="min-h-[200px] text-sm resize-none bg-background border-input focus:border-primary ring-0 shadow-sm rounded-lg"
+                                        className="min-h-50 text-sm resize-none bg-background border-input focus:border-primary ring-0 shadow-sm rounded-lg"
                                     />
                                 </div>
                             </div>
@@ -229,7 +228,7 @@ export function TestCaseSheet({ isOpen, onClose, onSave, initialData, testSuiteI
                                     {formData.evaluation_criteria?.map((criteria, index) => (
                                         <div key={index} className="group relative flex gap-3 items-center p-4 rounded-xl border border-border bg-background/50 transition-all hover:bg-muted/30 hover:border-primary/30 hover:shadow-md">
                                             <div className="flex-1 flex items-center gap-3">
-                                                <div className="bg-primary/10 text-primary text-[10px] font-bold w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0">
+                                                <div className="bg-primary/10 text-primary text-[10px] font-bold w-6 h-6 rounded-full flex items-center justify-center shrink-0">
                                                     {index + 1}
                                                 </div>
                                                 <Input
@@ -267,7 +266,7 @@ export function TestCaseSheet({ isOpen, onClose, onSave, initialData, testSuiteI
                     <Button
                         onClick={handleSave}
                         disabled={isSubmitting}
-                        className="bg-primary hover:bg-primary/90 text-primary-foreground min-w-[140px] h-11 font-bold uppercase tracking-widest text-xs shadow-xl shadow-primary/30 transition-all active:scale-[0.98]"
+                        className="bg-primary hover:bg-primary/90 text-primary-foreground min-w-35 h-11 font-bold uppercase tracking-widest text-xs shadow-xl shadow-primary/30 transition-all active:scale-[0.98]"
                     >
                         {isSubmitting ? (
                             <>

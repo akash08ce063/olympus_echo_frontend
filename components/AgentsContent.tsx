@@ -121,7 +121,7 @@ export function AgentsContent() {
                             <TableHead className="font-semibold">Sample Rate</TableHead>
                             <TableHead className="font-semibold">Encoding</TableHead>
                             <TableHead className="font-semibold">Created</TableHead>
-                            <TableHead className="font-semibold w-[50px]"></TableHead>
+                            <TableHead className="font-semibold w-12.5"></TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>

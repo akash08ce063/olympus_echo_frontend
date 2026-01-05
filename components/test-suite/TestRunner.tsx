@@ -79,7 +79,7 @@ export function TestRunner({ datasetId, experiment }: { datasetId: string, exper
             </CardHeader>
 
             <CardContent className="p-0">
-                <div className="grid grid-cols-1 lg:grid-cols-3 h-[500px]">
+                <div className="grid grid-cols-1 lg:grid-cols-3 h-125">
                     {/* Left: Transcript */}
                     <div className="lg:col-span-2 border-r flex flex-col">
                         <div className="p-4 bg-background/50 backdrop-blur-sm sticky top-0 z-10 border-b flex justify-between text-xs text-muted-foreground font-mono uppercase">
@@ -119,20 +119,20 @@ export function TestRunner({ datasetId, experiment }: { datasetId: string, exper
                             <div className={cn("transition-all duration-300",
                                 currentResult.transcript.at(-1)?.role === 'user' ? "opacity-100 scale-110" : "opacity-30 scale-90"
                             )}>
-                                <div className="h-16 w-16 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                                <div className="h-16 w-16 rounded-full bg-linear-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
                                     <Mic className="h-8 w-8 text-white" />
                                 </div>
                                 <p className="text-xs text-center mt-2 font-medium">Tester</p>
                             </div>
 
                             <div className="h-px w-24 bg-border relative">
-                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary to-transparent animate-shimmer" />
+                                <div className="absolute inset-0 bg-linear-to-r from-transparent via-primary to-transparent animate-shimmer" />
                             </div>
 
                             <div className={cn("transition-all duration-300",
                                 currentResult.transcript.at(-1)?.role === 'assistant' ? "opacity-100 scale-110" : "opacity-30 scale-90"
                             )}>
-                                <div className="h-16 w-16 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                                <div className="h-16 w-16 rounded-full bg-linear-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
                                     <Server className="h-8 w-8 text-white" />
                                 </div>
                                 <p className="text-xs text-center mt-2 font-medium">Target</p>

@@ -219,12 +219,12 @@ export default function SuiteDetailPage() {
                                             <TableRow key={tCase.id}>
                                                 <TableCell className="font-medium">{tCase.name}</TableCell>
                                                 <TableCell>
-                                                    <Badge variant="outline" className="text-[10px]">{tCase.steps.length} Steps</Badge>
+                                                    <Badge variant="outline" className="text-[10px]">{tCase.goals?.length || 0} Steps</Badge>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <Badge variant="secondary" className="text-[10px] bg-primary/10 text-primary">{tCase.conditions.length} Rules</Badge>
+                                                    <Badge variant="secondary" className="text-[10px] bg-primary/10 text-primary">{tCase.evaluation_criteria?.length || 0} Rules</Badge>
                                                 </TableCell>
-                                                <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">{tCase.expected_outcome}</TableCell>
+                                                <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">{tCase.evaluation_criteria?.[0]?.expected || "-"}</TableCell>
                                                 <TableCell className="text-center font-mono">{tCase.attempts}</TableCell>
                                                 <TableCell className="text-center font-mono">{tCase.default_concurrent_calls}</TableCell>
                                                 <TableCell className="text-right">
@@ -232,7 +232,7 @@ export default function SuiteDetailPage() {
                                                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditingCase(tCase); setIsSheetOpen(true); }}>
                                                             <Settings className="h-3 w-3" />
                                                         </Button>
-                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive/70 hover:text-destructive" onClick={() => handleDeleteCase(tCase.id)}>
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive/70 hover:text-destructive" onClick={() => tCase.id && handleDeleteCase(tCase.id)}>
                                                             <Trash2 className="h-3 w-3" />
                                                         </Button>
                                                     </div>
