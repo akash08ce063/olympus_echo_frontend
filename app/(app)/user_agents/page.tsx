@@ -142,7 +142,7 @@ export default function UserAgentsPage() {
             accessorKey: "systemPrompt",
             header: "System Prompt",
             cell: ({ row }) => (
-                <div className="max-w-[300px] truncate text-sm text-muted-foreground" title={row.getValue("systemPrompt")}>
+                <div className="max-w-75 truncate text-sm text-muted-foreground" title={row.getValue("systemPrompt")}>
                     {row.getValue("systemPrompt")}
                 </div>
             )
@@ -218,8 +218,8 @@ export default function UserAgentsPage() {
                     {isLoading ? (
                         <div className="space-y-4">
                             <div className="flex items-center space-x-4 px-2">
-                                <Skeleton className="h-4 w-[250px]" />
-                                <Skeleton className="h-4 w-[200px]" />
+                                <Skeleton className="h-4 w-62.5" />
+                                <Skeleton className="h-4 w-50" />
                             </div>
                             {[1, 2, 3, 4, 5].map((i) => (
                                 <div key={i} className="flex items-center space-x-4 px-2 py-4 border-b border-border/50">
@@ -257,7 +257,7 @@ export default function UserAgentsPage() {
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                            <AlertDialogCancel disabled={isDeletingAgent}>Cancel</AlertDialogCancel>
+                            <AlertDialogCancel disabled={isDeletingAgent} onClick={()=> setIsDeleteAgentOpen(false) }>Cancel</AlertDialogCancel>
                             <Button
                                 onClick={handleDeleteAssistant}
                                 disabled={isDeletingAgent}

@@ -38,7 +38,7 @@ export default function AgentsPage() {
                     <p className="text-muted-foreground">
                         Manage your target AI agents for testing
                     </p>
-                </div>
+            </div>
 
                 {/* Create New Agent */}
                 <Card className="border-dashed border-2 border-border/50 hover:border-primary/50 transition-colors">
@@ -60,14 +60,14 @@ export default function AgentsPage() {
                     <div className="lg:col-span-2 space-y-4">
                         <h2 className="text-xl font-semibold">Your Agents</h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {agents.map((agent) => (
-                                <Card
-                                    key={agent.id}
+                        {agents.map((agent) => (
+                            <Card
+                                key={agent.id}
                                     className={`cursor-pointer hover:shadow-lg transition-all duration-200 border-border/50 hover:border-primary/30 ${
                                         selectedAgent.id === agent.id ? "ring-2 ring-primary/20 border-primary/50" : ""
                                     }`}
-                                    onClick={() => setSelectedAgent(agent)}
-                                >
+                                onClick={() => setSelectedAgent(agent)}
+                            >
                                     <CardHeader className="pb-3">
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-3">
@@ -84,30 +84,30 @@ export default function AgentsPage() {
                                                     </Badge>
                                                 </div>
                                             </div>
-                                        </div>
+                                    </div>
                                         <CardDescription className="flex items-center gap-4 mt-2">
                                             <span className="text-xs">Type: {agent.type}</span>
                                             <span className="text-xs">Model: {agent.model}</span>
                                         </CardDescription>
-                                    </CardHeader>
-                                    <CardContent>
+                                </CardHeader>
+                                <CardContent>
                                         <div className="flex items-center justify-between text-sm text-muted-foreground">
                                             <span>Last active: {agent.lastActive}</span>
                                             <Button variant="ghost" size="sm">
                                                 <Activity className="w-4 h-4 mr-2" />
                                                 Test
                                             </Button>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            ))}
-                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ))}
                     </div>
+                </div>
 
                     {/* Agent Configuration */}
                     <div className="lg:col-span-1">
                         <Card className="sticky top-6">
-                            <CardHeader>
+                        <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
                                     <Settings className="w-5 h-5" />
                                     Configuration
@@ -115,12 +115,12 @@ export default function AgentsPage() {
                                 <CardDescription>
                                     Settings for {selectedAgent.name}
                                 </CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-6">
-                                <div className="space-y-2">
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <div className="space-y-2">
                                     <Label htmlFor="agent-name">Agent Name</Label>
-                                    <Input id="agent-name" defaultValue={selectedAgent.name} />
-                                </div>
+                                <Input id="agent-name" defaultValue={selectedAgent.name} />
+                            </div>
 
                                 <div className="space-y-2">
                                     <Label htmlFor="agent-type">Type</Label>
@@ -137,57 +137,57 @@ export default function AgentsPage() {
                                     </Select>
                                 </div>
 
-                                <div className="space-y-2">
-                                    <Label htmlFor="ws-url">WebSocket URL</Label>
-                                    <div className="flex">
-                                        <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-input bg-muted text-muted-foreground text-sm">
-                                            wss://
-                                        </span>
+                            <div className="space-y-2">
+                                <Label htmlFor="ws-url">WebSocket URL</Label>
+                                <div className="flex">
+                                    <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-input bg-muted text-muted-foreground text-sm">
+                                        wss://
+                                    </span>
                                         <Input
                                             id="ws-url"
                                             placeholder="api.agent.ai/v1/stream"
                                             className="rounded-l-none"
                                             defaultValue="api.example.com/ws"
                                         />
-                                    </div>
                                 </div>
+                            </div>
 
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label>Encoding</Label>
-                                        <Select defaultValue="mulaw">
-                                            <SelectTrigger>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label>Encoding</Label>
+                                    <Select defaultValue="mulaw">
+                                        <SelectTrigger>
                                                 <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
+                                        </SelectTrigger>
+                                        <SelectContent>
                                                 <SelectItem value="mulaw">μ-law</SelectItem>
                                                 <SelectItem value="pcm">PCM</SelectItem>
-                                                <SelectItem value="opus">Opus</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>Sample Rate</Label>
-                                        <Select defaultValue="8000">
-                                            <SelectTrigger>
+                                            <SelectItem value="opus">Opus</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Sample Rate</Label>
+                                    <Select defaultValue="8000">
+                                        <SelectTrigger>
                                                 <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
+                                        </SelectTrigger>
+                                        <SelectContent>
                                                 <SelectItem value="8000">8kHz</SelectItem>
                                                 <SelectItem value="16000">16kHz</SelectItem>
                                                 <SelectItem value="24000">24kHz</SelectItem>
                                                 <SelectItem value="48000">48kHz</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
+                                        </SelectContent>
+                                    </Select>
                                 </div>
+                            </div>
 
-                                <Separator />
+                            <Separator />
 
-                                <div className="space-y-4">
-                                    <h3 className="text-sm font-medium">Authentication</h3>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="api-key">API Key</Label>
+                            <div className="space-y-4">
+                                <h3 className="text-sm font-medium">Authentication</h3>
+                                <div className="space-y-2">
+                                    <Label htmlFor="api-key">API Key</Label>
                                         <Input
                                             id="api-key"
                                             type="password"
@@ -197,8 +197,8 @@ export default function AgentsPage() {
                                         <p className="text-xs text-muted-foreground">
                                             API key is managed securely
                                         </p>
-                                    </div>
                                 </div>
+                            </div>
 
                                 <div className="pt-4 space-y-2">
                                     <Button className="w-full">
@@ -207,9 +207,9 @@ export default function AgentsPage() {
                                     <Button variant="outline" className="w-full">
                                         Test Connection
                                     </Button>
-                                </div>
-                            </CardContent>
-                        </Card>
+                            </div>
+                        </CardContent>
+                    </Card>
                     </div>
                 </div>
             </div>

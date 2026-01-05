@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { TestCase } from "@/types/test-suite";
-import {  Plus, Trash2, MessageSquare, ClipboardCheck, Timer, RefreshCw } from "lucide-react";
+import { Plus, Trash2, MessageSquare, ClipboardCheck, Timer, RefreshCw } from "lucide-react";
 import { TestCaseService } from "@/services/testCases";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -182,7 +182,7 @@ export function TestCaseSheet({ isOpen, onClose, onSave, initialData, testSuiteI
                         <Separator className="opacity-80" />
 
                         {/* Goals and Evaluation Layout */}
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                        <div className="grid grid-cols-1 lg:grid-cols-1 gap-12">
                             {/* Goals Section */}
                             <div className="space-y-6">
                                 <div className="flex items-center justify-between">

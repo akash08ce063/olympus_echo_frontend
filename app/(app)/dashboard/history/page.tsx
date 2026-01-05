@@ -108,20 +108,20 @@ export default function HistoryPage() {
                                 <p className="text-sm text-muted-foreground">
                                     Your completed test runs will appear here
                                 </p>
-                            </div>
+            </div>
                         ) : (
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
                                         <TableHead>Test ID</TableHead>
-                                        <TableHead>Status</TableHead>
+                            <TableHead>Status</TableHead>
                                         <TableHead>Started</TableHead>
-                                        <TableHead>Duration</TableHead>
+                            <TableHead>Duration</TableHead>
                                         <TableHead>Results</TableHead>
                                         <TableHead></TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
                                     {history.map((test) => {
                                         const results = Object.values(test.results || {})
                                         const totalCases = results.length
@@ -160,11 +160,11 @@ export default function HistoryPage() {
                                                         View
                                                     </Button>
                                                 </TableCell>
-                                            </TableRow>
+                        </TableRow>
                                         )
                                     })}
-                                </TableBody>
-                            </Table>
+                    </TableBody>
+                </Table>
                         )}
                     </CardContent>
                 </Card>

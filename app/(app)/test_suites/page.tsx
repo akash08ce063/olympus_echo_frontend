@@ -12,8 +12,6 @@ import {
     Search,
     Settings,
     Trash2,
-    ArrowRight,
-    User
 } from "lucide-react"
 import { v4 as uuidv4 } from 'uuid'
 
@@ -52,10 +50,7 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog"
 import {
-    Tooltip,
-    TooltipContent,
     TooltipProvider,
-    TooltipTrigger,
 } from "@/components/ui/tooltip"
 import {
     Table,
@@ -488,7 +483,7 @@ function TestSuitesPageLegacy() {
                                                                         placeholder="Step-by-step test instructions..."
                                                                         value={newTest.script || ""}
                                                                         onChange={(e) => setNewTest(prev => ({ ...prev, script: e.target.value }))}
-                                                                        className="min-h-[100px]"
+                                                                        className="min-h-25"
                                                                     />
                                                                 </div>
                                                                 <div className="space-y-2">
@@ -497,7 +492,7 @@ function TestSuitesPageLegacy() {
                                                                         placeholder="Evaluation criteria..."
                                                                         value={newTest.rubric || ""}
                                                                         onChange={(e) => setNewTest(prev => ({ ...prev, rubric: e.target.value }))}
-                                                                        className="min-h-[80px]"
+                                                                        className="min-h-20"
                                                                     />
                                                                 </div>
                                                             </div>

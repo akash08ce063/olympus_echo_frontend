@@ -4,42 +4,30 @@ import { useState, useEffect, useCallback } from "react"
 import {
     Bot,
     Plus,
-    Search,
     MoreHorizontal,
-    Settings,
-    Play,
-    Pause,
     Trash2,
-    Eye,
-    Copy,
     Edit,
     Loader2
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import {
-    Card,
-    CardContent,
-} from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
+
+
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
-    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
     AlertDialog,
-    AlertDialogAction,
     AlertDialogCancel,
     AlertDialogContent,
     AlertDialogDescription,
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
-    AlertDialogTrigger,
+
 } from "@/components/ui/alert-dialog"
 import { DataTable } from "@/components/data-table"
 import { ColumnDef } from "@tanstack/react-table"
@@ -221,8 +209,8 @@ export default function TesterAgentsPage() {
                     {isLoading ? (
                         <div className="space-y-4">
                             <div className="flex items-center space-x-4 px-2">
-                                <Skeleton className="h-4 w-[250px]" />
-                                <Skeleton className="h-4 w-[200px]" />
+                                <Skeleton className="h-4 w-62.5" />
+                                <Skeleton className="h-4 w-50" />
                             </div>
                             {[1, 2, 3, 4, 5].map((i) => (
                                 <div key={i} className="flex items-center space-x-4 px-2 py-4 border-b border-border/50">
@@ -260,7 +248,7 @@ export default function TesterAgentsPage() {
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                            <AlertDialogCancel disabled={isDeletingAgent}>Cancel</AlertDialogCancel>
+                            <AlertDialogCancel disabled={isDeletingAgent} onClick={()=> setIsDeleteAgentOpen(false) }>Cancel</AlertDialogCancel>
                             <Button
                                 onClick={handleDeleteAssistant}
                                 disabled={isDeletingAgent}

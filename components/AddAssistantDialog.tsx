@@ -14,7 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Textarea } from "./ui/textarea";
 import { Slider } from "./ui/slider";
 import { useAuth } from "@/hooks/useAuth";
@@ -223,17 +223,17 @@ export function AddAssistantDialog({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Sample Rate</Label>
+                  <Label className="text-sm font-medium">Sample Rate</Label>
                   <Select
                     value={formData.sampleRate}
                     onValueChange={handleSelectChange("sampleRate")}
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sample Rate" />
+                    <SelectTrigger className="w-full bg-background/50 border-border/50 focus:ring-primary/20">
+                      <SelectValue placeholder="Select Sample Rate" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="max-h-60">
                       <SelectItem value="8000">8 kHz</SelectItem>
                       <SelectItem value="16000">16 kHz</SelectItem>
                       <SelectItem value="22050">22.05 kHz</SelectItem>
@@ -245,15 +245,15 @@ export function AddAssistantDialog({
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Encoding</Label>
+                  <Label className="text-sm font-medium">Encoding</Label>
                   <Select
                     value={formData.encoding}
                     onValueChange={handleSelectChange("encoding")}
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Encoding" />
+                    <SelectTrigger className="w-full bg-background/50 border-border/50 focus:ring-primary/20">
+                      <SelectValue placeholder="Select Encoding" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="">
                       <SelectItem value="pcm_s16le">PCM 16-bit</SelectItem>
                       <SelectItem value="pcm_s24le">PCM 24-bit</SelectItem>
                       <SelectItem value="pcm_s32le">PCM 32-bit</SelectItem>
@@ -312,7 +312,7 @@ export function AddAssistantDialog({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={isSubmitting}
+            disabled={isSubmitting || !formData.name.trim() || (agentType === "target" ? !formData.websocketUrl.trim() : !formData.systemPrompt.trim())}
             className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/25"
           >
             {isSubmitting ? (

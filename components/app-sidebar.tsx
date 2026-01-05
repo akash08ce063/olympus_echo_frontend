@@ -37,12 +37,12 @@ const navMain = [
   },
   {
     title: "Test Suites",
-    url: "/test_suits",
+    url: "/test_suites",
     icon: IconFlask,
   },
   {
     title: "Target Agents",
-    url: "/tester_agents", // Keeping URL for now to avoid breaking existing logic, or I should rename folder later
+    url: "/target_agents", // Keeping URL for now to avoid breaking existing logic, or I should rename folder later
     icon: IconRobot,
   },
   {

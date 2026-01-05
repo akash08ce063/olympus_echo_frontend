@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { MoreHorizontal, Play, Plus, Sparkles, Trash2 } from "lucide-react"
+import { Edit, Loader2, MoreHorizontal, Play, Plus, Sparkles, Trash2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -11,6 +11,15 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+    AlertDialog,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { ColumnDef } from "@tanstack/react-table"
 import { DataTable } from "./data-table"
 import { TestCaseSheet } from "./test-suite/TestCaseSheet"
@@ -35,14 +44,31 @@ export function TestCasesSection({
 }: TestCasesSectionProps) {
     const [isAddTestOpen, setIsAddTestOpen] = useState(false)
     const [editingTest, setEditingTest] = useState<TestCase | null>(null)
+    const [isDeleteOpen, setIsDeleteOpen] = useState(false)
+    const [testToDelete, setTestToDelete] = useState<TestCase | null>(null)
+    const [isDeleting, setIsDeleting] = useState(false)
 
     const handleEdit = (testCase: TestCase) => {
         setEditingTest(testCase)
         setIsAddTestOpen(true)
     }
 
-    const handleDelete = (id: string) => {
-        onDeleteTestCase(id)
+    const handleDelete = (testCase: TestCase) => {
+        setTestToDelete(testCase)
+        setIsDeleteOpen(true)
+    }
+
+    const confirmDelete = async () => {
+        if (!testToDelete?.id) return
+
+        setIsDeleting(true)
+        try {
+            await onDeleteTestCase(testToDelete.id)
+            setIsDeleteOpen(false)
+            setTestToDelete(null)
+        } finally {
+            setIsDeleting(false)
+        }
     }
 
     const handleCloseDialog = () => {
@@ -116,10 +142,11 @@ export function TestCasesSection({
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                                 <DropdownMenuItem onClick={() => handleEdit(test)}>
+                                    <Edit className="w-4 h-4 mr-2" />
                                     Edit
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
-                                    onClick={() => handleDelete(test.id!)}
+                                    onClick={() => handleDelete(test)}
                                     className="text-destructive font-medium"
                                 >
                                     <Trash2 className="w-4 h-4 mr-2" />
@@ -177,6 +204,35 @@ export function TestCasesSection({
                     searchKey="name"
                 />
             </div>
+
+            <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete the test case "{testToDelete?.name}" and all associated data.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isDeleting} onClick={() => setIsDeleteOpen(false)}>Cancel</AlertDialogCancel>
+                        <Button
+                            onClick={confirmDelete}
+                            disabled={isDeleting}
+                            variant="destructive"
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                            {isDeleting ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Deleting...
+                                </>
+                            ) : (
+                                "Delete"
+                            )}
+                        </Button>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     )
 }

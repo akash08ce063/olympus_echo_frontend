@@ -133,7 +133,7 @@ export default function SuiteDetailPage() {
                                         </div>
                                         <div>
                                             <h3 className="font-semibold text-lg">Tester Assistant</h3>
-                                            <p className="text-sm text-muted-foreground">This is the assistant that will call or chat with your assistant to test them.</p>
+                                            <p className="text-sm text-muted-foreground">This is the assistant that will call with your assistant to test them.</p>
                                         </div>
                                     </div>
 
@@ -150,7 +150,7 @@ export default function SuiteDetailPage() {
                                             </Select>
                                             <Button variant="outline"><Eye className="h-4 w-4 mr-2" /> View Config</Button>
                                         </div>
-                                        <p className="text-[10px] text-muted-foreground">This is the assistant that will call or chat with your assistant to test them.</p>
+                                        <p className="text-[10px] text-muted-foreground">This is the assistant that will call with your assistant to test them.</p>
                                     </div>
                                 </CardContent>
                             </Card>

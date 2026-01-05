@@ -1,8 +1,6 @@
-"use client"
-
 import Link from "next/link"
-import { type Icon } from "@tabler/icons-react"
-import { cn } from "@/lib/utils"
+import { usePathname } from "next/navigation"
+import type { Icon } from "@tabler/icons-react"
 
 import {
   SidebarGroup,
@@ -11,6 +9,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import { cn } from "@/lib/utils"
 
 export function NavMain({
   items,
@@ -26,42 +25,57 @@ export function NavMain({
   onViewChange?: (view: string) => void
   currentView?: string
 }) {
+  const pathname = usePathname()
+
   return (
     <SidebarGroup>
       <SidebarGroupContent>
         <SidebarMenu>
-          {items.map((item) => (
-            <SidebarMenuItem key={item.title}>
-              {item.view ? (
-                <SidebarMenuButton
-                  tooltip={item.title}
-                  onClick={() => onViewChange?.(item.view!)}
-                  isActive={currentView === item.view}
-                  className={cn(
-                    "transition-all duration-200 ease-in-out hover:bg-accent hover:text-accent-foreground",
-                    currentView === item.view && "bg-accent text-accent-foreground shadow-sm"
-                  )}
-                >
-                  {item.icon && <item.icon className={cn(
-                    "transition-transform duration-200 group-hover:scale-105",
-                    currentView === item.view && "text-accent-foreground"
-                  )} />}
-                  <span className="font-medium">{item.title}</span>
-                </SidebarMenuButton>
-              ) : (
-                <SidebarMenuButton
-                  tooltip={item.title}
-                  asChild
-                  className="transition-all duration-200 ease-in-out hover:bg-accent hover:text-accent-foreground"
-                >
-                  <Link href={item.url!}>
-                    {item.icon && <item.icon className="transition-transform duration-200 group-hover:scale-105" />}
-                    <span className="font-medium">{item.title}</span>
-                  </Link>
-                </SidebarMenuButton>
-              )}
-            </SidebarMenuItem>
-          ))}
+          {items.map((item) => {
+            const isActive = item.view
+              ? currentView === item.view
+              : item.url === pathname || (item.url !== "/dashboard" && pathname.startsWith(item.url!))
+
+            return (
+              <SidebarMenuItem key={item.title}>
+                {item.view ? (
+                  <SidebarMenuButton
+                    tooltip={item.title}
+                    onClick={() => onViewChange?.(item.view!)}
+                    isActive={isActive}
+                    className={cn(
+                      "transition-all duration-200 ease-in-out hover:bg-accent hover:text-accent-foreground",
+                      isActive && "bg-accent text-accent-foreground shadow-sm font-semibold"
+                    )}
+                  >
+                    {item.icon && <item.icon className={cn(
+                      "transition-transform duration-200 group-hover:scale-105",
+                      isActive && "text-primary"
+                    )} />}
+                    <span>{item.title}</span>
+                  </SidebarMenuButton>
+                ) : (
+                  <SidebarMenuButton
+                    tooltip={item.title}
+                    asChild
+                    isActive={isActive}
+                    className={cn(
+                      "transition-all duration-200 ease-in-out hover:bg-accent hover:text-accent-foreground",
+                      isActive && "bg-accent text-accent-foreground shadow-sm font-semibold"
+                    )}
+                  >
+                    <Link href={item.url!}>
+                      {item.icon && <item.icon className={cn(
+                        "transition-transform duration-200 group-hover:scale-105",
+                        isActive && "text-primary"
+                      )} />}
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                )}
+              </SidebarMenuItem>
+            )
+          })}
         </SidebarMenu>
       </SidebarGroupContent>
     </SidebarGroup>
