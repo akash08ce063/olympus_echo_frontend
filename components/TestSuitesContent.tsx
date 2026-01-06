@@ -144,6 +144,7 @@ export function TestSuitesContent() {
     const [isDeletingSuite, setIsDeletingSuite] = useState(false)
     const [isCreatingSuite, setIsCreatingSuite] = useState(false)
     const [isRunningTests, setIsRunningTests] = useState(false)
+    const [agentTypeForDialog, setAgentTypeForDialog] = useState<"target" | "tester">("target")
 
     const {
         runExperiment,
@@ -197,9 +198,73 @@ export function TestSuitesContent() {
     ])
 
     const [selectedRunDetail, setSelectedRunDetail] = useState<any | null>(null)
+    const [selectedCallLogs, setSelectedCallLogs] = useState<any | null>(null)
+    const [apiRuns, setApiRuns] = useState<any[]>([])
+    const [isRunsLoading, setIsRunsLoading] = useState(false)
+    const [isCallLogsLoading, setIsCallLogsLoading] = useState(false)
+
+    const fetchAllRuns = useCallback(async () => {
+        if (!user?.id) return
+        setIsRunsLoading(true)
+        try {
+            const response = await TestSuitesService.getAllRuns(user.id) as any
+            const runsData = Array.isArray(response) ? response : (response?.data || response?.runs || [])
+            setApiRuns(runsData)
+            console.log("Fetched all runs:", runsData)
+        } catch (error) {
+            console.error("Failed to fetch runs:", error)
+        } finally {
+            setIsRunsLoading(false)
+        }
+    }, [user?.id])
+
+    const fetchCallLogs = useCallback(async (requestId: string) => {
+        if (!user?.id) return
+        setIsCallLogsLoading(true)
+        try {
+            const response = await TestSuitesService.getCallLogsByRequestId(requestId, user.id) as any
+            setSelectedCallLogs(response?.call_logs || null)
+        } catch (error) {
+            console.error("Failed to fetch call logs:", error)
+            toast.error("Failed to load conversation transcript")
+            setSelectedCallLogs(null)
+        } finally {
+            setIsCallLogsLoading(false)
+        }
+    }, [user?.id])
+
+    const formatDuration = (start: string, end: string | null) => {
+        if (!end) return "Running..."
+        const startTime = new Date(start).getTime()
+        const endTime = new Date(end).getTime()
+        const diff = Math.abs(endTime - startTime) / 1000
+
+        if (diff < 60) return `${Math.floor(diff)}s`
+        const minutes = Math.floor(diff / 60)
+        const seconds = Math.floor(diff % 60)
+        return `${minutes}m ${seconds}s`
+    }
+
+    const formatDate = (dateStr: string) => {
+        return new Date(dateStr).toLocaleString('en-US', {
+            month: 'short',
+            day: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        })
+    }
 
     const handleRunTests = async () => {
         if (!selectedSuiteId || !user?.id) return
+
+        const targetAgentId = selectedSuiteDetails?.target_agent?.id || selectedSuite?.target_agent_id;
+        const userAgentId = selectedSuiteDetails?.user_agent?.id || selectedSuite?.user_agent_id;
+
+        if (!targetAgentId || !userAgentId) {
+            toast.error("Please select both Target Agent and Tester Assistant before running tests");
+            return;
+        }
 
         setIsRunningTests(true)
         try {
@@ -219,8 +284,8 @@ export function TestSuitesContent() {
         uuid: "",
     })
 
-    const fetchSuiteDetails = useCallback(async (id: string) => {
-        setIsDetailsLoading(true)
+    const fetchSuiteDetails = useCallback(async (id: string, isSilent = false) => {
+        if (!isSilent) setIsDetailsLoading(true)
         try {
             const response: any = await TestSuitesService.getTestSuiteDetails(id)
             console.log("Fetched suite details:", response)
@@ -234,63 +299,35 @@ export function TestSuitesContent() {
             console.error("Failed to fetch suite details:", error)
             // toast.error("Failed to load suite details")
         } finally {
-            setIsDetailsLoading(false)
+            if (!isSilent) setIsDetailsLoading(false)
         }
     }, [])
 
-    const fetchSuites = useCallback(async () => {
+    const fetchSuites = useCallback(async (isSilent = false) => {
         if (!user?.id) return
-        setIsLoading(true)
+        if (!isSilent) setIsLoading(true)
         try {
             // Note: axios interceptor already returns response.data, so use response directly
             const response = await TestSuitesService.getTestSuites(user.id) as any
             const apiData = response || {}
             const fetchedSuites = apiData.test_suites || []
 
-            // Transform the data and fetch agent names
-            const transformedSuites = await Promise.all(
-                fetchedSuites.map(async (suite: any) => {
-                    const transformedSuite: TestSuite = {
-                        id: suite.id,
-                        name: suite.name,
-                        description: suite.description,
-                        target_agent_id: suite.target_agent_id,
-                        user_agent_id: suite.user_agent_id,
-                        created_at: suite.created_at,
-                        updated_at: suite.updated_at,
-                        user_id: suite.user_id,
-                        testCount: 0, // We'll need to implement this later
-                        createdAt: new Date(suite.created_at).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: '2-digit',
-                            year: 'numeric'
-                        }),
-                    }
-
-                    // Fetch agent names if IDs are present (response is already unwrapped by axios)
-                    if (suite.target_agent_id) {
-                        try {
-                            const targetAgentResponse = await TargetAgentsService.getTargetAgent(suite.target_agent_id) as any
-                            transformedSuite.targetAgentName = targetAgentResponse?.name || 'Unknown Agent'
-                        } catch (error) {
-                            console.warn(`Failed to fetch target agent ${suite.target_agent_id}:`, error)
-                            transformedSuite.targetAgentName = 'Unknown Agent'
-                        }
-                    }
-
-                    if (suite.user_agent_id) {
-                        try {
-                            const userAgentResponse = await UserAgentsService.getUserAgent(suite.user_agent_id) as any
-                            transformedSuite.userAgentName = userAgentResponse?.name || 'Unknown Agent'
-                        } catch (error) {
-                            console.warn(`Failed to fetch user agent ${suite.user_agent_id}:`, error)
-                            transformedSuite.userAgentName = 'Unknown Agent'
-                        }
-                    }
-
-                    return transformedSuite
-                })
-            )
+            const transformedSuites: TestSuite[] = fetchedSuites.map((suite: any) => ({
+                id: suite.id,
+                name: suite.name,
+                description: suite.description,
+                target_agent_id: suite.target_agent_id,
+                user_agent_id: suite.user_agent_id,
+                created_at: suite.created_at,
+                updated_at: suite.updated_at,
+                user_id: suite.user_id,
+                testCount: 0,
+                createdAt: new Date(suite.created_at).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: '2-digit',
+                    year: 'numeric'
+                }),
+            }))
 
             setSuites(transformedSuites)
             if (transformedSuites.length > 0 && !selectedSuiteId) {
@@ -302,7 +339,7 @@ export function TestSuitesContent() {
             console.error("Failed to fetch test suites:", error)
             toast.error("Failed to load test suites")
         } finally {
-            setIsLoading(false)
+            if (!isSilent) setIsLoading(false)
         }
     }, [user, fetchSuiteDetails])
 
@@ -377,33 +414,75 @@ export function TestSuitesContent() {
         }
     }, [newSuite, user?.id, fetchSuites, fetchSuiteDetails])
 
-    const handleUpdateSuiteAgent = useCallback(async (field: 'target_agent_id' | 'user_agent_id', agentId: string) => {
+    const handleUpdateSuiteAgent = useCallback(async (field: 'target_agent_id' | 'user_agent_id', agentId: string, optimisticName?: string) => {
         if (!selectedSuite) return;
+
+        const isTarget = field === 'target_agent_id';
+        const agentName = optimisticName || (isTarget
+            ? targetAgents.find((a: any) => a.id === agentId)?.name
+            : userAgents.find((a: any) => a.id === agentId)?.name);
+
+        // Optimistic update for current suite details
+        setSelectedSuiteDetails((prev: any) => {
+            if (!prev) return prev;
+            return {
+                ...prev,
+                [isTarget ? 'target_agent' : 'user_agent']: { id: agentId, name: agentName || 'Loading...' }
+            };
+        });
+
+        // Optimistic update for suites list (sidebar)
+        setSuites(prev => prev.map(s =>
+            s.id === selectedSuite.id
+                ? { ...s, [field]: agentId }
+                : s
+        ));
 
         try {
             await TestSuitesService.updateTestSuite(selectedSuite.id, {
                 [field]: agentId
             });
 
-            // Refresh systems from API
-            await fetchSuites();
+            // Sync with server in background
+            fetchSuites(true);
             if (selectedSuite.id) {
-                fetchSuiteDetails(selectedSuite.id);
+                fetchSuiteDetails(selectedSuite.id, true);
             }
 
-            // Re-fetch details to get updated names and nested objects
-            fetchSuiteDetails(selectedSuite.id);
-
-            toast.success(`${field === 'target_agent_id' ? 'Target' : 'Tester'} agent updated`)
+            toast.success(`${isTarget ? 'Target' : 'Tester'} agent updated`)
         } catch (error) {
             console.error(`Failed to update ${field}:`, error);
-            toast.error(`Failed to update ${field === 'target_agent_id' ? 'target' : 'tester'} agent`)
+            toast.error(`Failed to update ${isTarget ? 'target' : 'tester'} agent`)
+            // Revert/Sync state on failure
+            fetchSuites(true);
+            if (selectedSuite.id) {
+                fetchSuiteDetails(selectedSuite.id, true);
+            }
         }
-    }, [selectedSuite, fetchSuites, fetchSuiteDetails])
+    }, [selectedSuite, fetchSuites, fetchSuiteDetails, targetAgents, userAgents])
 
     const handleAddAssistant = useCallback((newAssistant: Assistant) => {
+        // Update local agent lists instantly
+        if (agentTypeForDialog === 'target') {
+            setTargetAgents(prev => {
+                const filtered = prev.filter(a => a.id !== newAssistant.id);
+                return [...filtered, { id: newAssistant.id, name: newAssistant.name }];
+            });
+            handleUpdateSuiteAgent('target_agent_id', newAssistant.id, newAssistant.name)
+        } else {
+            setUserAgents(prev => {
+                const filtered = prev.filter(a => a.id !== newAssistant.id);
+                return [...filtered, { id: newAssistant.id, name: newAssistant.name }];
+            });
+            handleUpdateSuiteAgent('user_agent_id', newAssistant.id, newAssistant.name)
+        }
+
+        // Keep assistants list in sync
         setAssistants(prev => [...prev, newAssistant])
-    }, [])
+
+        // Background sync to ensure everything is perfect
+        fetchAgents()
+    }, [agentTypeForDialog, handleUpdateSuiteAgent, fetchAgents])
 
 
     const handleDeleteSuite = useCallback(async () => {
@@ -606,7 +685,12 @@ export function TestSuitesContent() {
                             <div className="flex items-center gap-2">
                                 <Button
                                     onClick={handleRunTests}
-                                    disabled={isRunningTests || (activeExperiment?.status === 'running' && activeExperiment.datasetId === selectedSuiteId)}
+                                    disabled={
+                                        isRunningTests ||
+                                        (activeExperiment?.status === 'running' && activeExperiment.datasetId === selectedSuiteId) ||
+                                        !(selectedSuiteDetails?.target_agent?.id || selectedSuite?.target_agent_id) ||
+                                        !(selectedSuiteDetails?.user_agent?.id || selectedSuite?.user_agent_id)
+                                    }
                                     className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 transition-all duration-300 hover:shadow-primary/40 min-w-32"
                                 >
                                     {(isRunningTests || (activeExperiment?.status === 'running' && activeExperiment.datasetId === selectedSuiteId)) ? (
@@ -740,7 +824,15 @@ export function TestSuitesContent() {
                             </div>
                         ) : (
                             <div className="p-6 lg:p-8 space-y-8">
-                                <Tabs defaultValue="configure" className="space-y-6">
+                                <Tabs
+                                    defaultValue="configure"
+                                    className="space-y-6"
+                                    onValueChange={(value) => {
+                                        if (value === "runs") {
+                                            fetchAllRuns()
+                                        }
+                                    }}
+                                >
                                     <TabsList className="bg-muted/30 p-1 border border-border/50 inline-flex">
                                         <TabsTrigger
                                             value="configure"
@@ -780,7 +872,14 @@ export function TestSuitesContent() {
                                                         <Label className="text-xs text-muted-foreground">Select tester assistant configuration</Label>
                                                         <Select
                                                             value={selectedSuiteDetails?.user_agent?.id || selectedSuite?.user_agent_id || ""}
-                                                            onValueChange={(value) => handleUpdateSuiteAgent('user_agent_id', value)}
+                                                            onValueChange={(value) => {
+                                                                if (value === "__add_new__") {
+                                                                    setAgentTypeForDialog("tester");
+                                                                    setIsAddAssistantOpen(true);
+                                                                } else {
+                                                                    handleUpdateSuiteAgent('user_agent_id', value);
+                                                                }
+                                                            }}
                                                         >
                                                             <SelectTrigger className="w-full bg-background/50 border-border/50">
                                                                 <SelectValue placeholder="Select Tester Agent">
@@ -791,11 +890,18 @@ export function TestSuitesContent() {
                                                                 {userAgents.length === 0 ? (
                                                                     <div className="p-2 text-sm text-muted-foreground">No tester agents available</div>
                                                                 ) : (
-                                                                    userAgents.map((agent) => (
-                                                                        <SelectItem key={agent.id} value={agent.id}>
-                                                                            {agent.name}
+                                                                    <>
+                                                                        {userAgents.map((agent) => (
+                                                                            <SelectItem key={agent.id} value={agent.id}>
+                                                                                {agent.name}
+                                                                            </SelectItem>
+                                                                        ))}
+                                                                        <SelectSeparator />
+                                                                        <SelectItem value="__add_new__" className="text-primary focus:text-primary focus:bg-primary/10 cursor-pointer">
+                                                                            <Plus className="w-4 h-4 mr-2" />
+                                                                            Add New Assistant
                                                                         </SelectItem>
-                                                                    ))
+                                                                    </>
                                                                 )}
                                                             </SelectContent>
                                                         </Select>
@@ -831,6 +937,7 @@ export function TestSuitesContent() {
                                                             value={selectedSuiteDetails?.target_agent?.id || selectedSuite?.target_agent_id || ""}
                                                             onValueChange={(value) => {
                                                                 if (value === "__add_new__") {
+                                                                    setAgentTypeForDialog("target");
                                                                     setIsAddAssistantOpen(true);
                                                                 } else {
                                                                     handleUpdateSuiteAgent('target_agent_id', value);
@@ -913,8 +1020,11 @@ export function TestSuitesContent() {
                                                             ID: {selectedRunDetail.id}
                                                         </Badge>
                                                         <Badge
-                                                            variant={selectedRunDetail.status === 'completed' ? 'default' : 'destructive'}
-                                                            className="capitalize"
+                                                            variant={selectedRunDetail.status === 'completed' ? 'default' : selectedRunDetail.status === 'running' ? 'secondary' : 'destructive'}
+                                                            className={cn(
+                                                                "capitalize",
+                                                                selectedRunDetail.status === 'running' && "bg-amber-500/10 text-amber-500 border-amber-500/20 hover:bg-amber-500/20"
+                                                            )}
                                                         >
                                                             {selectedRunDetail.status}
                                                         </Badge>
@@ -984,7 +1094,7 @@ export function TestSuitesContent() {
                                                         <Table>
                                                             <TableHeader className="bg-muted/10">
                                                                 <TableRow className="hover:bg-transparent border-border/50">
-                                                                    <TableHead className="text-xs font-bold w-[250px]">Test Case</TableHead>
+                                                                    <TableHead className="text-xs font-bold w-62.5">Test Case</TableHead>
                                                                     <TableHead className="text-xs font-bold text-center">Status</TableHead>
                                                                     <TableHead className="text-xs font-bold text-center">Duration</TableHead>
                                                                     <TableHead className="text-xs font-bold text-center">Score</TableHead>
@@ -1002,7 +1112,7 @@ export function TestSuitesContent() {
                                                                                         <CheckCircle2 className="w-3 h-3 mr-1" /> Passed
                                                                                     </Badge>
                                                                                 ) : (
-                                                                                    <Badge variant="destructive" className="bg-rose-500/10 text-rose-500 border-rose-500/20 hover:bg-rose-500/20 transition-colors">
+                                                                                    <Badge variant="destructive" className="bg-rose-500/10 text-white border-rose-500/20 hover:bg-rose-500/20 transition-colors">
                                                                                         <XCircle className="w-3 h-3 mr-1" /> Failed
                                                                                     </Badge>
                                                                                 )}
@@ -1017,13 +1127,93 @@ export function TestSuitesContent() {
                                                                                 {(tc.score * 10).toFixed(1)}/10
                                                                             </Badge>
                                                                         </TableCell>
-                                                                        <TableCell className="text-xs text-muted-foreground leading-relaxed max-w-[400px]">
+                                                                        <TableCell className="text-xs text-muted-foreground leading-relaxed max-w-100">
                                                                             {tc.feedback}
                                                                         </TableCell>
                                                                     </TableRow>
                                                                 ))}
                                                             </TableBody>
                                                         </Table>
+                                                    </CardContent>
+                                                </Card>
+
+                                                {/* Conversation Transcript */}
+                                                <Card className="bg-card/30 border-border/50 overflow-hidden flex flex-col h-[600px]">
+                                                    <CardHeader className="border-b border-border/50 bg-muted/20 flex flex-row items-center justify-between py-4">
+                                                        <div className="space-y-1">
+                                                            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                                                                <Activity className="w-4 h-4 text-primary" />
+                                                                Call Transcript
+                                                            </CardTitle>
+                                                            <CardDescription className="text-[10px]">Real-time conversation logs between the tester and target agent.</CardDescription>
+                                                        </div>
+                                                        {selectedCallLogs && (
+                                                            <div className="flex items-center gap-3">
+                                                                <Badge variant="outline" className="text-[10px] font-mono bg-background/50 h-6">
+                                                                    ID: {selectedCallLogs.id.split('-').pop()}
+                                                                </Badge>
+                                                                <Badge variant="secondary" className="text-[10px] font-mono h-6 gap-1.5">
+                                                                    <Clock className="w-3 h-3" />
+                                                                    {selectedCallLogs.call_duration}s
+                                                                </Badge>
+                                                            </div>
+                                                        )}
+                                                    </CardHeader>
+                                                    <CardContent className="p-0 flex-1 overflow-hidden relative bg-muted/5">
+                                                        <ScrollArea className="h-full p-4 lg:p-8">
+                                                            {isCallLogsLoading ? (
+                                                                <div className="space-y-6">
+                                                                    {[1, 2, 3, 4, 5].map((i) => (
+                                                                        <div key={i} className={cn("flex flex-col gap-2 max-w-[70%]", i % 2 === 0 ? "self-end items-end" : "self-start")}>
+                                                                            <Skeleton className="h-3 w-16 rounded mb-1" />
+                                                                            <Skeleton className={cn("h-16 w-full rounded-2xl", i % 2 === 0 ? "rounded-tr-none" : "rounded-tl-none")} />
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            ) : selectedCallLogs?.call_transcript ? (
+                                                                <div className="flex flex-col gap-8 pb-4">
+                                                                    {selectedCallLogs.call_transcript.map((msg: any, idx: number) => (
+                                                                        <div
+                                                                            key={idx}
+                                                                            className={cn(
+                                                                                "flex flex-col gap-2 max-w-[85%] lg:max-w-[75%] group animate-in fade-in slide-in-from-bottom-3 duration-500",
+                                                                                msg.role === 'assistant' ? "self-start" : "self-end items-end"
+                                                                            )}
+                                                                            style={{ animationDelay: `${idx * 100}ms` }}
+                                                                        >
+                                                                            <div className="flex items-center gap-2 px-1">
+                                                                                <span className={cn(
+                                                                                    "text-[10px] font-bold uppercase tracking-widest",
+                                                                                    msg.role === 'assistant' ? "text-primary" : "text-muted-foreground/80"
+                                                                                )}>
+                                                                                    {msg.role === 'assistant' ? 'Target Assistant' : 'Tester Agent'}
+                                                                                </span>
+                                                                            </div>
+                                                                            <div
+                                                                                className={cn(
+                                                                                    "p-4 rounded-2xl text-sm leading-relaxed shadow-sm transition-all group-hover:shadow-md",
+                                                                                    msg.role === 'assistant'
+                                                                                        ? "bg-primary text-primary-foreground rounded-tl-none ring-1 ring-primary/20 shadow-primary/10"
+                                                                                        : "bg-background text-foreground rounded-tr-none border border-border/50 shadow-black/5"
+                                                                                )}
+                                                                            >
+                                                                                {msg.content}
+                                                                            </div>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            ) : (
+                                                                <div className="flex flex-col items-center justify-center h-full text-center space-y-4 py-20 grayscale opacity-40">
+                                                                    <div className="p-4 rounded-full bg-muted/50">
+                                                                        <Activity className="w-10 h-10" />
+                                                                    </div>
+                                                                    <div className="space-y-1">
+                                                                        <p className="text-sm font-semibold">Transcript Not Found</p>
+                                                                        <p className="text-xs max-w-[200px]">We couldn't retrieve conversation logs for this run.</p>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </ScrollArea>
                                                     </CardContent>
                                                 </Card>
                                             </div>
@@ -1050,45 +1240,76 @@ export function TestSuitesContent() {
                                                                 </TableRow>
                                                             </TableHeader>
                                                             <TableBody>
-                                                                {dummyRuns.map((run) => (
-                                                                    <TableRow
-                                                                        key={run.id}
-                                                                        className="border-border/50 hover:bg-accent/30 cursor-pointer transition-colors group"
-                                                                        onClick={() => setSelectedRunDetail(run)}
-                                                                    >
-                                                                        <TableCell className="font-mono text-xs">{run.id}</TableCell>
-                                                                        <TableCell className="text-sm text-muted-foreground">{run.startedAt}</TableCell>
-                                                                        <TableCell className="text-center">
-                                                                            <Badge
-                                                                                variant={run.status === 'completed' ? 'default' : 'destructive'}
-                                                                                className="capitalize text-[10px] px-2 py-0"
+                                                                {apiRuns
+                                                                    .filter(run => run.test_suite_id === selectedSuiteId)
+                                                                    .map((run) => {
+                                                                        const successRate = run.total_test_cases > 0
+                                                                            ? Math.round((run.passed_count / run.total_test_cases) * 100)
+                                                                            : 0;
+                                                                        const duration = formatDuration(run.started_at, run.completed_at);
+                                                                        const startedAt = formatDate(run.started_at);
+
+                                                                        return (
+                                                                            <TableRow
+                                                                                key={run.id}
+                                                                                className="border-border/50 hover:bg-accent/30 cursor-pointer transition-colors group"
+                                                                                onClick={() => {
+                                                                                    setSelectedRunDetail({
+                                                                                        ...run,
+                                                                                        successRate,
+                                                                                        duration,
+                                                                                        startedAt,
+                                                                                        passedCount: run.passed_count,
+                                                                                        totalCount: run.total_test_cases,
+                                                                                        testCases: [] // API doesn't provide this yet
+                                                                                    })
+                                                                                    fetchCallLogs(run.id)
+                                                                                }}
                                                                             >
-                                                                                {run.status}
-                                                                            </Badge>
-                                                                        </TableCell>
-                                                                        <TableCell className="text-center">
-                                                                            <div className="flex flex-col items-center gap-1">
-                                                                                <span className="text-sm font-semibold">{run.successRate}%</span>
-                                                                                <div className="w-16 h-1 bg-muted/50 rounded-full overflow-hidden">
-                                                                                    <div
+                                                                                <TableCell className="font-mono text-xs">{run.id.split('-').pop()}</TableCell>
+                                                                                <TableCell className="text-sm text-muted-foreground">{startedAt}</TableCell>
+                                                                                <TableCell className="text-center">
+                                                                                    <Badge
+                                                                                        variant={run.status === 'completed' ? 'default' : run.status === 'running' ? 'secondary' : 'destructive'}
                                                                                         className={cn(
-                                                                                            "h-full transition-all duration-1000",
-                                                                                            run.successRate >= 80 ? "bg-emerald-500" : run.successRate >= 50 ? "bg-amber-500" : "bg-rose-500"
+                                                                                            "capitalize text-[10px] px-2 py-0",
+                                                                                            run.status === 'running' && "bg-amber-500/10 text-amber-500 border-amber-500/20 hover:bg-amber-500/20"
                                                                                         )}
-                                                                                        style={{ width: `${run.successRate}%` }}
-                                                                                    />
-                                                                                </div>
-                                                                            </div>
-                                                                        </TableCell>
-                                                                        <TableCell className="text-center text-sm text-muted-foreground">{run.duration}</TableCell>
-                                                                        <TableCell className="text-right pr-6">
-                                                                            <Button variant="ghost" size="sm" className="group-hover:text-primary transition-colors">
-                                                                                View Report
-                                                                                <ArrowRight className="w-3 h-3 ml-2 group-hover:translate-x-1 transition-transform" />
-                                                                            </Button>
+                                                                                    >
+                                                                                        {run.status}
+                                                                                    </Badge>
+                                                                                </TableCell>
+                                                                                <TableCell className="text-center">
+                                                                                    <div className="flex flex-col items-center gap-1">
+                                                                                        <span className="text-sm font-semibold">{successRate}%</span>
+                                                                                        <div className="w-16 h-1 bg-muted/50 rounded-full overflow-hidden">
+                                                                                            <div
+                                                                                                className={cn(
+                                                                                                    "h-full transition-all duration-1000",
+                                                                                                    successRate >= 80 ? "bg-emerald-500" : successRate >= 50 ? "bg-amber-500" : "bg-rose-500"
+                                                                                                )}
+                                                                                                style={{ width: `${successRate}%` }}
+                                                                                            />
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </TableCell>
+                                                                                <TableCell className="text-center text-sm text-muted-foreground">{duration}</TableCell>
+                                                                                <TableCell className="text-right pr-6">
+                                                                                    <Button variant="ghost" size="sm" className="group-hover:text-primary transition-colors">
+                                                                                        View Report
+                                                                                        <ArrowRight className="w-3 h-3 ml-2 group-hover:translate-x-1 transition-transform" />
+                                                                                    </Button>
+                                                                                </TableCell>
+                                                                            </TableRow>
+                                                                        );
+                                                                    })}
+                                                                {apiRuns.filter(run => run.test_suite_id === selectedSuiteId).length === 0 && (
+                                                                    <TableRow>
+                                                                        <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
+                                                                            No runs found for this test suite.
                                                                         </TableCell>
                                                                     </TableRow>
-                                                                ))}
+                                                                )}
                                                             </TableBody>
                                                         </Table>
                                                     </CardContent>
@@ -1107,6 +1328,7 @@ export function TestSuitesContent() {
                 open={isAddAssistantOpen}
                 onOpenChange={setIsAddAssistantOpen}
                 onAddAssistant={handleAddAssistant}
+                agentType={agentTypeForDialog}
             />
             <AlertDialog open={isDeleteSuiteOpen} onOpenChange={setIsDeleteSuiteOpen}>
                 <AlertDialogContent>

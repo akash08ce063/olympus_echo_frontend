@@ -26,6 +26,7 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { useTestContext } from "@/context/TestContext"
 import { useNotifications } from "@/context/NotificationContext"
+import { useRouter } from "next/navigation"
 
 export default function DashboardPage() {
     const { history, activeExperiment } = useTestContext()
@@ -36,6 +37,8 @@ export default function DashboardPage() {
         activeTests: 0,
         successRate: 0
     })
+
+    const naviagate = useRouter();
 
     useEffect(() => {
         // Calculate stats from test history
@@ -56,7 +59,8 @@ export default function DashboardPage() {
         })
     }, [history, activeExperiment])
 
-    const recentTests = history.slice(0, 5)
+    const recentTests = history.slice(0, 5);
+   
 
     return (
         <div className="container mx-auto py-8 px-6 lg:px-8 max-w-7xl">
@@ -140,7 +144,7 @@ export default function DashboardPage() {
                                 <Bot className="w-6 h-6" />
                                 <span className="font-medium">Create Agent</span>
                             </Button>
-                            <Button variant="outline" className="h-20 flex flex-col items-center justify-center gap-2">
+                            <Button variant="outline" className="h-20 flex flex-col items-center justify-center gap-2" onClick={()=> naviagate.push('/dashboard/agents')}>
                                 <BarChart3 className="w-6 h-6" />
                                 <span className="font-medium">View Analytics</span>
                             </Button>

@@ -71,7 +71,7 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use(
     async (config) => {
         try {
-            // config.headers["x-pranthora-callid"] = uuidv4();
+            config.headers["x-pranthora-callid"] = uuidv4();
 
             const token = await getValidToken();
             if (token) {

@@ -168,10 +168,10 @@ export function TestCasesSection({
                     <p className="text-sm text-muted-foreground">Create tests that the assistant will be tested on</p>
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="border-primary/30 text-primary hover:bg-primary/10 hover:text-primary transition-colors">
+                    {/* <Button variant="outline" size="sm" className="border-primary/30 text-primary hover:bg-primary/10 hover:text-primary transition-colors">
                         <Sparkles className="w-4 h-4 mr-2" />
                         Generate tests
-                    </Button>
+                    </Button> */}
                     <Button
                         size="sm"
                         onClick={() => setIsAddTestOpen(true)}

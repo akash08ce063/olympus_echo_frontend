@@ -146,7 +146,7 @@ export function AddAssistantDialog({
 
       const updatedAssistant: Assistant = {
         ...formData,
-        id: response?.data?.id || initialData?.id || Date.now().toString(),
+        id: (response as any)?.id || response?.data?.id || initialData?.id || Date.now().toString(),
         createdAt: initialData?.createdAt || new Date().toLocaleDateString('en-US', {
           month: 'short',
           day: '2-digit',
@@ -236,10 +236,6 @@ export function AddAssistantDialog({
                     <SelectContent className="max-h-60">
                       <SelectItem value="8000">8 kHz</SelectItem>
                       <SelectItem value="16000">16 kHz</SelectItem>
-                      <SelectItem value="22050">22.05 kHz</SelectItem>
-                      <SelectItem value="24000">24 kHz</SelectItem>
-                      <SelectItem value="44100">44.1 kHz</SelectItem>
-                      <SelectItem value="48000">48 kHz</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -255,17 +251,9 @@ export function AddAssistantDialog({
                     </SelectTrigger>
                     <SelectContent className="">
                       <SelectItem value="pcm_s16le">PCM 16-bit</SelectItem>
-                      <SelectItem value="pcm_s24le">PCM 24-bit</SelectItem>
-                      <SelectItem value="pcm_s32le">PCM 32-bit</SelectItem>
-                      <SelectItem value="pcm_f32le">PCM 32-bit Float</SelectItem>
                       <SelectItem value="mulaw">μ-law</SelectItem>
                       <SelectItem value="alaw">A-law</SelectItem>
-                      <SelectItem value="opus">Opus</SelectItem>
-                      <SelectItem value="aac">AAC</SelectItem>
-                      <SelectItem value="mp3">MP3</SelectItem>
-                      <SelectItem value="ogg_vorbis">OGG Vorbis</SelectItem>
-                      <SelectItem value="flac">FLAC</SelectItem>
-                      <SelectItem value="wav">WAV</SelectItem>
+
                     </SelectContent>
                   </Select>
                 </div>

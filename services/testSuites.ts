@@ -55,4 +55,12 @@ export const TestSuitesService = {
     // Run a single test case
     runSingleTest: (testCaseId: string, userId: string, concurrentCalls: number = 1) =>
         apiClient.post(TESTSUITS.run_test.runSingleTest(testCaseId, userId), { concurrent_calls: concurrentCalls }),
+
+    // Get all test runs
+    getAllRuns: (userId: string) =>
+        apiClient.get(TESTSUITS.run_test.getAllRuns(userId)),
+
+    // Get call logs for a specific request ID
+    getCallLogsByRequestId: (requestId: string, userId: string) =>
+        apiClient.get(TESTSUITS.run_test.getCallLogsByRequestId(requestId, userId)),
 };
