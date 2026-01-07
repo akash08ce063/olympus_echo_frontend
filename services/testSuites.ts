@@ -63,4 +63,8 @@ export const TestSuitesService = {
     // Get call logs for a specific request ID
     getCallLogsByRequestId: (requestId: string, userId: string) =>
         apiClient.get(TESTSUITS.run_test.getCallLogsByRequestId(requestId, userId)),
+
+    // Get test recordings by suite ID
+    getTestRecordingsById: (suiteId: string, userId: string) =>
+        apiClient.get(TESTSUITS.run_test.getTestRecordingsById(suiteId, userId)),
 };

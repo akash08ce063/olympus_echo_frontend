@@ -102,6 +102,7 @@ import { TestCaseService } from "@/services/testCases"
 import { useAuth } from "@/hooks/useAuth"
 import { useTestContext } from "@/context/TestContext"
 import { RunsHistory } from "@/components/test-suite/RunsHistory"
+import { AudioPlayer } from "@/components/test-suite/AudioPlayer"
 import { TestRunner } from "@/components/test-suite/TestRunner"
 import { Experiment } from "@/types/test-suite"
 import { toast } from "sonner"
@@ -203,7 +204,9 @@ export function TestSuitesContent() {
     const [selectedRunDetail, setSelectedRunDetail] = useState<any | null>(null)
     const [selectedCallLogs, setSelectedCallLogs] = useState<any | null>(null)
     const [apiRuns, setApiRuns] = useState<any[]>([])
+    const [recordings, setRecordings] = useState<any[]>([])
     const [isRunsLoading, setIsRunsLoading] = useState(false)
+    const [isRecordingsLoading, setIsRecordingsLoading] = useState(false)
     const [isCallLogsLoading, setIsCallLogsLoading] = useState(false)
 
     const fetchAllRuns = useCallback(async () => {
@@ -214,10 +217,30 @@ export function TestSuitesContent() {
             const runsData = Array.isArray(response) ? response : (response?.data || response?.runs || [])
             setApiRuns(runsData)
             console.log("Fetched all runs:", runsData)
+
+            // Also fetch recordings for the current suite if selected
+            if (selectedSuiteId) {
+                fetchRecordings(selectedSuiteId)
+            }
         } catch (error) {
             console.error("Failed to fetch runs:", error)
         } finally {
             setIsRunsLoading(false)
+        }
+    }, [user?.id, selectedSuiteId])
+
+    const fetchRecordings = useCallback(async (suiteId: string) => {
+        if (!user?.id) return
+        setIsRecordingsLoading(true)
+        try {
+            const response = await TestSuitesService.getTestRecordingsById(suiteId, user.id) as any
+            const recordingsData = response?.recordings || []
+            setRecordings(recordingsData)
+            console.log("Fetched recordings:", recordingsData)
+        } catch (error) {
+            console.error("Failed to fetch recordings:", error)
+        } finally {
+            setIsRecordingsLoading(false)
         }
     }, [user?.id])
 
@@ -1154,6 +1177,13 @@ export function TestSuitesContent() {
                                                                     <Clock className="w-3 h-3" />
                                                                     {selectedCallLogs.call_duration}s
                                                                 </Badge>
+                                                                {/* Audio Player for the run recording */}
+                                                                {recordings.find(r => r.result_id === selectedRunDetail.id) && (
+                                                                    <AudioPlayer
+                                                                        url={recordings.find(r => r.result_id === selectedRunDetail.id).recording_url}
+                                                                        className="h-9 py-0 px-2 bg-background/50 border-primary/20"
+                                                                    />
+                                                                )}
                                                             </div>
                                                         )}
                                                     </CardHeader>

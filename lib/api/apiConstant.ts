@@ -46,5 +46,6 @@ export const TESTSUITS = {
         runSingleTest: (test_case_id: string, user_id: string) => GLOBAL + "test-execution/" + RUN_CASE + `/${test_case_id}?user_id=${user_id}`,
         getAllRuns: (user_id: string) => GLOBAL + "test-execution/" + "runs" + `?user_id=${user_id}`,
         getCallLogsByRequestId: (request_id: string, user_id: string) => GLOBAL + "test-execution/" + "call-logs" + `/${request_id}?user_id=${user_id}`,
+        getTestRecordingsById: (test_suit_id: string, user_id: string) => GLOBAL + "test-execution/" + "recordings" + "/suite" + `/${test_suit_id}?user_id=${user_id}`,
     },
 };
