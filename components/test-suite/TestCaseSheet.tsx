@@ -81,15 +81,38 @@ export function TestCaseSheet({ isOpen, onClose, onSave, initialData, testSuiteI
     };
 
     const handleSave = async () => {
+        // Validate test name
         if (!formData.name?.trim()) {
-            toast.error("Test name is required");
+            toast.error("Test case name is required");
             return;
         }
+
+        // Validate goals
+        const goalText = formData.goals?.[0]?.text?.trim();
+        if (!goalText) {
+            toast.error("Test goals are required");
+            return;
+        }
+
+        // Validate evaluation criteria
+        const validCriteria = formData.evaluation_criteria?.filter(c => c.expected?.trim());
+        if (!validCriteria || validCriteria.length === 0) {
+            toast.error("At least one evaluation criteria is required");
+            return;
+        }
+
+        // Ensure numeric fields have valid values before saving
+        const attempts = typeof formData.attempts === 'number' ? formData.attempts : parseInt(String(formData.attempts)) || 3;
+        const timeout_seconds = typeof formData.timeout_seconds === 'number' ? formData.timeout_seconds : parseInt(String(formData.timeout_seconds)) || 30;
+        const default_concurrent_calls = typeof formData.default_concurrent_calls === 'number' ? formData.default_concurrent_calls : parseInt(String(formData.default_concurrent_calls)) || 1;
 
         setIsSubmitting(true);
         try {
             const payload = {
                 ...formData,
+                attempts,
+                timeout_seconds,
+                default_concurrent_calls,
                 test_suite_id: testSuiteId,
             };
 
@@ -148,8 +171,17 @@ export function TestCaseSheet({ isOpen, onClose, onSave, initialData, testSuiteI
                                     <Input
                                         type="number"
                                         min={1}
-                                        value={formData.attempts}
-                                        onChange={(e) => setFormData({ ...formData, attempts: parseInt(e.target.value) || 1 })}
+                                        value={formData.attempts ?? ""}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            setFormData({ ...formData, attempts: val === "" ? "" as any : parseInt(val) });
+                                        }}
+                                        onBlur={(e) => {
+                                            const val = parseInt(e.target.value);
+                                            if (isNaN(val) || val < 1) {
+                                                setFormData({ ...formData, attempts: 3 });
+                                            }
+                                        }}
                                         className="bg-background/50 border-input focus:border-primary focus:ring-primary/20 h-11"
                                     />
                                 </div>
@@ -160,8 +192,17 @@ export function TestCaseSheet({ isOpen, onClose, onSave, initialData, testSuiteI
                                     <Input
                                         type="number"
                                         min={5}
-                                        value={formData.timeout_seconds}
-                                        onChange={(e) => setFormData({ ...formData, timeout_seconds: parseInt(e.target.value) || 30 })}
+                                        value={formData.timeout_seconds ?? ""}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            setFormData({ ...formData, timeout_seconds: val === "" ? "" as any : parseInt(val) });
+                                        }}
+                                        onBlur={(e) => {
+                                            const val = parseInt(e.target.value);
+                                            if (isNaN(val) || val < 5) {
+                                                setFormData({ ...formData, timeout_seconds: 30 });
+                                            }
+                                        }}
                                         className="bg-background/50 border-input focus:border-primary focus:ring-primary/20 h-11"
                                     />
                                 </div>
@@ -172,8 +213,17 @@ export function TestCaseSheet({ isOpen, onClose, onSave, initialData, testSuiteI
                                     <Input
                                         type="number"
                                         min={1}
-                                        value={formData.default_concurrent_calls}
-                                        onChange={(e) => setFormData({ ...formData, default_concurrent_calls: parseInt(e.target.value) || 1 })}
+                                        value={formData.default_concurrent_calls ?? ""}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            setFormData({ ...formData, default_concurrent_calls: val === "" ? "" as any : parseInt(val) });
+                                        }}
+                                        onBlur={(e) => {
+                                            const val = parseInt(e.target.value);
+                                            if (isNaN(val) || val < 1) {
+                                                setFormData({ ...formData, default_concurrent_calls: 1 });
+                                            }
+                                        }}
                                         className="bg-background/50 border-input focus:border-primary focus:ring-primary/20 h-11"
                                     />
                                 </div>

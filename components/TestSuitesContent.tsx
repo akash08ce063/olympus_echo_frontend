@@ -702,7 +702,23 @@ export function TestSuitesContent() {
                     ) : (suites.length > 0 && (
                         <div className="h-16 border-b border-border/50 flex items-center justify-between px-6 bg-card/30 backdrop-blur-sm z-10">
                             <div className="space-y-0.5">
-                                <h1 className="text-xl font-semibold tracking-tight">{selectedSuiteDetails?.name || selectedSuite?.name || "Select a Suite"}</h1>
+                                <div className="flex items-center gap-3">
+                                    <h1 className="text-xl font-semibold tracking-tight">{selectedSuiteDetails?.name || selectedSuite?.name || "Select a Suite"}</h1>
+                                    {selectedSuiteDetails?.suite_status && (
+                                        <Badge
+                                            variant={selectedSuiteDetails.suite_status === 'completed' ? 'default' : selectedSuiteDetails.suite_status === 'running' ? 'secondary' : 'destructive'}
+                                            className={cn(
+                                                "text-xs font-medium",
+                                                selectedSuiteDetails.suite_status === 'completed' && "bg-green-500/10 text-green-600 border-green-500/20 hover:bg-green-500/20",
+                                                selectedSuiteDetails.suite_status === 'running' && "bg-amber-500/10 text-amber-600 border-amber-500/20 hover:bg-amber-500/20 animate-pulse",
+                                                selectedSuiteDetails.suite_status === 'failed' && "bg-red-500/10 text-white border-red-500/20 hover:bg-red-500/20"
+                                            )}
+                                        >
+                                            {selectedSuiteDetails.suite_status === 'running' && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}
+                                            {selectedSuiteDetails.suite_status.charAt(0).toUpperCase() + selectedSuiteDetails.suite_status.slice(1)}
+                                        </Badge>
+                                    )}
+                                </div>
                                 <p className="text-xs text-muted-foreground font-mono">Test Suite ID: {selectedSuiteDetails?.id || selectedSuite?.id || "---"}</p>
                             </div>
                             <div className="flex items-center gap-2">
@@ -710,6 +726,7 @@ export function TestSuitesContent() {
                                     onClick={handleRunTests}
                                     disabled={
                                         isRunningTests ||
+                                        selectedSuiteDetails?.suite_status === 'running' ||
                                         (activeExperiment?.status === 'running' && activeExperiment.datasetId === selectedSuiteId) ||
                                         !(selectedSuiteDetails?.target_agent?.id || selectedSuite?.target_agent_id) ||
                                         !(selectedSuiteDetails?.user_agent?.id || selectedSuite?.user_agent_id)

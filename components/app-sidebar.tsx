@@ -63,11 +63,11 @@ const navMain = [
 ]
 
 const navSecondary = [
-  // {
-  //   title: "Notifications",
-  //   url: "/notifications",
-  //   icon: IconNotification,
-  // },
+  {
+    title: "Notifications",
+    url: "/notifications",
+    icon: IconNotification,
+  },
   {
     title: "Settings",
     url: "/settings",
@@ -97,7 +97,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={navMain} />
-        <NavSecondary items={navSecondary} className="mt-auto" />
+        {/* <NavSecondary items={navSecondary} className="mt-auto" /> */}
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={user ? {
