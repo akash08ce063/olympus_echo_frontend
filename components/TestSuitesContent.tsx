@@ -379,6 +379,26 @@ export function TestSuitesContent() {
         fetchAgents()
     }, [fetchSuites, fetchAgents])
 
+    // Specific polling logic for running test suites
+    useEffect(() => {
+        let intervalId: NodeJS.Timeout | null = null;
+
+        if (selectedSuiteId && selectedSuiteDetails?.suite_status === 'running') {
+            console.log(`[Status Polling] Starting for suite: ${selectedSuiteId}`);
+            intervalId = setInterval(() => {
+                console.log(`[Status Polling] Refreshing details for suite: ${selectedSuiteId}`);
+                fetchSuiteDetails(selectedSuiteId, true);
+            }, 10000); // 10 seconds
+        }
+
+        return () => {
+            if (intervalId) {
+                console.log(`Clearing polling for suite: ${selectedSuiteId}`);
+                clearInterval(intervalId);
+            }
+        };
+    }, [selectedSuiteId, selectedSuiteDetails?.suite_status, fetchSuiteDetails]);
+
     const selectedSuite = suites.find(s => s.id === selectedSuiteId) || suites[0]
 
     const filteredSuites = suites.filter(suite =>
@@ -554,7 +574,7 @@ export function TestSuitesContent() {
             console.error("Failed to run single test:", error);
             toast.error("Failed to initiate test run");
         }
-    }, [user?.id]);
+    }, [user?.id, selectedSuiteId, fetchSuiteDetails]);
 
 
     return (
@@ -1206,101 +1226,116 @@ export function TestSuitesContent() {
 
                                                 <Card className="bg-card/30 border-border/50 overflow-hidden">
                                                     <CardContent className="p-0">
-                                                        <Table>
-                                                            <TableHeader className="bg-muted/10">
-                                                                <TableRow className="hover:bg-transparent border-border/50">
-                                                                    <TableHead className="text-xs font-bold uppercase tracking-wider">Run ID</TableHead>
-                                                                    <TableHead className="text-xs font-bold uppercase tracking-wider">Date & Time</TableHead>
-                                                                    <TableHead className="text-xs font-bold uppercase tracking-wider text-center">Status</TableHead>
-                                                                    <TableHead className="text-xs font-bold uppercase tracking-wider text-center">Success Rate</TableHead>
-                                                                    <TableHead className="text-xs font-bold uppercase tracking-wider text-center">Duration</TableHead>
-                                                                    <TableHead className="text-xs font-bold uppercase tracking-wider text-right pr-6">Action</TableHead>
-                                                                </TableRow>
-                                                            </TableHeader>
-                                                            <TableBody>
-                                                                {apiRuns
-                                                                    .filter(run => run.test_suite_id === selectedSuiteId)
-                                                                    .map((run) => {
-                                                                        const successRate = run.total_test_cases > 0
-                                                                            ? Math.round((run.passed_count / run.total_test_cases) * 100)
-                                                                            : 0;
-                                                                        const duration = formatDuration(run.started_at, run.completed_at);
-                                                                        const startedAt = formatDate(run.started_at);
-
-                                                                        return (
-                                                                            <TableRow
-                                                                                key={run.id}
-                                                                                className="border-border/50 hover:bg-accent/30 cursor-pointer transition-colors group"
-                                                                                onClick={() => {
-                                                                                    setSelectedRunDetail({
-                                                                                        ...run,
-                                                                                        successRate,
-                                                                                        duration,
-                                                                                        startedAt,
-                                                                                        passedCount: run.passed_count,
-                                                                                        totalCount: run.total_test_cases,
-                                                                                        testCases: [] // API doesn't provide this yet
-                                                                                    })
-                                                                                    fetchCallLogs(run.id)
-                                                                                }}
-                                                                            >
-                                                                                <TableCell className="font-mono text-xs">
-                                                                                    <Tooltip>
-                                                                                        <TooltipTrigger asChild>
-                                                                                            <span className="cursor-help underline decoration-dotted underline-offset-2">
-                                                                                                {run.id.substring(0, 8)}...
-                                                                                            </span>
-                                                                                        </TooltipTrigger>
-                                                                                        <TooltipContent>
-                                                                                            <p className="font-mono text-xs">{run.id}</p>
-                                                                                        </TooltipContent>
-                                                                                    </Tooltip>
-                                                                                </TableCell>
-                                                                                <TableCell className="text-sm text-muted-foreground">{startedAt}</TableCell>
-                                                                                <TableCell className="text-center">
-                                                                                    <Badge
-                                                                                        variant={run.status === 'completed' ? 'default' : run.status === 'running' ? 'secondary' : 'destructive'}
-                                                                                        className={cn(
-                                                                                            "capitalize text-[10px] px-2 py-0",
-                                                                                            run.status === 'running' && "bg-amber-500/10 text-amber-500 border-amber-500/20 hover:bg-amber-500/20"
-                                                                                        )}
-                                                                                    >
-                                                                                        {run.status}
-                                                                                    </Badge>
-                                                                                </TableCell>
-                                                                                <TableCell className="text-center">
-                                                                                    <div className="flex flex-col items-center gap-1">
-                                                                                        <span className="text-sm font-semibold">{successRate}%</span>
-                                                                                        <div className="w-16 h-1 bg-muted/50 rounded-full overflow-hidden">
-                                                                                            <div
-                                                                                                className={cn(
-                                                                                                    "h-full transition-all duration-1000",
-                                                                                                    successRate >= 80 ? "bg-emerald-500" : successRate >= 50 ? "bg-amber-500" : "bg-rose-500"
-                                                                                                )}
-                                                                                                style={{ width: `${successRate}%` }}
-                                                                                            />
-                                                                                        </div>
-                                                                                    </div>
-                                                                                </TableCell>
-                                                                                <TableCell className="text-center text-sm text-muted-foreground">{duration}</TableCell>
-                                                                                <TableCell className="text-right pr-6">
-                                                                                    <Button variant="ghost" size="sm" className="group-hover:text-primary transition-colors">
-                                                                                        View Report
-                                                                                        <ArrowRight className="w-3 h-3 ml-2 group-hover:translate-x-1 transition-transform" />
-                                                                                    </Button>
-                                                                                </TableCell>
-                                                                            </TableRow>
-                                                                        );
-                                                                    })}
-                                                                {apiRuns.filter(run => run.test_suite_id === selectedSuiteId).length === 0 && (
-                                                                    <TableRow>
-                                                                        <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
-                                                                            No runs found for this test suite.
-                                                                        </TableCell>
+                                                        {isRunsLoading ? (
+                                                            <div className="p-6 space-y-4">
+                                                                {[1, 2, 3, 4, 5].map((i) => (
+                                                                    <div key={i} className="flex items-center gap-4">
+                                                                        <Skeleton className="h-4 w-24" />
+                                                                        <Skeleton className="h-4 w-32" />
+                                                                        <Skeleton className="h-6 w-20 rounded-full" />
+                                                                        <Skeleton className="h-4 w-16" />
+                                                                        <Skeleton className="h-4 w-16" />
+                                                                        <Skeleton className="h-8 w-28 ml-auto" />
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        ) : (
+                                                            <Table>
+                                                                <TableHeader className="bg-muted/10">
+                                                                    <TableRow className="hover:bg-transparent border-border/50">
+                                                                        <TableHead className="text-xs font-bold uppercase tracking-wider">Run ID</TableHead>
+                                                                        <TableHead className="text-xs font-bold uppercase tracking-wider">Date & Time</TableHead>
+                                                                        <TableHead className="text-xs font-bold uppercase tracking-wider text-center">Status</TableHead>
+                                                                        <TableHead className="text-xs font-bold uppercase tracking-wider text-center">Success Rate</TableHead>
+                                                                        <TableHead className="text-xs font-bold uppercase tracking-wider text-center">Duration</TableHead>
+                                                                        <TableHead className="text-xs font-bold uppercase tracking-wider text-right pr-6">Action</TableHead>
                                                                     </TableRow>
-                                                                )}
-                                                            </TableBody>
-                                                        </Table>
+                                                                </TableHeader>
+                                                                <TableBody>
+                                                                    {apiRuns
+                                                                        .filter(run => run.test_suite_id === selectedSuiteId)
+                                                                        .map((run) => {
+                                                                            const successRate = run.total_test_cases > 0
+                                                                                ? Math.round((run.passed_count / run.total_test_cases) * 100)
+                                                                                : 0;
+                                                                            const duration = formatDuration(run.started_at, run.completed_at);
+                                                                            const startedAt = formatDate(run.started_at);
+
+                                                                            return (
+                                                                                <TableRow
+                                                                                    key={run.id}
+                                                                                    className="border-border/50 hover:bg-accent/30 cursor-pointer transition-colors group"
+                                                                                    onClick={() => {
+                                                                                        setSelectedRunDetail({
+                                                                                            ...run,
+                                                                                            successRate,
+                                                                                            duration,
+                                                                                            startedAt,
+                                                                                            passedCount: run.passed_count,
+                                                                                            totalCount: run.total_test_cases,
+                                                                                            testCases: [] // API doesn't provide this yet
+                                                                                        })
+                                                                                        fetchCallLogs(run.id)
+                                                                                    }}
+                                                                                >
+                                                                                    <TableCell className="font-mono text-xs">
+                                                                                        <Tooltip>
+                                                                                            <TooltipTrigger asChild>
+                                                                                                <span className="cursor-help underline decoration-dotted underline-offset-2">
+                                                                                                    {run.id.substring(0, 8)}...
+                                                                                                </span>
+                                                                                            </TooltipTrigger>
+                                                                                            <TooltipContent>
+                                                                                                <p className="font-mono text-xs">{run.id}</p>
+                                                                                            </TooltipContent>
+                                                                                        </Tooltip>
+                                                                                    </TableCell>
+                                                                                    <TableCell className="text-sm text-muted-foreground">{startedAt}</TableCell>
+                                                                                    <TableCell className="text-center">
+                                                                                        <Badge
+                                                                                            variant={run.status === 'completed' ? 'default' : run.status === 'running' ? 'secondary' : 'destructive'}
+                                                                                            className={cn(
+                                                                                                "capitalize text-[10px] px-2 py-0",
+                                                                                                run.status === 'running' && "bg-amber-500/10 text-amber-500 border-amber-500/20 hover:bg-amber-500/20"
+                                                                                            )}
+                                                                                        >
+                                                                                            {run.status}
+                                                                                        </Badge>
+                                                                                    </TableCell>
+                                                                                    <TableCell className="text-center">
+                                                                                        <div className="flex flex-col items-center gap-1">
+                                                                                            <span className="text-sm font-semibold">{successRate}%</span>
+                                                                                            <div className="w-16 h-1 bg-muted/50 rounded-full overflow-hidden">
+                                                                                                <div
+                                                                                                    className={cn(
+                                                                                                        "h-full transition-all duration-1000",
+                                                                                                        successRate >= 80 ? "bg-emerald-500" : successRate >= 50 ? "bg-amber-500" : "bg-rose-500"
+                                                                                                    )}
+                                                                                                    style={{ width: `${successRate}%` }}
+                                                                                                />
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </TableCell>
+                                                                                    <TableCell className="text-center text-sm text-muted-foreground">{duration}</TableCell>
+                                                                                    <TableCell className="text-right pr-6">
+                                                                                        <Button variant="ghost" size="sm" className="group-hover:text-primary transition-colors">
+                                                                                            View Report
+                                                                                            <ArrowRight className="w-3 h-3 ml-2 group-hover:translate-x-1 transition-transform" />
+                                                                                        </Button>
+                                                                                    </TableCell>
+                                                                                </TableRow>
+                                                                            );
+                                                                        })}
+                                                                    {apiRuns.filter(run => run.test_suite_id === selectedSuiteId).length === 0 && (
+                                                                        <TableRow>
+                                                                            <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
+                                                                                No runs found for this test suite.
+                                                                            </TableCell>
+                                                                        </TableRow>
+                                                                    )}
+                                                                </TableBody>
+                                                            </Table>
+                                                        )}
                                                     </CardContent>
                                                 </Card>
                                             </div>
