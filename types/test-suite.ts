@@ -28,6 +28,7 @@ export type TestCase = {
   is_active: boolean;
   attempts: number;
   default_concurrent_calls: number;
+  status?: 'pass' | 'passed' | 'running' | 'failed' | 'pending' | string;
 };
 
 export type TargetAgent = {

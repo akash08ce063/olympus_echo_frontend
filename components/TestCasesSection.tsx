@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Edit, Loader2, MoreHorizontal, Play, Plus, Sparkles, Trash2 } from "lucide-react"
+import { Edit, Loader2, MoreHorizontal, Play, Plus, Sparkles, Trash2, CheckCircle2, XCircle, Clock } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -30,7 +30,7 @@ interface TestCasesSectionProps {
     onAddTestCase: (testCase: TestCase) => void
     onUpdateTestCase: (id: string, testCase: TestCase) => void
     onDeleteTestCase: (id: string) => void
-    onRunTestCase: (id: string, concurrentCalls: number) => void
+    onRunTestCase: (id: string, concurrentCalls: number) => Promise<void>
     testSuiteId: string
 }
 
@@ -47,6 +47,11 @@ export function TestCasesSection({
     const [isDeleteOpen, setIsDeleteOpen] = useState(false)
     const [testToDelete, setTestToDelete] = useState<TestCase | null>(null)
     const [isDeleting, setIsDeleting] = useState(false)
+    const [runningTestId, setRunningTestId] = useState<string | null>(null)
+
+    // Calculate max order index
+    const maxOrderIndex = testCases.reduce((max, tc) => Math.max(max, tc.order_index || 0), 0)
+    const nextOrderIndex = maxOrderIndex + 1
 
     const handleEdit = (testCase: TestCase) => {
         setEditingTest(testCase)
@@ -80,7 +85,46 @@ export function TestCasesSection({
         {
             accessorKey: "name",
             header: "Name",
-            cell: ({ row }) => <div className="font-medium text-foreground">{row.getValue("name")}</div>
+            cell: ({ row }) => (
+                <div className="font-medium text-foreground truncate max-w-50" title={row.getValue("name")}>
+                    {row.getValue("name")}
+                </div>
+            )
+        },
+        {
+            accessorKey: "status",
+            header: "Status",
+            cell: ({ row }) => {
+                const status = (row.original.status || '').toLowerCase()
+
+                if (status === 'pass' || status === 'passed') {
+                    return (
+                        <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/20 transition-colors shadow-none">
+                            <CheckCircle2 className="w-3 h-3 mr-1" /> Pass
+                        </Badge>
+                    )
+                }
+
+                if (status === 'failed') {
+                    return (
+                        <Badge variant="destructive" className="bg-rose-500/10 text-white border-rose-500/20 hover:bg-rose-500/20 transition-colors shadow-none">
+                            <XCircle className="w-3 h-3 mr-1" /> Failed
+                        </Badge>
+                    )
+                }
+
+                if (status === 'running') {
+                    return (
+                        <Badge variant="secondary" className="bg-amber-500/10 text-amber-500 border-amber-500/20 hover:bg-amber-500/20 transition-colors shadow-none">
+                            <Loader2 className="w-3 h-3 mr-1 animate-spin" /> Running
+                        </Badge>
+                    )
+                }
+
+                if (!status) return <span className="text-muted-foreground text-xs">-</span>
+
+                return <Badge variant="outline" className="text-xs font-normal text-muted-foreground">{status}</Badge>
+            }
         },
         {
             accessorKey: "goals",
@@ -125,15 +169,39 @@ export function TestCasesSection({
                 const test = row.original
                 return (
                     <div className="flex items-center gap-2">
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10"
-                            onClick={() => onRunTestCase(test.id!, test.default_concurrent_calls || 1)}
-                            title="Run single test"
-                        >
-                            <Play className="h-4 w-4 fill-current" />
-                        </Button>
+                        {test.status === 'running' ? (
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-amber-500 bg-amber-500/10 cursor-not-allowed"
+                                disabled
+                                title="Running..."
+                            >
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                            </Button>
+                        ) : (
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10"
+                                onClick={async () => {
+                                    setRunningTestId(test.id!)
+                                    try {
+                                        await onRunTestCase(test.id!, test.default_concurrent_calls || 1)
+                                    } finally {
+                                        setRunningTestId(null)
+                                    }
+                                }}
+                                disabled={runningTestId === test.id}
+                                title="Run single test"
+                            >
+                                {runningTestId === test.id ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                    <Play className="h-4 w-4 fill-current" />
+                                )}
+                            </Button>
+                        )}
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -194,6 +262,7 @@ export function TestCasesSection({
                 }}
                 initialData={editingTest || undefined}
                 testSuiteId={testSuiteId}
+                defaultOrderIndex={nextOrderIndex}
             />
 
             {/* Test Cases Table */}

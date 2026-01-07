@@ -17,6 +17,7 @@ interface TestCaseSheetProps {
     onSave: (testCase: TestCase) => void;
     initialData?: TestCase;
     testSuiteId: string;
+    defaultOrderIndex?: number;
 }
 
 const EMPTY_CASE: Partial<TestCase> = {
@@ -30,7 +31,7 @@ const EMPTY_CASE: Partial<TestCase> = {
     default_concurrent_calls: 1
 };
 
-export function TestCaseSheet({ isOpen, onClose, onSave, initialData, testSuiteId }: TestCaseSheetProps) {
+export function TestCaseSheet({ isOpen, onClose, onSave, initialData, testSuiteId, defaultOrderIndex = 0 }: TestCaseSheetProps) {
     const [formData, setFormData] = useState<Partial<TestCase>>(EMPTY_CASE);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -47,7 +48,7 @@ export function TestCaseSheet({ isOpen, onClose, onSave, initialData, testSuiteI
                 ) || [];
                 setFormData({ ...initialData, goals, evaluation_criteria: criteria });
             } else {
-                setFormData({ ...EMPTY_CASE });
+                setFormData({ ...EMPTY_CASE, order_index: defaultOrderIndex });
             }
         }
     }, [isOpen, initialData]);

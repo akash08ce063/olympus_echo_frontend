@@ -11,8 +11,12 @@ import {
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-
-
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip"
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -132,11 +136,24 @@ export default function TesterAgentsPage() {
         {
             accessorKey: "websocketUrl",
             header: "Websocket URL",
-            cell: ({ row }) => (
-                <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">
-                    {row.getValue("websocketUrl")}
-                </code>
-            )
+            cell: ({ row }) => {
+                const url = row.getValue("websocketUrl") as string;
+                const truncatedUrl = url.length > 30 ? url.substring(0, 30) + "..." : url;
+                return (
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono cursor-help">
+                                    {truncatedUrl}
+                                </code>
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom" className="max-w-md break-all">
+                                <p className="text-xs font-mono">{url}</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                )
+            }
         },
         {
             accessorKey: "sampleRate",
@@ -248,7 +265,7 @@ export default function TesterAgentsPage() {
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                            <AlertDialogCancel disabled={isDeletingAgent} onClick={()=> setIsDeleteAgentOpen(false) }>Cancel</AlertDialogCancel>
+                            <AlertDialogCancel disabled={isDeletingAgent} onClick={() => setIsDeleteAgentOpen(false)}>Cancel</AlertDialogCancel>
                             <Button
                                 onClick={handleDeleteAssistant}
                                 disabled={isDeletingAgent}

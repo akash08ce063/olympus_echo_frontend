@@ -52,22 +52,22 @@ const navMain = [
   },
   {
     title: "Test History",
-    url: "/dashboard/history",
+    url: "/history",
     icon: IconHistory,
   },
-  {
-    title: "Analytics",
-    url: "/dashboard/agents",
-    icon: IconChartBar,
-  },
+  // {
+  //   title: "Analytics",
+  //   url: "/dashboard/agents",
+  //   icon: IconChartBar,
+  // },
 ]
 
 const navSecondary = [
-  {
-    title: "Notifications",
-    url: "/notifications",
-    icon: IconNotification,
-  },
+  // {
+  //   title: "Notifications",
+  //   url: "/notifications",
+  //   icon: IconNotification,
+  // },
   {
     title: "Settings",
     url: "/settings",

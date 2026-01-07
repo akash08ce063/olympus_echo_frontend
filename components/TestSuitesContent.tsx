@@ -87,6 +87,9 @@ import {
 import { Input } from "@/components/ui/input"
 import {
     TooltipProvider,
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
 } from "@/components/ui/tooltip"
 
 
@@ -271,6 +274,9 @@ export function TestSuitesContent() {
             await TestSuitesService.runTestSuite(selectedSuiteId, user.id)
             runExperiment(selectedSuiteId)
             toast.success("Test run started")
+
+            // Silently refresh details to update status
+            fetchSuiteDetails(selectedSuiteId, true);
         } catch (error) {
             console.error("Failed to start test run:", error)
             toast.error("Failed to start test run")
@@ -285,7 +291,8 @@ export function TestSuitesContent() {
     })
 
     const fetchSuiteDetails = useCallback(async (id: string, isSilent = false) => {
-        if (!isSilent) setIsDetailsLoading(true)
+        const shouldShowLoading = !isSilent;
+        if (shouldShowLoading) setIsDetailsLoading(true)
         try {
             const response: any = await TestSuitesService.getTestSuiteDetails(id)
             console.log("Fetched suite details:", response)
@@ -299,13 +306,14 @@ export function TestSuitesContent() {
             console.error("Failed to fetch suite details:", error)
             // toast.error("Failed to load suite details")
         } finally {
-            if (!isSilent) setIsDetailsLoading(false)
+            if (shouldShowLoading) setIsDetailsLoading(false)
         }
     }, [])
 
     const fetchSuites = useCallback(async (isSilent = false) => {
         if (!user?.id) return
-        if (!isSilent) setIsLoading(true)
+        const shouldShowLoading = !isSilent;
+        if (shouldShowLoading) setIsLoading(true)
         try {
             // Note: axios interceptor already returns response.data, so use response directly
             const response = await TestSuitesService.getTestSuites(user.id) as any
@@ -339,7 +347,7 @@ export function TestSuitesContent() {
             console.error("Failed to fetch test suites:", error)
             toast.error("Failed to load test suites")
         } finally {
-            if (!isSilent) setIsLoading(false)
+            if (shouldShowLoading) setIsLoading(false)
         }
     }, [user, fetchSuiteDetails])
 
@@ -525,8 +533,23 @@ export function TestSuitesContent() {
     const handleRunSingleTest = useCallback(async (testCaseId: string, concurrentCalls: number) => {
         if (!user?.id) return;
         try {
-            await TestSuitesService.runSingleTest(testCaseId, user.id, concurrentCalls);
+            const response: any = await TestSuitesService.runSingleTest(testCaseId, user.id, concurrentCalls);
             toast.success("Test run initiated");
+
+            // Optimistically update the status if available in response
+            if (response?.status?.status && response?.status?.case_id) {
+                setTestCases(prev => prev.map(tc =>
+                    tc.id === response.status.case_id
+                        ? { ...tc, status: response.status.status }
+                        : tc
+                ));
+            }
+
+            // Silently refresh details to update status
+            if (selectedSuiteId) {
+                console.log("Refreshing suite details");
+                fetchSuiteDetails(selectedSuiteId, true);
+            }
         } catch (error) {
             console.error("Failed to run single test:", error);
             toast.error("Failed to initiate test run");
@@ -1032,7 +1055,7 @@ export function TestSuitesContent() {
                                                 </div>
 
                                                 {/* Stats Grid */}
-                                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                                     <Card className="bg-card/30 border-border/50">
                                                         <CardHeader className="p-4 pb-2">
                                                             <div className="flex items-center gap-2 text-muted-foreground">
@@ -1063,82 +1086,20 @@ export function TestSuitesContent() {
                                                     <Card className="bg-card/30 border-border/50">
                                                         <CardHeader className="p-4 pb-2">
                                                             <div className="flex items-center gap-2 text-muted-foreground">
-                                                                <Activity className="w-4 h-4" />
-                                                                <span className="text-xs font-medium uppercase tracking-wider">Avg Latency</span>
+                                                                <Clock className="w-4 h-4" />
+                                                                <span className="text-xs font-medium uppercase tracking-wider">Started At</span>
                                                             </div>
                                                         </CardHeader>
                                                         <CardContent className="p-4 pt-0">
-                                                            <span className="text-2xl font-bold">{selectedRunDetail.avgLatency}</span>
-                                                        </CardContent>
-                                                    </Card>
-
-                                                    <Card className="bg-card/30 border-border/50">
-                                                        <CardHeader className="p-4 pb-2">
-                                                            <div className="flex items-center gap-2 text-muted-foreground">
-                                                                <Timer className="w-4 h-4" />
-                                                                <span className="text-xs font-medium uppercase tracking-wider">Estimated Cost</span>
-                                                            </div>
-                                                        </CardHeader>
-                                                        <CardContent className="p-4 pt-0">
-                                                            <span className="text-2xl font-bold">{selectedRunDetail.cost}</span>
+                                                            <span className="text-lg font-bold">{selectedRunDetail.startedAt}</span>
                                                         </CardContent>
                                                     </Card>
                                                 </div>
 
-                                                {/* Test Case Breakdown */}
-                                                <Card className="bg-card/30 border-border/50 overflow-hidden">
-                                                    <CardHeader className="border-b border-border/50 bg-muted/20">
-                                                        <CardTitle className="text-sm font-semibold">Test Case Breakdown</CardTitle>
-                                                    </CardHeader>
-                                                    <CardContent className="p-0">
-                                                        <Table>
-                                                            <TableHeader className="bg-muted/10">
-                                                                <TableRow className="hover:bg-transparent border-border/50">
-                                                                    <TableHead className="text-xs font-bold w-62.5">Test Case</TableHead>
-                                                                    <TableHead className="text-xs font-bold text-center">Status</TableHead>
-                                                                    <TableHead className="text-xs font-bold text-center">Duration</TableHead>
-                                                                    <TableHead className="text-xs font-bold text-center">Score</TableHead>
-                                                                    <TableHead className="text-xs font-bold">Feedback / Failure Reason</TableHead>
-                                                                </TableRow>
-                                                            </TableHeader>
-                                                            <TableBody>
-                                                                {selectedRunDetail.testCases.map((tc: any) => (
-                                                                    <TableRow key={tc.id} className="border-border/50 hover:bg-accent/30 transition-colors">
-                                                                        <TableCell className="font-medium text-sm">{tc.name}</TableCell>
-                                                                        <TableCell className="text-center">
-                                                                            <div className="flex justify-center">
-                                                                                {tc.status === 'passed' ? (
-                                                                                    <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/20 transition-colors">
-                                                                                        <CheckCircle2 className="w-3 h-3 mr-1" /> Passed
-                                                                                    </Badge>
-                                                                                ) : (
-                                                                                    <Badge variant="destructive" className="bg-rose-500/10 text-white border-rose-500/20 hover:bg-rose-500/20 transition-colors">
-                                                                                        <XCircle className="w-3 h-3 mr-1" /> Failed
-                                                                                    </Badge>
-                                                                                )}
-                                                                            </div>
-                                                                        </TableCell>
-                                                                        <TableCell className="text-center text-xs text-muted-foreground font-mono">{tc.duration}</TableCell>
-                                                                        <TableCell className="text-center">
-                                                                            <Badge variant="outline" className={cn(
-                                                                                "font-mono text-xs border-transparent bg-muted/50",
-                                                                                tc.score >= 0.8 ? "text-emerald-500" : tc.score >= 0.5 ? "text-amber-500" : "text-rose-500"
-                                                                            )}>
-                                                                                {(tc.score * 10).toFixed(1)}/10
-                                                                            </Badge>
-                                                                        </TableCell>
-                                                                        <TableCell className="text-xs text-muted-foreground leading-relaxed max-w-100">
-                                                                            {tc.feedback}
-                                                                        </TableCell>
-                                                                    </TableRow>
-                                                                ))}
-                                                            </TableBody>
-                                                        </Table>
-                                                    </CardContent>
-                                                </Card>
+
 
                                                 {/* Conversation Transcript */}
-                                                <Card className="bg-card/30 border-border/50 overflow-hidden flex flex-col h-[600px]">
+                                                <Card className="bg-card/30 border-border/50 overflow-hidden flex flex-col h-150">
                                                     <CardHeader className="border-b border-border/50 bg-muted/20 flex flex-row items-center justify-between py-4">
                                                         <div className="space-y-1">
                                                             <CardTitle className="text-sm font-semibold flex items-center gap-2">
@@ -1150,7 +1111,7 @@ export function TestSuitesContent() {
                                                         {selectedCallLogs && (
                                                             <div className="flex items-center gap-3">
                                                                 <Badge variant="outline" className="text-[10px] font-mono bg-background/50 h-6">
-                                                                    ID: {selectedCallLogs.id.split('-').pop()}
+                                                                    ID: {selectedCallLogs.id}
                                                                 </Badge>
                                                                 <Badge variant="secondary" className="text-[10px] font-mono h-6 gap-1.5">
                                                                     <Clock className="w-3 h-3" />
@@ -1171,7 +1132,7 @@ export function TestSuitesContent() {
                                                                     ))}
                                                                 </div>
                                                             ) : selectedCallLogs?.call_transcript ? (
-                                                                <div className="flex flex-col gap-8 pb-4">
+                                                                <div className="flex flex-col gap-4 pb-4">
                                                                     {selectedCallLogs.call_transcript.map((msg: any, idx: number) => (
                                                                         <div
                                                                             key={idx}
@@ -1186,7 +1147,7 @@ export function TestSuitesContent() {
                                                                                     "text-[10px] font-bold uppercase tracking-widest",
                                                                                     msg.role === 'assistant' ? "text-primary" : "text-muted-foreground/80"
                                                                                 )}>
-                                                                                    {msg.role === 'assistant' ? 'Target Assistant' : 'Tester Agent'}
+                                                                                    {msg.role === 'assistant' ? 'Tester Assistant' : 'Target Agent'}
                                                                                 </span>
                                                                             </div>
                                                                             <div
@@ -1209,7 +1170,7 @@ export function TestSuitesContent() {
                                                                     </div>
                                                                     <div className="space-y-1">
                                                                         <p className="text-sm font-semibold">Transcript Not Found</p>
-                                                                        <p className="text-xs max-w-[200px]">We couldn't retrieve conversation logs for this run.</p>
+                                                                        <p className="text-xs max-w-50">We couldn't retrieve conversation logs for this run.</p>
                                                                     </div>
                                                                 </div>
                                                             )}
@@ -1266,7 +1227,18 @@ export function TestSuitesContent() {
                                                                                     fetchCallLogs(run.id)
                                                                                 }}
                                                                             >
-                                                                                <TableCell className="font-mono text-xs">{run.id.split('-').pop()}</TableCell>
+                                                                                <TableCell className="font-mono text-xs">
+                                                                                    <Tooltip>
+                                                                                        <TooltipTrigger asChild>
+                                                                                            <span className="cursor-help underline decoration-dotted underline-offset-2">
+                                                                                                {run.id.substring(0, 8)}...
+                                                                                            </span>
+                                                                                        </TooltipTrigger>
+                                                                                        <TooltipContent>
+                                                                                            <p className="font-mono text-xs">{run.id}</p>
+                                                                                        </TooltipContent>
+                                                                                    </Tooltip>
+                                                                                </TableCell>
                                                                                 <TableCell className="text-sm text-muted-foreground">{startedAt}</TableCell>
                                                                                 <TableCell className="text-center">
                                                                                     <Badge
