@@ -1,185 +1,256 @@
 "use client"
 
-import { motion } from "framer-motion"
-import Link from "next/link"
+import { motion, useScroll, useTransform } from "framer-motion"
+import { ConicGradientButton } from "./ConicGradientButton"
+
+// Custom Trident Icon
+const TridentIcon = ({ className }: { className?: string }) => (
+  <svg 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    className={className}
+  >
+    <path d="M12 2v20" />
+    <path d="M5 2c0 4 2 6 7 6s7-2 7-6" />
+    <path d="M12 8V2" />
+  </svg>
+)
 
 export function HeroSection() {
+    const { scrollYProgress } = useScroll()
+    const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0])
+    const y = useTransform(scrollYProgress, [0, 0.5], [0, -50])
+
+    const orangeGradient = "linear-gradient(135deg, #ffedd5 0%, #fb923c 33%, #ea580c 66%, #7c2d12 100%)"
+
     return (
-        <section className="relative w-full min-h-[90vh] flex flex-col items-center justify-center overflow-hidden px-4 md:px-6 py-16">
-            {/* Rich Animated Background */}
+        <section className="relative w-full min-h-[90vh] flex flex-col items-center justify-center overflow-hidden px-4 md:px-6 py-20 md:py-32">
             <div className="absolute inset-0 w-full h-full bg-background z-0">
                 <div className="absolute top-[-20%] left-[-10%] w-[800px] h-[800px] bg-primary/10 rounded-full blur-[120px] opacity-40 animate-blob" />
                 <div className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-blue-500/10 rounded-full blur-[100px] opacity-40 animate-blob animation-delay-2000" />
                 <div className="absolute top-[40%] left-[20%] w-[400px] h-[400px] bg-purple-500/10 rounded-full blur-[80px] opacity-30 animate-blob animation-delay-4000" />
-                {/* Grid Pattern overlay */}
-                <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
+                <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/0.3)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.3)_1px,transparent_1px)] bg-[size:32px_32px]" />
             </div>
 
-            <div className="relative z-10 container max-w-6xl mx-auto flex flex-col items-center text-center">
-
-                {/* Main Heading Group */}
-                <div className="relative mb-2 w-full">
+            <motion.div 
+                style={{ opacity, y }}
+                className="relative z-10 container max-w-6xl mx-auto flex flex-col items-center text-center"
+            >
+                <div className="relative mb-32 md:mb-48 w-full">
                     <motion.h1
                         initial={{ opacity: 0, y: 30 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.8, ease: "easeOut" }}
-                        className="text-5xl md:text-6xl font-bold tracking-tight font-heading leading-[1.1]"
+                        transition={{ duration: 1.2, ease: "easeOut" }}
+                        className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-medium tracking-tight font-heading leading-[1.1]"
                     >
-                        Voice AI Testing That's
-                        <span className="block mt-2">
+                        <motion.span
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ duration: 0.8, delay: 0.2 }}
+                    >
+                            Voice AI Testing That&apos;s
+                        </motion.span>
+                        <span className="block mt-4">
+                            <motion.span
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ duration: 0.8, delay: 0.4 }}
+                            >
                             Both{" "}
-                            {/* Fast Word Wrapper */}
-                            <span className="relative inline-block mx-1">
-                                <span className="text-primary bg-clip-text ">Fast</span>
-                                {/* Anchored Arrow: Fast -> OlympusEcho */}
-                                <div className="absolute top-full left-1/2 -translate-x-1/2 w-[220px] h-[220px] pointer-events-none hidden md:block">
-                                    <svg viewBox="0 0 220 220" className="w-full h-full overflow-visible">
+                            </motion.span>
+                            <span className="relative inline-block mx-2">
+                                <motion.span 
+                                    className="relative inline-block font-semibold"
+                                    initial={{ opacity: 0, scale: 0.9 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    transition={{ duration: 0.6, delay: 0.6 }}
+                                >
+                                    <span 
+                                        className="metallic-gradient"
+                                        style={{
+                                            backgroundImage: orangeGradient,
+                                            backgroundSize: "200% 200%",
+                                            WebkitBackgroundClip: "text",
+                                            WebkitTextFillColor: "transparent",
+                                            filter: "blur(0.2px)",
+                                            animation: "shimmer 3s ease-in-out infinite",
+                                        }}
+                                    >
+                                        Fast
+                                    </span>
+                                </motion.span>
+                                <div className="absolute top-full left-1/2 -translate-x-1/2 w-[240px] md:w-[280px] h-[220px] md:h-[260px] pointer-events-none hidden md:block">
+                                    <svg viewBox="0 0 280 260" className="w-full h-full overflow-visible">
                                         <defs>
-                                            <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="0%">
-                                                <stop offset="0%" stopColor="rgb(var(--primary))" stopOpacity="0" />
-                                                <stop offset="100%" stopColor="rgb(var(--primary))" stopOpacity="1" />
+                                            <linearGradient id="shimmerGrad1" x1="0%" y1="0%" x2="0%" y2="100%">
+                                                <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.1" />
+                                                <stop offset="0%" stopColor="white" stopOpacity="0.9">
+                                                    <animate 
+                                                        attributeName="offset" 
+                                                        values="0; 1; 0" 
+                                                        dur="3s" 
+                                                        repeatCount="indefinite" 
+                                                        keyTimes="0; 0.5; 1"
+                                                        calcMode="spline"
+                                                        keySplines="0.4 0 0.2 1; 0.4 0 0.2 1"
+                                                    />
+                                                </stop>
+                                                <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0.1" />
                                             </linearGradient>
                                         </defs>
 
-                                        {/* Path: Center Top -> Down -> Left -> Down */}
                                         <motion.path
-                                            id="path1"
-                                            d="M 110,0 L 110,60 Q 110,80 90,80 L 40,80 Q 20,80 20,105 L 20,150"
+                                            // Path: goes down then further left, then down (increase leftward bend)
+                                            d="M 140,0 L 140,50 Q 140,80 70,80 L 30,80 Q 0,80 0,110 L 0,185"
                                             fill="none"
-                                            stroke="currentColor"
-                                            strokeWidth="3"
-                                            className="text-primary/30"
-                                            strokeDasharray="8 8"
+                                            stroke="url(#shimmerGrad1)"
+                                            strokeWidth="6"
                                             strokeLinecap="round"
-                                            initial={{ pathLength: 0 }}
-                                            animate={{ pathLength: 1 }}
-                                            transition={{ duration: 1.5, delay: 1.0, ease: "easeInOut" }}
+                                            initial={{ pathLength: 0, opacity: 0 }}
+                                            animate={{ pathLength: 1, opacity: 1 }}
+                                            transition={{ duration: 2, delay: 1.2, ease: "easeInOut" }}
                                         />
-
-                                        {/* Pin Animation */}
-                                        <circle r="5" fill="rgb(var(--primary))" className="animate-ping opacity-75">
-                                            <animateMotion dur="3s" repeatCount="indefinite" rotate="auto">
-                                                <mpath href="#path1" />
-                                            </animateMotion>
-                                        </circle>
-                                        <circle r="4" fill="rgb(var(--primary))">
-                                            <animateMotion dur="3s" repeatCount="indefinite" rotate="auto">
-                                                <mpath href="#path1" />
-                                            </animateMotion>
-                                        </circle>
-
-                                        {/* Arrowhead */}
-                                        <motion.path
-                                            d="M 12,142 L 20,158 L 28,142"
+                                        <path
+                                            d="M 140,0 L 140,50 Q 140,80 70,80 L 30,80 Q 0,80 0,110 L 0,185"
                                             fill="none"
-                                            stroke="currentColor"
-                                            strokeWidth="3"
+                                            stroke="hsl(var(--primary))"
+                                            strokeWidth="2"
+                                            strokeOpacity="0.15"
+                                            strokeDasharray="6 6"
                                             strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            className="text-primary"
-                                            initial={{ opacity: 0, pathLength: 0 }}
-                                            animate={{ opacity: 1, pathLength: 1 }}
-                                            transition={{ duration: 0.3, delay: 2.5 }}
                                         />
                                     </svg>
-
-                                    {/* Label positioned relative to the SVG container */}
-                                    <motion.div
-                                        initial={{ opacity: 0, scale: 0.9, y: 10 }}
-                                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                                        transition={{ delay: 2.7, duration: 0.5 }}
-                                        className="absolute top-[165px] left-[20px] -translate-x-1/2 w-max"
-                                    >
-                                        <div className="flex flex-col items-center justify-center bg-background/95 backdrop-blur-xl px-6 py-4 rounded-3xl border-2 border-primary/20 shadow-[0_20px_40px_-15px_rgba(var(--primary),0.25)] whitespace-nowrap">
-                                            <span className="text-2xl font-black text-primary leading-none tracking-tight">Olympus Echo</span>
-                                            <span className="text-xs font-bold text-muted-foreground/70 uppercase tracking-[0.2em] mt-2 underline decoration-primary/30 underline-offset-4">Testing Framework</span>
-                                        </div>
-                                    </motion.div>
                                 </div>
                             </span>
-                            {" "}and{" "}
-                            {/* Flawless Word Wrapper */}
-                            <span className="relative inline-block mx-1">
-                                <span className="text-primary bg-clip-text ">Flawless</span>
-                                {/* Anchored Arrow: Flawless -> LLM + Human */}
-                                <div className="absolute top-full left-1/2 -translate-x-1/2 w-[220px] h-[220px] pointer-events-none hidden md:block">
-                                    <svg viewBox="0 0 220 220" className="w-full h-full overflow-visible">
-                                        {/* Path: Center Top -> Down -> Right -> Down */}
+                            {" "}
+                            <motion.span
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ duration: 0.8, delay: 0.6 }}
+                            >
+                                and{" "}
+                            </motion.span>
+                            <span className="relative inline-block mx-2">
+                                <motion.span 
+                                    className="relative inline-block font-semibold"
+                                    initial={{ opacity: 0, scale: 0.9 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    transition={{ duration: 0.6, delay: 0.8 }}
+                                >
+                                    <span 
+                                        className="metallic-gradient"
+                                        style={{
+                                            backgroundImage: orangeGradient,
+                                            backgroundSize: "200% 200%",
+                                            WebkitBackgroundClip: "text",
+                                            WebkitTextFillColor: "transparent",
+                                            filter: "blur(0.2px)",
+                                            animation: "shimmer 3s ease-in-out infinite",
+                                        }}
+                                    >
+                                        Flawless
+                                    </span>
+                                </motion.span>
+                                <div className="absolute top-full left-1/2 -translate-x-1/2 w-[240px] md:w-[280px] h-[220px] md:h-[260px] pointer-events-none hidden md:block">
+                                    <svg viewBox="0 0 280 260" className="w-full h-full overflow-visible">
+                                        <defs>
+                                            <linearGradient id="shimmerGrad2" x1="0%" y1="0%" x2="0%" y2="100%">
+                                                <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.1" />
+                                                <stop offset="0%" stopColor="white" stopOpacity="0.9">
+                                                    <animate 
+                                                        attributeName="offset" 
+                                                        values="0; 1; 0" 
+                                                        dur="3s" 
+                                                        repeatCount="indefinite" 
+                                                        keyTimes="0; 0.5; 1"
+                                                        calcMode="spline"
+                                                        keySplines="0.4 0 0.2 1; 0.4 0 0.2 1"
+                                                    />
+                                                </stop>
+                                                <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0.1" />
+                                            </linearGradient>
+                                        </defs>
+
                                         <motion.path
-                                            id="path2"
-                                            d="M 110,0 L 110,60 Q 110,80 130,80 L 180,80 Q 200,80 200,105 L 200,150"
+                                            d="M 140,0 L 140,50 Q 140,70 170,70 L 220,70 Q 250,70 250,95 L 250,185"
                                             fill="none"
-                                            stroke="currentColor"
-                                            strokeWidth="3"
-                                            className="text-primary/30"
-                                            strokeDasharray="8 8"
+                                            stroke="url(#shimmerGrad2)"
+                                            strokeWidth="6"
                                             strokeLinecap="round"
-                                            initial={{ pathLength: 0 }}
-                                            animate={{ pathLength: 1 }}
-                                            transition={{ duration: 1.5, delay: 1.0, ease: "easeInOut" }}
+                                            initial={{ pathLength: 0, opacity: 0 }}
+                                            animate={{ pathLength: 1, opacity: 1 }}
+                                            transition={{ duration: 2, delay: 1.4, ease: "easeInOut" }}
                                         />
-
-                                        {/* Pin Animation */}
-                                        <circle r="5" fill="#a855f7" className="animate-ping opacity-75">
-                                            <animateMotion dur="3s" repeatCount="indefinite" rotate="auto">
-                                                <mpath href="#path2" />
-                                            </animateMotion>
-                                        </circle>
-                                        <circle r="4" fill="#a855f7">
-                                            <animateMotion dur="3s" repeatCount="indefinite" rotate="auto">
-                                                <mpath href="#path2" />
-                                            </animateMotion>
-                                        </circle>
-
-                                        {/* Arrowhead */}
-                                        <motion.path
-                                            d="M 192,142 L 200,158 L 208,142"
+                                        <path
+                                            d="M 140,0 L 140,50 Q 140,70 170,70 L 220,70 Q 250,70 250,95 L 250,185"
                                             fill="none"
-                                            stroke="currentColor"
-                                            strokeWidth="3"
+                                            stroke="hsl(var(--primary))"
+                                            strokeWidth="2"
+                                            strokeOpacity="0.15"
+                                            strokeDasharray="6 6"
                                             strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            className="text-primary"
-                                            initial={{ opacity: 0, pathLength: 0 }}
-                                            animate={{ opacity: 1, pathLength: 1 }}
-                                            transition={{ duration: 0.3, delay: 2.5 }}
                                         />
                                     </svg>
-
-                                    {/* Label positioned relative to the SVG container */}
-
-                                    <motion.div
-                                        initial={{ opacity: 0, scale: 0.9, y: 10 }}
-                                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                                        transition={{ delay: 2.7, duration: 0.5 }}
-                                        className="absolute top-[165px] left-[200px] -translate-x-1/2 w-max"
-                                    >
-                                        <div className="flex flex-col items-center justify-center bg-background/95 backdrop-blur-xl px-6 py-4 rounded-3xl border-2 border-primary/20 shadow-[0_20px_40px_-15px_rgba(var(--primary),0.25)] whitespace-nowrap">
-                                            <span className="text-2xl font-black text-primary leading-none tracking-tight">Human-in-the-loop</span>
-                                            <span className="text-xs font-bold text-muted-foreground/70 uppercase tracking-[0.2em] mt-2 underline decoration-purple-500/30 underline-offset-4">Nuanced Verification</span>
-                                        </div>
-                                    </motion.div>
                                 </div>
                             </span>
                         </span>
                     </motion.h1>
-
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.8, delay: 3.2 }}
-                        className="mt-64 md:mt-80"
-                    >
-                        <Link href="/login" className="group relative bg-primary text-primary-foreground px-10 py-5 rounded-full font-bold text-xl hover:scale-105 active:scale-95 transition-all shadow-lg hover:shadow-xl hover:shadow-primary/25">
-                            Start Testing free
-                        </Link>
-                    </motion.div>
                 </div>
 
+                    <motion.div
+                    initial={{ opacity: 0, y: 40 }}
+                        animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 1, delay: 1.0, ease: "easeOut" }}
+                    className="w-full max-w-6xl mx-auto"
+                >
+                    <div className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-14 lg:gap-20">
+                        {/* Olympus Echo Box - smaller */}
+                        <motion.div
+                            initial={{ opacity: 0, x: -30 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ duration: 0.8, delay: 3.2 }}
+                            className="flex flex-col items-center justify-center bg-background/95 backdrop-blur-xl px-8 py-6 rounded-3xl border border-primary/50 shadow-[0_24px_48px_-12px_rgba(var(--primary),0.18)] min-w-[200px] md:min-w-[220px] lg:min-w-[240px]"
+                        >
+                            <span className="text-xl md:text-2xl lg:text-3xl font-extrabold text-primary leading-none tracking-tighter">
+                                Olympus Echo
+                            </span>
+                            <span className="text-xs md:text-sm lg:text-base font-semibold text-muted-foreground/80 uppercase tracking-[0.33em] mt-4">
+                                Testing Framework
+                            </span>
+                        </motion.div>
 
-            </div>
+                        {/* Button in the middle - smaller and text one line */}
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.93 }}
+                            animate={{ opacity: 1, scale: 1.06 }}
+                            transition={{ duration: 0.8, delay: 3.4 }}
+                        >
+                            <ConicGradientButton href="/login" size="sm" className="text-base lg:text-lg px-7 py-3 whitespace-nowrap">
+                                Get Started
+                            </ConicGradientButton>
+                        </motion.div>
 
-
+                        {/* Human-in-the-loop Box - smaller */}
+                        <motion.div
+                            initial={{ opacity: 0, x: 30 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ duration: 0.8, delay: 3.6 }}
+                            className="flex flex-col items-center justify-center bg-background/95 backdrop-blur-xl px-8 py-6 rounded-3xl border border-primary/50 shadow-[0_24px_48px_-12px_rgba(var(--primary),0.18)] min-w-[200px] md:min-w-[220px] lg:min-w-[240px]"
+                        >
+                            <span className="text-xl md:text-2xl lg:text-3xl font-extrabold text-primary leading-none tracking-tighter">
+                                Human-in-the-loop
+                            </span>
+                            <span className="text-xs md:text-sm lg:text-base font-semibold text-muted-foreground/80 uppercase tracking-[0.33em] mt-4">
+                                Nuanced Verification
+                            </span>
+                        </motion.div>
+                    </div>
+                </motion.div>
+            </motion.div>
         </section>
     )
 }

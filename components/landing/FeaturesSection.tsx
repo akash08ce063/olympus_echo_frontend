@@ -1,13 +1,13 @@
 "use client";
 
 import { useRef } from "react";
-import { motion, useInView } from "framer-motion";
+import { motion, useInView, useScroll, useTransform } from "framer-motion";
 import {
     Zap,
     Link2,
     FileSearch,
-    Users,
     PlayCircle,
+    Users,
     CheckCircle,
 } from "lucide-react";
 
@@ -48,64 +48,85 @@ const features = [
 export function FeaturesSection() {
     const sectionRef = useRef<HTMLDivElement>(null);
     const isInView = useInView(sectionRef, { once: true, margin: "-100px" });
+    const { scrollYProgress } = useScroll({
+        target: sectionRef,
+        offset: ["start end", "end start"]
+    })
+    const opacity = useTransform(scrollYProgress, [0, 0.3, 0.7, 1], [0, 1, 1, 0])
+    const y = useTransform(scrollYProgress, [0, 0.3], [50, 0])
 
     return (
-        <section ref={sectionRef} className="relative py-18 bg-background overflow-hidden" id="features">
-            {/* Background decorative elements */}
+        <section ref={sectionRef} className="relative py-24 md:py-32 bg-background overflow-hidden" id="features">
             <div className="absolute inset-0 w-full h-full z-0 overflow-hidden pointer-events-none">
-                <div className="absolute top-[10%] right-[-5%] w-[400px] h-[400px] bg-primary/5 rounded-full blur-[100px] opacity-40" />
+                <div className="absolute top-[10%] right-[-5%] w-[400px] h-[400px] bg-primary/5 rounded-full blur-[100px] opacity-40 animate-blob" />
+                <div className="absolute bottom-[10%] left-[-5%] w-[300px] h-[300px] bg-blue-500/5 rounded-full blur-[80px] opacity-30 animate-blob animation-delay-2000" />
+                <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/0.3)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.3)_1px,transparent_1px)] bg-[size:32px_32px]" />
             </div>
 
-            <div className="container mx-auto max-w-7xl px-6 lg:px-8 relative z-10">
+            <motion.div 
+                style={{ opacity, y }}
+                className="container mx-auto max-w-7xl px-6 lg:px-8 relative z-10"
+            >
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={isInView ? { opacity: 1, y: 0 } : {}}
-                    transition={{ duration: 0.6 }}
-                    className="text-center mb-20"
+                    transition={{ duration: 0.8, ease: "easeOut" }}
+                    className="text-center mb-20 md:mb-24"
                 >
-                    <h2
-                        className="text-4xl md:text-5xl font-bold mb-6 tracking-tight text-foreground font-heading"
+                    <motion.h2
+                        initial={{ opacity: 0 }}
+                        animate={isInView ? { opacity: 1 } : {}}
+                        transition={{ duration: 0.8, delay: 0.2 }}
+                        className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-6 tracking-tight text-foreground font-heading"
                     >
                         Why teams choose <span className="text-primary font-bold">Olympus Echo?</span>
-                    </h2>
-                    <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+                    </motion.h2>
+                    <motion.p 
+                        initial={{ opacity: 0 }}
+                        animate={isInView ? { opacity: 1 } : {}}
+                        transition={{ duration: 0.8, delay: 0.4 }}
+                        className="text-lg sm:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed"
+                    >
                         Fewer missed edge-cases, faster release cycles, and QA you can trust —
                         whether you&apos;re a platform vendor or enterprise contact center.
-                    </p>
+                    </motion.p>
                 </motion.div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {/* Grid with 2 rows Y-direction (desktop), 3 columns X-direction */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-10">
                     {features.map((feature, index) => (
                         <motion.div
                             key={feature.title}
                             initial={{ opacity: 0, y: 30 }}
                             animate={isInView ? { opacity: 1, y: 0 } : {}}
-                            transition={{ duration: 0.5, delay: index * 0.1 }}
+                            transition={{ duration: 0.6, delay: index * 0.1, ease: "easeOut" }}
                             whileHover={{
                                 y: -8,
                                 transition: { duration: 0.3 }
                             }}
-                            className={`group relative p-8 rounded-[2.5rem] border transition-all duration-300 backdrop-blur-sm ${feature.highlight
-                                ? "bg-primary/[0.03] border-primary/30 ring-1 ring-primary/10 shadow-2xl shadow-primary/5 dark:bg-primary/[0.05]"
-                                : "bg-card/40 border-border/50 hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5"
+                            className={`group relative p-6 md:p-8 rounded-[2.5rem] border transition-all duration-300 backdrop-blur-sm ${
+                                feature.highlight
+                                    ? "bg-primary/[0.05] border-primary/40 ring-1 ring-primary/20 shadow-2xl shadow-primary/10 dark:bg-primary/[0.08]"
+                                    : "bg-card/40 border-border/50 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5"
                                 }`}
                         >
-                            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-8 transition-all duration-300 group-hover:scale-110 group-hover:bg-primary group-hover:text-white ${feature.highlight ? "bg-primary/20" : "bg-primary/10 group-hover:bg-primary group-hover:text-white"
+                            <div className={`w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center mb-6 md:mb-8 transition-all duration-300 group-hover:scale-110 ${
+                                feature.highlight 
+                                    ? "bg-primary/20 text-primary group-hover:bg-primary group-hover:text-white" 
+                                    : "bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white"
                                 }`}>
-                                <feature.icon className={`w-7 h-7  ${feature.highlight ? "text-primary fill-primary/20 group-hover:text-white " : "text-primary group-hover:text-white "}`} />
+                                <feature.icon className={`w-6 h-6 md:w-7 md:h-7 ${feature.highlight ? "fill-primary/20 group-hover:fill-white" : ""}`} />
                             </div>
-                            <h3
-                                className="text-xl font-bold text-foreground mb-4 font-heading"
-                            >
+                            <h3 className="text-lg md:text-xl font-bold text-foreground mb-3 md:mb-4 font-heading leading-tight">
                                 {feature.title}
                             </h3>
-                            <p className="text-muted-foreground leading-relaxed">
+                            <p className="text-sm md:text-base text-muted-foreground leading-relaxed">
                                 {feature.description}
                             </p>
                         </motion.div>
                     ))}
                 </div>
-            </div>
+            </motion.div>
         </section>
     );
 }
