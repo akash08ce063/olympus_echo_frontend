@@ -60,7 +60,6 @@ export const TestSuitesService = {
     getAllRuns: (userId: string) =>
         apiClient.get(TESTSUITS.run_test.getAllRuns(userId)),
 
-    // Get call logs for a specific request ID
     getCallLogsByRequestId: (requestId: string, userId: string) =>
         apiClient.get(TESTSUITS.run_test.getCallLogsByRequestId(requestId, userId)),
 

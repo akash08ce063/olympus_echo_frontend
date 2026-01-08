@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Edit, Loader2, MoreHorizontal, Play, Plus, Sparkles, Trash2, CheckCircle2, XCircle, Clock } from "lucide-react"
+import { Edit, Loader2, MoreHorizontal, Play, Plus, Sparkles, Trash2, CheckCircle2, XCircle, Clock, Volume2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -40,7 +40,7 @@ export function TestCasesSection({
     onUpdateTestCase,
     onDeleteTestCase,
     onRunTestCase,
-    testSuiteId
+    testSuiteId,
 }: TestCasesSectionProps) {
     const [isAddTestOpen, setIsAddTestOpen] = useState(false)
     const [editingTest, setEditingTest] = useState<TestCase | null>(null)

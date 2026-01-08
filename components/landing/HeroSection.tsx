@@ -1,10 +1,11 @@
 "use client"
 
 import { motion } from "framer-motion"
+import Link from "next/link"
 
 export function HeroSection() {
     return (
-        <section className="relative w-full min-h-[90vh] flex flex-col items-center justify-center overflow-hidden px-4 md:px-6 py-20">
+        <section className="relative w-full min-h-[90vh] flex flex-col items-center justify-center overflow-hidden px-4 md:px-6 py-16">
             {/* Rich Animated Background */}
             <div className="absolute inset-0 w-full h-full bg-background z-0">
                 <div className="absolute top-[-20%] left-[-10%] w-[800px] h-[800px] bg-primary/10 rounded-full blur-[120px] opacity-40 animate-blob" />
@@ -17,7 +18,7 @@ export function HeroSection() {
             <div className="relative z-10 container max-w-6xl mx-auto flex flex-col items-center text-center">
 
                 {/* Main Heading Group */}
-                <div className="relative mb-24 md:mb-32 w-full">
+                <div className="relative mb-2 w-full">
                     <motion.h1
                         initial={{ opacity: 0, y: 30 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -31,8 +32,8 @@ export function HeroSection() {
                             <span className="relative inline-block mx-1">
                                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-600">Fast</span>
                                 {/* Anchored Arrow: Fast -> OlympusEcho */}
-                                <div className="absolute top-full left-1/2 -translate-x-1/2 w-[180px] h-[140px] pointer-events-none hidden md:block">
-                                    <svg viewBox="0 0 180 140" className="w-full h-full overflow-visible">
+                                <div className="absolute top-full left-1/2 -translate-x-1/2 w-[220px] h-[220px] pointer-events-none hidden md:block">
+                                    <svg viewBox="0 0 220 220" className="w-full h-full overflow-visible">
                                         <defs>
                                             <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="0%">
                                                 <stop offset="0%" stopColor="rgb(var(--primary))" stopOpacity="0" />
@@ -43,12 +44,12 @@ export function HeroSection() {
                                         {/* Path: Center Top -> Down -> Left -> Down */}
                                         <motion.path
                                             id="path1"
-                                            d="M 90,0 L 90,40 Q 90,55 75,55 L 45,55 Q 30,55 30,70 L 30,95"
+                                            d="M 110,0 L 110,60 Q 110,80 90,80 L 40,80 Q 20,80 20,105 L 20,150"
                                             fill="none"
                                             stroke="currentColor"
-                                            strokeWidth="2.5"
-                                            className="text-primary/40"
-                                            strokeDasharray="6 6"
+                                            strokeWidth="3"
+                                            className="text-primary/30"
+                                            strokeDasharray="8 8"
                                             strokeLinecap="round"
                                             initial={{ pathLength: 0 }}
                                             animate={{ pathLength: 1 }}
@@ -56,12 +57,12 @@ export function HeroSection() {
                                         />
 
                                         {/* Pin Animation */}
-                                        <circle r="4" fill="rgb(var(--primary))" className="animate-ping opacity-75">
+                                        <circle r="5" fill="rgb(var(--primary))" className="animate-ping opacity-75">
                                             <animateMotion dur="3s" repeatCount="indefinite" rotate="auto">
                                                 <mpath href="#path1" />
                                             </animateMotion>
                                         </circle>
-                                        <circle r="3" fill="rgb(var(--primary))">
+                                        <circle r="4" fill="rgb(var(--primary))">
                                             <animateMotion dur="3s" repeatCount="indefinite" rotate="auto">
                                                 <mpath href="#path1" />
                                             </animateMotion>
@@ -69,10 +70,10 @@ export function HeroSection() {
 
                                         {/* Arrowhead */}
                                         <motion.path
-                                            d="M 22,88 L 30,103 L 38,88"
+                                            d="M 12,142 L 20,158 L 28,142"
                                             fill="none"
                                             stroke="currentColor"
-                                            strokeWidth="2.5"
+                                            strokeWidth="3"
                                             strokeLinecap="round"
                                             strokeLinejoin="round"
                                             className="text-primary"
@@ -80,18 +81,20 @@ export function HeroSection() {
                                             animate={{ opacity: 1, pathLength: 1 }}
                                             transition={{ duration: 0.3, delay: 2.5 }}
                                         />
-
-                                        {/* Label */}
-                                        <motion.foreignObject x="-50" y="108" width="160" height="50"
-                                            initial={{ opacity: 0, y: 10 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            transition={{ delay: 2.7 }}
-                                        >
-                                            <div className="text-base font-bold text-primary text-center bg-background/90 backdrop-blur-md px-3 py-1.5 rounded-full border border-primary/20 shadow-xl whitespace-nowrap">
-                                                OlympusEcho
-                                            </div>
-                                        </motion.foreignObject>
                                     </svg>
+
+                                    {/* Label positioned relative to the SVG container */}
+                                    <motion.div
+                                        initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                                        transition={{ delay: 2.7, duration: 0.5 }}
+                                        className="absolute top-[165px] left-[20px] -translate-x-1/2 w-max"
+                                    >
+                                        <div className="flex flex-col items-center justify-center bg-background/95 backdrop-blur-xl px-6 py-4 rounded-3xl border-2 border-primary/20 shadow-[0_20px_40px_-15px_rgba(var(--primary),0.25)] whitespace-nowrap">
+                                            <span className="text-2xl font-black text-primary leading-none tracking-tight">Olympus Echo</span>
+                                            <span className="text-xs font-bold text-muted-foreground/70 uppercase tracking-[0.2em] mt-2 underline decoration-primary/30 underline-offset-4">Automated Scale</span>
+                                        </div>
+                                    </motion.div>
                                 </div>
                             </span>
                             {" "}and{" "}
@@ -99,17 +102,17 @@ export function HeroSection() {
                             <span className="relative inline-block mx-1">
                                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-pink-500">Flawless</span>
                                 {/* Anchored Arrow: Flawless -> LLM + Human */}
-                                <div className="absolute top-full left-1/2 -translate-x-1/2 w-[180px] h-[140px] pointer-events-none hidden md:block">
-                                    <svg viewBox="0 0 180 140" className="w-full h-full overflow-visible">
+                                <div className="absolute top-full left-1/2 -translate-x-1/2 w-[220px] h-[220px] pointer-events-none hidden md:block">
+                                    <svg viewBox="0 0 220 220" className="w-full h-full overflow-visible">
                                         {/* Path: Center Top -> Down -> Right -> Down */}
                                         <motion.path
                                             id="path2"
-                                            d="M 90,0 L 90,40 Q 90,55 105,55 L 135,55 Q 150,55 150,70 L 150,95"
+                                            d="M 110,0 L 110,60 Q 110,80 130,80 L 180,80 Q 200,80 200,105 L 200,150"
                                             fill="none"
                                             stroke="currentColor"
-                                            strokeWidth="2.5"
-                                            className="text-purple-500/40"
-                                            strokeDasharray="6 6"
+                                            strokeWidth="3"
+                                            className="text-purple-500/30"
+                                            strokeDasharray="8 8"
                                             strokeLinecap="round"
                                             initial={{ pathLength: 0 }}
                                             animate={{ pathLength: 1 }}
@@ -117,12 +120,12 @@ export function HeroSection() {
                                         />
 
                                         {/* Pin Animation */}
-                                        <circle r="4" fill="#a855f7" className="animate-ping opacity-75">
+                                        <circle r="5" fill="#a855f7" className="animate-ping opacity-75">
                                             <animateMotion dur="3s" repeatCount="indefinite" rotate="auto">
                                                 <mpath href="#path2" />
                                             </animateMotion>
                                         </circle>
-                                        <circle r="3" fill="#a855f7">
+                                        <circle r="4" fill="#a855f7">
                                             <animateMotion dur="3s" repeatCount="indefinite" rotate="auto">
                                                 <mpath href="#path2" />
                                             </animateMotion>
@@ -130,10 +133,10 @@ export function HeroSection() {
 
                                         {/* Arrowhead */}
                                         <motion.path
-                                            d="M 142,88 L 150,103 L 158,88"
+                                            d="M 192,142 L 200,158 L 208,142"
                                             fill="none"
                                             stroke="currentColor"
-                                            strokeWidth="2.5"
+                                            strokeWidth="3"
                                             strokeLinecap="round"
                                             strokeLinejoin="round"
                                             className="text-purple-500"
@@ -141,45 +144,41 @@ export function HeroSection() {
                                             animate={{ opacity: 1, pathLength: 1 }}
                                             transition={{ duration: 0.3, delay: 2.5 }}
                                         />
-
-                                        {/* Label */}
-                                        <motion.foreignObject x="70" y="108" width="160" height="50"
-                                            initial={{ opacity: 0, y: 10 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            transition={{ delay: 2.7 }}
-                                        >
-                                            <div className="text-base font-bold text-purple-600 text-center bg-background/90 backdrop-blur-md px-3 py-1.5 rounded-full border border-purple-500/20 shadow-xl whitespace-nowrap">
-                                                LLM + Human
-                                            </div>
-                                        </motion.foreignObject>
                                     </svg>
+
+                                    {/* Label positioned relative to the SVG container */}
+                                    <motion.div
+                                        initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                                        transition={{ delay: 2.7, duration: 0.5 }}
+                                        className="absolute top-[165px] left-[200px] -translate-x-1/2 w-max"
+                                    >
+                                        <div className="flex flex-col items-center justify-center bg-background/95 backdrop-blur-xl px-6 py-4 rounded-3xl border-2 border-purple-500/20 shadow-[0_20px_40px_-15px_rgba(168,85,247,0.25)] whitespace-nowrap">
+                                            <span className="text-2xl font-black text-purple-600 leading-none tracking-tight">Human-in-the-loop</span>
+                                            <span className="text-xs font-bold text-muted-foreground/70 uppercase tracking-[0.2em] mt-2 underline decoration-purple-500/30 underline-offset-4">Nuanced Verification</span>
+                                        </div>
+                                    </motion.div>
                                 </div>
                             </span>
                         </span>
                     </motion.h1>
+
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.8, delay: 3.2 }}
+                        className="mt-64 md:mt-80"
+                    >
+                        <Link href="/login" className="group relative bg-primary text-primary-foreground px-10 py-5 rounded-full font-bold text-xl hover:scale-105 active:scale-95 transition-all shadow-lg hover:shadow-xl hover:shadow-primary/25">
+                            Start Testing free
+                        </Link>
+                    </motion.div>
                 </div>
 
-                {/* Description - separated by H1's margin but also has own margin for safety */}
-                <motion.p
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.8, delay: 2.8 }}
-                    className="max-w-3xl text-lg md:text-xl text-muted-foreground leading-relaxed relative z-20"
-                >
-                    <span className="font-semibold text-foreground">Olympus Echo</span> is a comprehensive Voice AI testing platform built for production. Define test cases and evaluation criteria, then run thousands of concurrent simulated calls via Twilio or WebSockets. Our AI agents talk to your voice AI like real customers and measure correctness, latency, and business logic adherence. Get clear, explainable results with full transcripts and call recordings.
-                </motion.p>
+
             </div>
 
-            {/* Scroll Indicator */}
-            <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 3.5, duration: 1 }}
-                className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-muted-foreground/50 animate-bounce"
-            >
-                <span className="text-xs uppercase tracking-widest">Scroll</span>
-                <div className="w-px h-12 bg-gradient-to-b from-transparent via-current to-transparent" />
-            </motion.div>
+
         </section>
     )
 }
