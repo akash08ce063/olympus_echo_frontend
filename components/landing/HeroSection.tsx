@@ -30,7 +30,7 @@ export function HeroSection() {
                             Both{" "}
                             {/* Fast Word Wrapper */}
                             <span className="relative inline-block mx-1">
-                                <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-600">Fast</span>
+                                <span className="text-primary bg-clip-text ">Fast</span>
                                 {/* Anchored Arrow: Fast -> OlympusEcho */}
                                 <div className="absolute top-full left-1/2 -translate-x-1/2 w-[220px] h-[220px] pointer-events-none hidden md:block">
                                     <svg viewBox="0 0 220 220" className="w-full h-full overflow-visible">
@@ -92,7 +92,7 @@ export function HeroSection() {
                                     >
                                         <div className="flex flex-col items-center justify-center bg-background/95 backdrop-blur-xl px-6 py-4 rounded-3xl border-2 border-primary/20 shadow-[0_20px_40px_-15px_rgba(var(--primary),0.25)] whitespace-nowrap">
                                             <span className="text-2xl font-black text-primary leading-none tracking-tight">Olympus Echo</span>
-                                            <span className="text-xs font-bold text-muted-foreground/70 uppercase tracking-[0.2em] mt-2 underline decoration-primary/30 underline-offset-4">Automated Scale</span>
+                                            <span className="text-xs font-bold text-muted-foreground/70 uppercase tracking-[0.2em] mt-2 underline decoration-primary/30 underline-offset-4">Testing Framework</span>
                                         </div>
                                     </motion.div>
                                 </div>
@@ -100,7 +100,7 @@ export function HeroSection() {
                             {" "}and{" "}
                             {/* Flawless Word Wrapper */}
                             <span className="relative inline-block mx-1">
-                                <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-pink-500">Flawless</span>
+                                <span className="text-primary bg-clip-text ">Flawless</span>
                                 {/* Anchored Arrow: Flawless -> LLM + Human */}
                                 <div className="absolute top-full left-1/2 -translate-x-1/2 w-[220px] h-[220px] pointer-events-none hidden md:block">
                                     <svg viewBox="0 0 220 220" className="w-full h-full overflow-visible">
@@ -111,7 +111,7 @@ export function HeroSection() {
                                             fill="none"
                                             stroke="currentColor"
                                             strokeWidth="3"
-                                            className="text-purple-500/30"
+                                            className="text-primary/30"
                                             strokeDasharray="8 8"
                                             strokeLinecap="round"
                                             initial={{ pathLength: 0 }}
@@ -139,7 +139,7 @@ export function HeroSection() {
                                             strokeWidth="3"
                                             strokeLinecap="round"
                                             strokeLinejoin="round"
-                                            className="text-purple-500"
+                                            className="text-primary"
                                             initial={{ opacity: 0, pathLength: 0 }}
                                             animate={{ opacity: 1, pathLength: 1 }}
                                             transition={{ duration: 0.3, delay: 2.5 }}
@@ -147,14 +147,15 @@ export function HeroSection() {
                                     </svg>
 
                                     {/* Label positioned relative to the SVG container */}
+
                                     <motion.div
                                         initial={{ opacity: 0, scale: 0.9, y: 10 }}
                                         animate={{ opacity: 1, scale: 1, y: 0 }}
                                         transition={{ delay: 2.7, duration: 0.5 }}
                                         className="absolute top-[165px] left-[200px] -translate-x-1/2 w-max"
                                     >
-                                        <div className="flex flex-col items-center justify-center bg-background/95 backdrop-blur-xl px-6 py-4 rounded-3xl border-2 border-purple-500/20 shadow-[0_20px_40px_-15px_rgba(168,85,247,0.25)] whitespace-nowrap">
-                                            <span className="text-2xl font-black text-purple-600 leading-none tracking-tight">Human-in-the-loop</span>
+                                        <div className="flex flex-col items-center justify-center bg-background/95 backdrop-blur-xl px-6 py-4 rounded-3xl border-2 border-primary/20 shadow-[0_20px_40px_-15px_rgba(var(--primary),0.25)] whitespace-nowrap">
+                                            <span className="text-2xl font-black text-primary leading-none tracking-tight">Human-in-the-loop</span>
                                             <span className="text-xs font-bold text-muted-foreground/70 uppercase tracking-[0.2em] mt-2 underline decoration-purple-500/30 underline-offset-4">Nuanced Verification</span>
                                         </div>
                                     </motion.div>

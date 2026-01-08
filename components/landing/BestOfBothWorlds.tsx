@@ -59,9 +59,9 @@ export function BestOfBothWorlds() {
                         initial={{ opacity: 0, x: -30 }}
                         animate={isInView ? { opacity: 1, x: 0 } : {}}
                         transition={{ duration: 0.8 }}
-                        className="group relative p-8 md:p-12 bg-card/40 backdrop-blur-xl border border-border/50 rounded-[2.5rem] hover:border-primary/30 transition-all duration-500 shadow-sm"
+                        className="group relative p-8  bg-card/40 backdrop-blur-xl border border-border/50 rounded-[2.5rem] hover:border-primary/30 transition-all duration-500 shadow-sm"
                     >
-                        <div className="mb-6 w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform duration-300">
+                        <div className="mb-6 w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 group-hover:bg-primary group-hover:text-white transition-transform duration-300">
                             <Zap className="w-7 h-7" />
                         </div>
                         <h3 className="text-2xl font-bold mb-4 font-heading">Automated Scale</h3>
@@ -74,9 +74,9 @@ export function BestOfBothWorlds() {
                         initial={{ opacity: 0, x: 30 }}
                         animate={isInView ? { opacity: 1, x: 0 } : {}}
                         transition={{ duration: 0.8 }}
-                        className="group relative p-8 md:p-12 bg-card/40 backdrop-blur-xl border border-border/50 rounded-[2.5rem] hover:border-primary/30 transition-all duration-500 shadow-sm"
+                        className="group relative p-8  bg-card/40 backdrop-blur-xl border border-border/50 rounded-[2.5rem] hover:border-primary/30  transition-all duration-500 shadow-sm"
                     >
-                        <div className="mb-6 w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform duration-300">
+                        <div className="mb-6 w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 group-hover:bg-primary group-hover:text-white transition-transform duration-300">
                             <CheckCircle2 className="w-7 h-7" />
                         </div>
                         <h3 className="text-2xl font-bold mb-4 font-heading">Expert Human Verification</h3>

@@ -90,9 +90,9 @@ export function FeaturesSection() {
                                 : "bg-card/40 border-border/50 hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5"
                                 }`}
                         >
-                            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-8 transition-all duration-300 group-hover:scale-110 ${feature.highlight ? "bg-primary/20" : "bg-primary/10 group-hover:bg-primary/20"
+                            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-8 transition-all duration-300 group-hover:scale-110 group-hover:bg-primary group-hover:text-white ${feature.highlight ? "bg-primary/20" : "bg-primary/10 group-hover:bg-primary group-hover:text-white"
                                 }`}>
-                                <feature.icon className={`w-7 h-7 ${feature.highlight ? "text-primary fill-primary/20" : "text-primary"}`} />
+                                <feature.icon className={`w-7 h-7  ${feature.highlight ? "text-primary fill-primary/20 group-hover:text-white " : "text-primary group-hover:text-white "}`} />
                             </div>
                             <h3
                                 className="text-xl font-bold text-foreground mb-4 font-heading"

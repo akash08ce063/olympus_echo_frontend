@@ -8,19 +8,17 @@ const problems = [
         icon: <XCircle className="w-6 h-6" />,
         title: "Manual Testing Hell",
         description: "Your team wastes hours making test calls, taking notes, and trying to reproduce edge cases. It's slow, expensive, and doesn't scale.",
-        status: "Does not scale"
     },
     {
         icon: <Zap className="w-6 h-6" />,
         title: "Blind Automation",
         description: "LLM evaluations miss nuances, hallucinate results, and give you false confidence. You can't trust them for production releases.",
-        status: "Lacks nuance"
+
     },
     {
         icon: <XCircle className="w-6 h-6" />,
         title: "Production Failures",
         description: "Bugs in production destroy customer trust and cost real money. One bad conversation can mean lost revenue and damaged reputation.",
-        status: "Lacks nuance"
     }
 ]
 
@@ -87,7 +85,7 @@ export function ProblemSection() {
                             viewport={{ once: true }}
                             transition={{ duration: 0.7, delay: index * 0.15 }}
                             whileHover={{ y: -5 }}
-                            className="group relative p-10 bg-card/50 backdrop-blur-sm border border-border/50 rounded-[2.5rem] hover:border-red-500/30 transition-all duration-500 shadow-sm hover:shadow-[0_20px_60px_-20px_rgba(239,68,68,0.15)] flex flex-col"
+                            className="group relative p-8 bg-card/50 backdrop-blur-sm border border-border/50 rounded-[2.5rem] hover:border-red-500/30 transition-all duration-500 shadow-sm hover:shadow-[0_20px_60px_-20px_rgba(239,68,68,0.15)] flex flex-col"
                         >
                             <div className="mb-8 w-14 h-14 rounded-2xl bg-red-500/10 flex items-center justify-center text-red-500 group-hover:scale-110 group-hover:bg-red-500 group-hover:text-white transition-all duration-500 shadow-inner">
                                 {problem.icon}
@@ -96,10 +94,7 @@ export function ProblemSection() {
                             <p className="text-muted-foreground leading-relaxed font-medium mb-8">
                                 {problem.description}
                             </p>
-                            <div className="mt-auto pt-6 border-t border-border/30 flex items-center gap-2 text-red-500 font-bold text-xs uppercase tracking-[0.15em]">
-                                <XCircle className="w-4 h-4" />
-                                {problem.status}
-                            </div>
+
                         </motion.div>
                     ))}
                 </div>
