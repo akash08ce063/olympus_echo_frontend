@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback, useEffect, useRef } from "react"
 import {
     ArrowRight,
     Beaker,
@@ -22,6 +22,8 @@ import {
     Activity,
     Volume2,
     Eye,
+    MessageSquare,
+    CheckCircle,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -47,6 +49,12 @@ import {
     TabsList,
     TabsTrigger,
 } from "@/components/ui/tabs"
+import {
+    Accordion,
+    AccordionContent,
+    AccordionItem,
+    AccordionTrigger,
+} from "@/components/ui/accordion"
 
 import { Textarea } from "@/components/ui/textarea"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -107,6 +115,10 @@ import { useTestContext } from "@/context/TestContext"
 import { RunsHistory } from "@/components/test-suite/RunsHistory"
 import { AudioPlayer } from "@/components/test-suite/AudioPlayer"
 import { TestRunner } from "@/components/test-suite/TestRunner"
+import { EvaluationAnalysis } from "@/components/test-suite/EvaluationAnalysis"
+import { TranscriptView } from "@/components/test-suite/TranscriptView"
+import { TestCaseDetailView } from "@/components/test-suite/TestCaseDetailView"
+import { EvaluationResultsTable } from "@/components/test-suite/EvaluationResultsTable"
 import { Experiment } from "@/types/test-suite"
 import { toast } from "sonner"
 
@@ -155,6 +167,7 @@ export function TestSuitesContent() {
     const [executionMode, setExecutionMode] = useState<"sequential" | "parallel">("sequential")
     const [currentTestCaseIndex, setCurrentTestCaseIndex] = useState(0)
     const [currentCallIndex, setCurrentCallIndex] = useState<Record<number, number>>({})
+    const [selectedTestCaseResultId, setSelectedTestCaseResultId] = useState<string | null>(null)
 
     const {
         runExperiment,
@@ -209,76 +222,129 @@ export function TestSuitesContent() {
 
     const [selectedRunDetail, setSelectedRunDetail] = useState<any | null>(null)
     const [selectedCallLogs, setSelectedCallLogs] = useState<any | null>(null)
+    const fetchedCallLogsRef = useRef<Set<string>>(new Set())
     const [apiRuns, setApiRuns] = useState<any[]>([])
     const [recordings, setRecordings] = useState<any[]>([])
     const [isRunsLoading, setIsRunsLoading] = useState(false)
     const [isRecordingsLoading, setIsRecordingsLoading] = useState(false)
     const [isCallLogsLoading, setIsCallLogsLoading] = useState(false)
+    const [activeTab, setActiveTab] = useState<string>("configure")
+    const runsInitialFetchDone = useRef<boolean>(false)
 
     const fetchAllRuns = useCallback(async () => {
         if (!user?.id) return
+        
         setIsRunsLoading(true)
+        setApiRuns([]) // Clear previous data
+        
         try {
-            const response = await TestSuitesService.getAllRuns(user.id) as any
-            const runsData = Array.isArray(response) ? response : (response?.data || response?.runs || [])
+            const response = await TestSuitesService.getAllRuns(user.id)
+            
+            // Handle different response structures
+            // Axios interceptor returns response.data directly, so response is already the data
+            let runsData: any[] = []
+            const data = response as any
+            
+            if (Array.isArray(data)) {
+                runsData = data
+            } else if (data?.runs) {
+                runsData = data.runs
+            } else if (data?.data?.runs) {
+                runsData = data.data.runs
+            } else if (Array.isArray(data?.data)) {
+                runsData = data.data
+            }
+            
             setApiRuns(runsData)
-            console.log("Fetched all runs:", runsData)
             
             // Extract all recordings from test_case_results for backward compatibility
             const allRecordings: any[] = []
             runsData.forEach((run: any) => {
-                if (run.test_case_results) {
+                if (run?.test_case_results && Array.isArray(run.test_case_results)) {
                     run.test_case_results.forEach((result: any) => {
-                        if (result.call_recordings && result.call_recordings.length > 0) {
+                        if (result?.call_recordings && Array.isArray(result.call_recordings) && result.call_recordings.length > 0) {
                             result.call_recordings.forEach((recording: any) => {
-                                allRecordings.push({
-                                    result_id: result.result_id,
-                                    test_case_id: result.test_case_id,
-                                    run_id: run.id,
-                                    recording_url: recording.recording_url,
-                                    call_number: recording.call_number,
-                                    file_id: recording.file_id,
-                                    concurrent_calls: result.concurrent_calls
-                                })
+                                if (recording?.recording_url) {
+                                    allRecordings.push({
+                                        result_id: result.result_id,
+                                        test_case_id: result.test_case_id,
+                                        run_id: run.id,
+                                        recording_url: recording.recording_url,
+                                        call_number: recording.call_number || 1,
+                                        file_id: recording.file_id,
+                                        concurrent_calls: result.concurrent_calls || 1
+                                    })
+                                }
                             })
-                        } else if (result.recording_url) {
+                        } else if (result?.recording_url) {
                             allRecordings.push({
                                 result_id: result.result_id,
                                 test_case_id: result.test_case_id,
                                 run_id: run.id,
                                 recording_url: result.recording_url,
                                 call_number: 1,
-                                concurrent_calls: 1
+                                concurrent_calls: result.concurrent_calls || 1
                             })
                         }
                     })
                 }
             })
             setRecordings(allRecordings)
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to fetch runs:", error)
+            const errorMessage = error?.response?.data?.detail || error?.message || "Failed to fetch test runs"
+            toast.error(errorMessage)
+            setApiRuns([])
+            setRecordings([])
         } finally {
             setIsRunsLoading(false)
         }
     }, [user?.id])
 
     const fetchRecordings = useCallback(async (id: string) => {
-        if (!user?.id) return
+        if (!user?.id || !id) return
+        
         setIsRecordingsLoading(true)
+        setRecordings([]) // Clear previous data
+        
         try {
-            const response = await TestSuitesService.getTestRecordingsById(id, user.id) as any
-            const recordingsData = response?.recordings || []
+            const response = await TestSuitesService.getTestRecordingsById(id, user.id)
+            
+            // Handle different response structures
+            // Axios interceptor returns response.data directly, so response is already the data
+            let recordingsData: any[] = []
+            const data = response as any
+            
+            if (Array.isArray(data)) {
+                recordingsData = data
+            } else if (data?.recordings) {
+                recordingsData = data.recordings
+            } else if (data?.data?.recordings) {
+                recordingsData = data.data.recordings
+            } else if (Array.isArray(data?.data)) {
+                recordingsData = data.data
+            }
+            
             setRecordings(recordingsData)
-            console.log("Fetched recordings:", recordingsData)
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to fetch recordings:", error)
+            const errorMessage = error?.response?.data?.detail || error?.message || "Failed to fetch recordings"
+            toast.error(errorMessage)
+            setRecordings([])
         } finally {
             setIsRecordingsLoading(false)
         }
     }, [user?.id])
 
     const fetchCallLogs = useCallback(async (requestId: string) => {
-        if (!user?.id) return
+        if (!user?.id || !requestId) return
+        
+        // Prevent duplicate calls for the same request
+        if (fetchedCallLogsRef.current.has(requestId)) {
+            return
+        }
+        
+        fetchedCallLogsRef.current.add(requestId)
         setIsCallLogsLoading(true)
         try {
             const response = await TestSuitesService.getCallLogsByRequestId(requestId, user.id) as any
@@ -287,6 +353,8 @@ export function TestSuitesContent() {
             console.error("Failed to fetch call logs:", error)
             toast.error("Failed to load conversation transcript")
             setSelectedCallLogs(null)
+            // Remove from ref on error so we can retry
+            fetchedCallLogsRef.current.delete(requestId)
         } finally {
             setIsCallLogsLoading(false)
         }
@@ -454,6 +522,61 @@ export function TestSuitesContent() {
             }
         };
     }, [selectedSuiteId, selectedSuiteDetails?.suite_status, fetchSuiteDetails]);
+
+    // Silent refresh for runs tab - fetch data when switching to runs tab
+    useEffect(() => {
+        if (activeTab === "runs" && user?.id) {
+            // Always refresh runs data when switching to runs tab
+            console.log("[Runs Tab] Refreshing runs data silently");
+            fetchAllRuns();
+            if (selectedSuiteId) {
+                fetchRecordings(selectedSuiteId);
+            }
+        }
+    }, [activeTab, user?.id, selectedSuiteId]);
+
+    // Reset runs data when suite changes
+    useEffect(() => {
+        if (selectedSuiteId) {
+            // Clear selected run detail when suite changes
+            setSelectedRunDetail(null);
+            setSelectedTestCaseResultId(null);
+            setCurrentCallIndex({});
+            fetchedCallLogsRef.current.clear();
+            setSelectedCallLogs(null);
+            runsInitialFetchDone.current = false;
+        }
+    }, [selectedSuiteId]);
+
+    // Auto-fetch transcripts when test case result is selected and transcript is missing
+    // Reset fetched ref when run changes
+    useEffect(() => {
+        fetchedCallLogsRef.current.clear()
+        setSelectedCallLogs(null)
+    }, [selectedRunDetail?.id])
+
+    // Fetch call logs only once when test case result is selected and transcript is missing
+    useEffect(() => {
+        if (!selectedTestCaseResultId || !selectedRunDetail?.id || isCallLogsLoading) return
+        if (fetchedCallLogsRef.current.has(selectedRunDetail.id)) return
+        
+        const selectedRun = apiRuns.find((r: any) => r.id === selectedRunDetail.id)
+        if (!selectedRun) return
+        
+        const selectedResult = selectedRun.test_case_results.find((r: any) => r.result_id === selectedTestCaseResultId)
+        if (!selectedResult) return
+        
+        const currentCallIdx = (currentCallIndex as any)[selectedTestCaseResultId] || 0
+        const currentTranscript = selectedResult?.call_transcripts?.[currentCallIdx]
+        
+        // Only fetch if transcript is missing or empty
+        const needsFetch = !currentTranscript?.transcript?.call_transcript || 
+                          (currentTranscript.transcript.call_transcript && currentTranscript.transcript.call_transcript.length === 0)
+        
+        if (needsFetch) {
+            fetchCallLogs(selectedRunDetail.id)
+        }
+    }, [selectedTestCaseResultId, selectedRunDetail?.id])
 
     const selectedSuite = suites.find(s => s.id === selectedSuiteId) || suites[0]
 
@@ -954,12 +1077,14 @@ export function TestSuitesContent() {
                         ) : (
                             <div className="p-6 lg:p-8 space-y-8">
                                 <Tabs
-                                    defaultValue="configure"
+                                    value={activeTab}
                                     className="space-y-6"
                                     onValueChange={(value) => {
-                                        if (value === "runs") {
-                                            fetchAllRuns()
-                                            if (selectedSuiteId) fetchRecordings(selectedSuiteId)
+                                        setActiveTab(value);
+                                        // Reset detail views when switching tabs
+                                        if (value === "configure") {
+                                            setSelectedRunDetail(null);
+                                            setSelectedTestCaseResultId(null);
                                         }
                                     }}
                                 >
@@ -1161,222 +1286,120 @@ export function TestSuitesContent() {
                                                     </div>
                                                 </div>
 
-                                                {/* Stats Grid */}
-                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                {/* Stats Grid - Compact */}
+                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                                                     <Card className="bg-card/30 border-border/50">
-                                                        <CardHeader className="p-4 pb-2">
+                                                        <CardHeader className="p-2 pb-1">
                                                             <div className="flex items-center gap-2 text-muted-foreground">
-                                                                <BarChart3 className="w-4 h-4" />
-                                                                <span className="text-xs font-medium uppercase tracking-wider">Success Rate</span>
+                                                                <BarChart3 className="w-3 h-3" />
+                                                                <span className="text-[10px] font-medium uppercase tracking-wider">Success Rate</span>
                                                             </div>
                                                         </CardHeader>
-                                                        <CardContent className="p-4 pt-0">
+                                                        <CardContent className="p-2 pt-0">
                                                             <div className="flex items-baseline gap-2">
-                                                                <span className="text-2xl font-bold text-primary">{selectedRunDetail.successRate}%</span>
-                                                                <span className="text-xs text-muted-foreground">({selectedRunDetail.passedCount}/{selectedRunDetail.totalCount})</span>
+                                                                <span className="text-lg font-bold text-primary">{selectedRunDetail.successRate}%</span>
+                                                                <span className="text-[10px] text-muted-foreground">({selectedRunDetail.passedCount}/{selectedRunDetail.totalCount})</span>
                                                             </div>
                                                         </CardContent>
                                                     </Card>
 
                                                     <Card className="bg-card/30 border-border/50">
-                                                        <CardHeader className="p-4 pb-2">
+                                                        <CardHeader className="p-2 pb-1">
                                                             <div className="flex items-center gap-2 text-muted-foreground">
-                                                                <Clock className="w-4 h-4" />
-                                                                <span className="text-xs font-medium uppercase tracking-wider">Duration</span>
+                                                                <Clock className="w-3 h-3" />
+                                                                <span className="text-[10px] font-medium uppercase tracking-wider">Duration</span>
                                                             </div>
                                                         </CardHeader>
-                                                        <CardContent className="p-4 pt-0">
-                                                            <span className="text-2xl font-bold">{selectedRunDetail.duration}</span>
+                                                        <CardContent className="p-2 pt-0">
+                                                            <span className="text-lg font-bold">{selectedRunDetail.duration}</span>
                                                         </CardContent>
                                                     </Card>
 
                                                     <Card className="bg-card/30 border-border/50">
-                                                        <CardHeader className="p-4 pb-2">
+                                                        <CardHeader className="p-2 pb-1">
                                                             <div className="flex items-center gap-2 text-muted-foreground">
-                                                                <Clock className="w-4 h-4" />
-                                                                <span className="text-xs font-medium uppercase tracking-wider">Started At</span>
+                                                                <Clock className="w-3 h-3" />
+                                                                <span className="text-[10px] font-medium uppercase tracking-wider">Started At</span>
                                                             </div>
                                                         </CardHeader>
-                                                        <CardContent className="p-4 pt-0">
-                                                            <span className="text-lg font-bold">{selectedRunDetail.startedAt}</span>
+                                                        <CardContent className="p-2 pt-0">
+                                                            <span className="text-sm font-bold">{selectedRunDetail.startedAt}</span>
                                                         </CardContent>
                                                     </Card>
                                                 </div>
 
 
 
-                                                {/* Test Case Results with Recordings - Paginated */}
+                                                {/* Evaluation Results Table or Detail View */}
                                                 {(() => {
                                                     const selectedRun = apiRuns.find((r: any) => r.id === selectedRunDetail.id)
                                                     if (!selectedRun?.test_case_results || selectedRun.test_case_results.length === 0) {
-                                                        return null
+                                                                    return (
+                                                            <Card className="bg-card/30 border-border/50">
+                                                                <CardContent className="p-6 text-center text-muted-foreground">
+                                                                    No test case results available for this run.
+                                                                </CardContent>
+                                                            </Card>
+                                                        )
                                                     }
                                                     
-                                                    const totalTestCases = selectedRun.test_case_results.length
-                                                    const currentResult = selectedRun.test_case_results[currentTestCaseIndex]
-                                                    const currentCallIdx = currentCallIndex[currentTestCaseIndex] || 0
-                                                    const totalCalls = currentResult?.call_recordings?.length || 0
-                                                    const currentCall = currentResult?.call_recordings?.[currentCallIdx]
-                                                    const currentTranscript = currentResult?.call_transcripts?.[currentCallIdx]
+                                                    // If a specific test case result is selected, show detail view
+                                                    if (selectedTestCaseResultId) {
+                                                        const selectedResult = selectedRun.test_case_results.find((r: any) => r.result_id === selectedTestCaseResultId)
+                                                        if (!selectedResult) {
+                                                            setSelectedTestCaseResultId(null)
+                                                            return null
+                                                        }
+                                                        
+                                                        const currentCallIdx = currentCallIndex[0] || 0
+                                                        const totalCalls = selectedResult?.call_recordings?.length || 0
+                                                        const currentCall = selectedResult?.call_recordings?.[currentCallIdx]
+                                                        const currentTranscript = selectedResult?.call_transcripts?.[currentCallIdx]
+                                                        const evaluationResult = selectedResult?.evaluation_result
+                                                        const tcName = testCases.find(tc => tc.id === selectedResult.test_case_id)?.name || "Test Case";
+                                                        
+                                                        return (
+                                                            <TestCaseDetailView
+                                                                selectedResult={selectedResult}
+                                                                testCaseName={tcName}
+                                                                currentCallIdx={currentCallIdx}
+                                                                totalCalls={totalCalls}
+                                                                currentCall={currentCall}
+                                                                currentTranscript={currentTranscript}
+                                                                evaluationResult={evaluationResult}
+                                                                selectedRunDetailId={selectedRunDetail?.id}
+                                                                onBack={() => {
+                                                                    setSelectedTestCaseResultId(null)
+                                                                    setCurrentCallIndex({})
+                                                                }}
+                                                                onPreviousCall={() => {
+                                                                    const prev = currentCallIdx > 0 ? currentCallIdx - 1 : totalCalls - 1
+                                                                    setCurrentCallIndex({0: prev})
+                                                                }}
+                                                                onNextCall={() => {
+                                                                    const next = currentCallIdx < totalCalls - 1 ? currentCallIdx + 1 : 0
+                                                                    setCurrentCallIndex({0: next})
+                                                                }}
+                                                                onFetchTranscript={() => {
+                                                                    if (selectedRunDetail?.id && !fetchedCallLogsRef.current.has(selectedRunDetail.id)) {
+                                                                        fetchCallLogs(selectedRunDetail.id)
+                                                                    }
+                                                                }}
+                                                                isFetchingTranscript={isCallLogsLoading}
+                                                            />
+                                                        )
+                                                    }
                                                     
-                                                    const tcName = testCases.find(tc => tc.id === currentResult.test_case_id)?.name || "Test Case";
-                                                    
+                                                    // Show evaluation results table
                                                     return (
-                                                        <div className="space-y-3">
-                                                            <div className="flex items-center justify-between">
-                                                                <h3 className="text-sm font-semibold flex items-center gap-2 px-1">
-                                                                    <Volume2 className="w-4 h-4 text-primary" />
-                                                                    Test Case Results & Recordings
-                                                                </h3>
-                                                                {totalTestCases > 1 && (
-                                                                    <div className="flex items-center gap-2">
-                                                                        <Button
-                                                                            variant="outline"
-                                                                            size="sm"
-                                                                            onClick={() => {
-                                                                                const prev = currentTestCaseIndex > 0 ? currentTestCaseIndex - 1 : totalTestCases - 1
-                                                                                setCurrentTestCaseIndex(prev)
-                                                                                setCurrentCallIndex({...currentCallIndex, [prev]: 0})
-                                                                            }}
-                                                                            disabled={totalTestCases <= 1}
-                                                                            className="h-7 text-xs"
-                                                                        >
-                                                                            <ChevronLeft className="w-3 h-3 mr-1" />
-                                                                            Previous Test Case
-                                                                        </Button>
-                                                                        <span className="text-xs text-muted-foreground min-w-[80px] text-center">
-                                                                            {currentTestCaseIndex + 1} / {totalTestCases}
-                                                                        </span>
-                                                                        <Button
-                                                                            variant="outline"
-                                                                            size="sm"
-                                                                            onClick={() => {
-                                                                                const next = currentTestCaseIndex < totalTestCases - 1 ? currentTestCaseIndex + 1 : 0
-                                                                                setCurrentTestCaseIndex(next)
-                                                                                setCurrentCallIndex({...currentCallIndex, [next]: 0})
-                                                                            }}
-                                                                            disabled={totalTestCases <= 1}
-                                                                            className="h-7 text-xs"
-                                                                        >
-                                                                            Next Test Case
-                                                                            <ChevronRight className="w-3 h-3 ml-1" />
-                                                                        </Button>
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                            
-                                                            <div className="bg-card/50 border border-border/50 rounded-lg p-4 space-y-4">
-                                                                <div className="flex items-center justify-between">
-                                                                    <div className="flex items-center gap-2">
-                                                                        <span className="text-sm font-medium">{tcName}</span>
-                                                                        <Badge variant="outline" className="text-[10px] py-0 h-4 font-mono">
-                                                                            {currentResult.test_case_id?.substring(0, 8)}
-                                                                        </Badge>
-                                                                        <Badge 
-                                                                            variant={currentResult.status === 'completed' ? 'default' : currentResult.status === 'failed' ? 'destructive' : 'secondary'}
-                                                                            className="text-[10px] capitalize"
-                                                                        >
-                                                                            {currentResult.status}
-                                                                        </Badge>
-                                                                    </div>
-                                                                    <div className="flex items-center gap-2">
-                                                                        {currentResult.concurrent_calls > 1 && (
-                                                                            <Badge variant="secondary" className="text-[10px]">
-                                                                                {currentResult.concurrent_calls} calls
-                                                                            </Badge>
-                                                                        )}
-                                                                        {/* Call Pagination Controls */}
-                                                                        {totalCalls > 1 && (
-                                                                            <div className="flex items-center gap-2">
-                                                                                <Button
-                                                                                    size="sm"
-                                                                                    onClick={() => {
-                                                                                        const prev = currentCallIdx > 0 ? currentCallIdx - 1 : totalCalls - 1
-                                                                                        setCurrentCallIndex({...currentCallIndex, [currentTestCaseIndex]: prev})
-                                                                                    }}
-                                                                                    className="h-7 text-xs bg-orange-600/50 hover:bg-orange-700/50 text-white"
-                                                                                >
-                                                                                    <ChevronLeft className="w-3 h-3 mr-1" />
-                                                                                    Previous Call
-                                                                                </Button>
-                                                                                <span className="text-xs text-muted-foreground min-w-[60px] text-center">
-                                                                                    Call {currentCallIdx + 1} / {totalCalls}
-                                                                                </span>
-                                                                                <Button
-                                                                                    size="sm"
-                                                                                    onClick={() => {
-                                                                                        const next = currentCallIdx < totalCalls - 1 ? currentCallIdx + 1 : 0
-                                                                                        setCurrentCallIndex({...currentCallIndex, [currentTestCaseIndex]: next})
-                                                                                    }}
-                                                                                    className="h-7 text-xs bg-orange-600/50 hover:bg-orange-700/50 text-white"
-                                                                                >
-                                                                                    Next Call
-                                                                                    <ChevronRight className="w-3 h-3 ml-1" />
-                                                                                </Button>
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                                
-                                                                {/* Current Call Recording */}
-                                                                {currentCall && (
-                                                                    <div className="space-y-2">
-                                                                        <div className="text-xs text-muted-foreground font-medium">
-                                                                            Recording:
-                                                                        </div>
-                                                                        <div className="bg-background/50 border border-border/30 rounded p-3">
-                                                                            <AudioPlayer url={currentCall.recording_url} className="bg-background/50" />
-                                                                        </div>
-                                                                    </div>
-                                                                )}
-                                                                
-                                                                {/* Current Call Transcript */}
-                                                                {currentTranscript?.transcript?.call_transcript && (
-                                                                    <div className="space-y-2">
-                                                                        <div className="text-xs text-muted-foreground font-medium">
-                                                                            Transcript:
-                                                                        </div>
-                                                                        <Card className="bg-card/30 border-border/50 overflow-hidden">
-                                                                            <CardContent className="p-4">
-                                                                                <ScrollArea className="h-[300px]">
-                                                                                    <div className="flex flex-col gap-4 pb-4">
-                                                                                        {currentTranscript.transcript.call_transcript.map((msg: any, msgIdx: number) => (
-                                                                                            <div
-                                                                                                key={msgIdx}
-                                                                                                className={cn(
-                                                                                                    "flex flex-col gap-2 max-w-[85%] lg:max-w-[75%] group animate-in fade-in slide-in-from-bottom-3 duration-500",
-                                                                                                    msg.role === 'assistant' ? "self-start" : "self-end items-end"
-                                                                                                )}
-                                                                                                style={{ animationDelay: `${msgIdx * 100}ms` }}
-                                                                                            >
-                                                                                                <div className="flex items-center gap-2 px-1">
-                                                                                                    <span className={cn(
-                                                                                                        "text-[10px] font-bold uppercase tracking-widest",
-                                                                                                        msg.role === 'assistant' ? "text-primary" : "text-muted-foreground/80"
-                                                                                                    )}>
-                                                                                                        {msg.role === 'assistant' ? 'Tester Assistant' : 'Target Agent'}
-                                                                                                    </span>
-                                                                                                </div>
-                                                                                                <div
-                                                                                                    className={cn(
-                                                                                                        "p-4 rounded-2xl text-sm leading-relaxed shadow-sm transition-all group-hover:shadow-md",
-                                                                                                        msg.role === 'assistant'
-                                                                                                            ? "bg-primary text-primary-foreground rounded-tl-none ring-1 ring-primary/20 shadow-primary/10"
-                                                                                                            : "bg-background text-foreground rounded-tr-none border border-border/50 shadow-black/5"
-                                                                                                    )}
-                                                                                                >
-                                                                                                    {msg.content}
-                                                                                                </div>
-                                                                                            </div>
-                                                                                        ))}
-                                                                                    </div>
-                                                                                </ScrollArea>
-                                                                            </CardContent>
-                                                                        </Card>
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        </div>
+                                                        <EvaluationResultsTable
+                                                            testCaseResults={selectedRun.test_case_results}
+                                                            testCases={testCases}
+                                                            onSelectResult={(resultId) => {
+                                                                setSelectedTestCaseResultId(resultId)
+                                                                setCurrentCallIndex({0: 0})
+                                                            }}
+                                                        />
                                                     )
                                                 })()}
 

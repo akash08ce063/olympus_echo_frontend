@@ -42,10 +42,12 @@ export const TESTSUITS = {
         getById: (test_history_id: string) => GLOBAL + TEST_HISTORY + `/${test_history_id}`,
     },
     run_test: {
+        // Execution endpoints (stay in test-execution)
         runAll: (test_suit_id: string, user_id: string) => GLOBAL + "test-execution/" + RUN_SUITE + `/${test_suit_id}?user_id=${user_id}`,
         runSingleTest: (test_case_id: string, user_id: string) => GLOBAL + "test-execution/" + RUN_CASE + `/${test_case_id}?user_id=${user_id}`,
-        getAllRuns: (user_id: string) => GLOBAL + "test-execution/" + "runs" + `?user_id=${user_id}`,
-        getCallLogsByRequestId: (request_id: string, user_id: string) => GLOBAL + "test-execution/" + "call-logs" + `/${request_id}?user_id=${user_id}`,
-        getTestRecordingsById: (test_suit_id: string, user_id: string) => GLOBAL + "test-execution/" + "recordings" + "/suite" + `/${test_suit_id}?user_id=${user_id}`,
+        // Runs, recordings, transcripts endpoints (moved to test-runs)
+        getAllRuns: (user_id: string) => GLOBAL + "test-runs" + `?user_id=${user_id}`,
+        getCallLogsByRequestId: (request_id: string, user_id: string) => GLOBAL + "test-runs" + "/call-logs" + `/${request_id}?user_id=${user_id}`,
+        getTestRecordingsById: (test_suit_id: string, user_id: string) => GLOBAL + "test-runs" + "/recordings/suite" + `/${test_suit_id}?user_id=${user_id}`,
     },
 };
