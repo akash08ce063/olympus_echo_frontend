@@ -7,7 +7,11 @@ import {
   IconNotification,
   IconUserCircle,
   IconDashboard,
+  IconSun,
+  IconMoon,
+  IconDeviceDesktop,
 } from "@tabler/icons-react"
+import { useTheme } from "next-themes"
 import { useAuth } from "@/hooks/useAuth"
 import { useRouter } from "next/navigation"
 
@@ -43,6 +47,7 @@ export function NavUser({
 }) {
   const { isMobile } = useSidebar()
   const { signOut } = useAuth()
+  const { setTheme } = useTheme()
   const router = useRouter()
 
   const handleLogout = async () => {
@@ -120,6 +125,22 @@ export function NavUser({
             <DropdownMenuItem onClick={() => router.push('/dashboard')}>
               <IconDashboard />
               Dashboard
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel className="px-2 py-1.5 text-xs text-muted-foreground font-normal">
+              Theme
+            </DropdownMenuLabel>
+            <DropdownMenuItem onClick={() => setTheme("light")}>
+              <IconSun />
+              Light
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setTheme("dark")}>
+              <IconMoon />
+              Dark
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setTheme("system")}>
+              <IconDeviceDesktop />
+              System
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>
