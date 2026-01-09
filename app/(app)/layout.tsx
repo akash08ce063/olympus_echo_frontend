@@ -21,10 +21,7 @@ function AppSkeleton() {
             <Skeleton key={i} className="h-8 w-full" />
           ))}
         </div>
-        <div className="absolute bottom-4 left-4 right-4 space-y-2">
-          <Skeleton className="h-8 w-full" />
-          <Skeleton className="h-8 w-full" />
-        </div>
+
       </div>
       {/* Main content skeleton */}
       <main className="flex-1 flex flex-col overflow-hidden">

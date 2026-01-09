@@ -50,7 +50,7 @@ export const TestSuitesService = {
 
     // Run a test suite
     runTestSuite: (testSuiteId: string, userId: string, concurrentCalls: number = 1, executionMode: "sequential" | "parallel" = "sequential") =>
-        apiClient.post(TESTSUITS.run_test.runAll(testSuiteId, userId), { 
+        apiClient.post(TESTSUITS.run_test.runAll(testSuiteId, userId), {
             concurrent_calls: concurrentCalls,
             execution_mode: executionMode
         }),
@@ -63,8 +63,7 @@ export const TestSuitesService = {
     getAllRuns: (userId: string) =>
         apiClient.get(TESTSUITS.run_test.getAllRuns(userId)),
 
-    getCallLogsByRequestId: (requestId: string, userId: string) =>
-        apiClient.get(TESTSUITS.run_test.getCallLogsByRequestId(requestId, userId)),
+
 
     // Get test recordings by suite ID
     getTestRecordingsById: (suiteId: string, userId: string) =>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback, useEffect, useRef } from "react"
 import {
     ArrowRight,
     Beaker,
@@ -12,16 +12,7 @@ import {
     User,
     Trash2,
     Loader2,
-    BarChart3,
-    Clock,
-    CheckCircle2,
-    XCircle,
-    ChevronLeft,
-    ChevronRight,
-    Timer,
-    Activity,
-    Volume2,
-    Eye,
+    CheckCircle,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -47,11 +38,26 @@ import {
     TabsList,
     TabsTrigger,
 } from "@/components/ui/tabs"
+import {
+    Accordion,
+    AccordionContent,
+    AccordionItem,
+    AccordionTrigger,
+} from "@/components/ui/accordion"
 
 import { Textarea } from "@/components/ui/textarea"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Skeleton } from "@/components/ui/skeleton"
-
+import { RunHistoryTable } from "@/components/test-suite/RunHistoryTable"
+import { RunDetailDashboard } from "@/components/test-suite/RunDetailDashboard"
+import {
+    ApiTestRun,
+    ApiTestCaseResult,
+    ApiEvaluationResult,
+    Persona,
+    TestCase,
+    TargetAgent
+} from "@/types/test-suite"
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -104,9 +110,8 @@ import { UserAgentsService } from "@/services/userAgents"
 import { TestCaseService } from "@/services/testCases"
 import { useAuth } from "@/hooks/useAuth"
 import { useTestContext } from "@/context/TestContext"
-import { RunsHistory } from "@/components/test-suite/RunsHistory"
-import { AudioPlayer } from "@/components/test-suite/AudioPlayer"
 import { TestRunner } from "@/components/test-suite/TestRunner"
+import { EvaluationAnalysis } from "@/components/test-suite/EvaluationAnalysis"
 import { Experiment } from "@/types/test-suite"
 import { toast } from "sonner"
 
@@ -126,7 +131,7 @@ interface TestSuite {
     createdAt?: string // For backward compatibility with mock data
 }
 
-import { TestCase } from "@/types/test-suite"
+
 
 
 export function TestSuitesContent() {
@@ -155,6 +160,7 @@ export function TestSuitesContent() {
     const [executionMode, setExecutionMode] = useState<"sequential" | "parallel">("sequential")
     const [currentTestCaseIndex, setCurrentTestCaseIndex] = useState(0)
     const [currentCallIndex, setCurrentCallIndex] = useState<Record<number, number>>({})
+    const [selectedTestCaseResultId, setSelectedTestCaseResultId] = useState<string | null>(null)
 
     const {
         runExperiment,
@@ -165,154 +171,50 @@ export function TestSuitesContent() {
 
     const suiteHistory = history.filter(h => h.datasetId === selectedSuiteId)
 
-    // Dummy Detailed History for "Runs" tab
-    const [dummyRuns, setDummyRuns] = useState<any[]>([
-        {
-            id: "run-782",
-            suiteName: "Sales Objection Handling",
-            status: "completed",
-            startedAt: "2026-01-05 10:00",
-            duration: "2m 15s",
-            successRate: 80,
-            passedCount: 4,
-            totalCount: 5,
-            avgLatency: "1.2s",
-            cost: "$0.45",
-            testCases: [
-                { id: "tc-1", name: "Initial Greeting", status: "passed", duration: "0.8s", score: 1.0, feedback: "Agent greeted the user correctly and identified the company." },
-                { id: "tc-2", name: "Refund Policy Inquiry", status: "failed", duration: "1.5s", score: 0.2, feedback: "Agent hallucinated a 30-day refund policy whereas the official policy is 15 days." },
-                { id: "tc-3", name: "Technical Specs", status: "passed", duration: "1.2s", score: 0.9, feedback: "Accurate description of product specifications." },
-                { id: "tc-4", name: "Discount Request", status: "passed", duration: "1.1s", score: 1.0, feedback: "Successfully handled discount request according to guidelines." },
-                { id: "tc-5", name: "Competitor Comparison", status: "passed", duration: "1.4s", score: 0.8, feedback: "Handled competitor comparison without disparaging." },
-            ]
-        },
-        {
-            id: "run-781",
-            suiteName: "Sales Objection Handling",
-            status: "failed",
-            startedAt: "2026-01-04 15:30",
-            duration: "1m 45s",
-            successRate: 40,
-            passedCount: 2,
-            totalCount: 5,
-            avgLatency: "1.8s",
-            cost: "$0.38",
-            testCases: [
-                { id: "tc-1", name: "Initial Greeting", status: "passed", duration: "0.9s", score: 0.9, feedback: "Good greeting." },
-                { id: "tc-2", name: "Refund Policy Inquiry", status: "failed", duration: "2.1s", score: 0.1, feedback: "Agent disconnected prematurely." },
-                { id: "tc-3", name: "Technical Specs", status: "failed", duration: "1.8s", score: 0.3, feedback: "Wrong technical details provided." },
-                { id: "tc-4", name: "Discount Request", status: "passed", duration: "1.3s", score: 1.0, feedback: "Perfect." },
-                { id: "tc-5", name: "Competitor Comparison", status: "failed", duration: "1.5s", score: 0.0, feedback: "Agent became defensive." },
-            ]
-        }
-    ])
+
 
     const [selectedRunDetail, setSelectedRunDetail] = useState<any | null>(null)
-    const [selectedCallLogs, setSelectedCallLogs] = useState<any | null>(null)
     const [apiRuns, setApiRuns] = useState<any[]>([])
-    const [recordings, setRecordings] = useState<any[]>([])
     const [isRunsLoading, setIsRunsLoading] = useState(false)
-    const [isRecordingsLoading, setIsRecordingsLoading] = useState(false)
-    const [isCallLogsLoading, setIsCallLogsLoading] = useState(false)
+    const [activeTab, setActiveTab] = useState<string>("configure")
+    const runsInitialFetchDone = useRef<boolean>(false)
 
     const fetchAllRuns = useCallback(async () => {
         if (!user?.id) return
+
         setIsRunsLoading(true)
+        setApiRuns([]) // Clear previous data
+
         try {
-            const response = await TestSuitesService.getAllRuns(user.id) as any
-            const runsData = Array.isArray(response) ? response : (response?.data || response?.runs || [])
+            const response = await TestSuitesService.getAllRuns(user.id)
+
+            // Handle different response structures
+            // Axios interceptor returns response.data directly, so response is already the data
+            let runsData: any[] = []
+            const data = response as any
+
+            if (Array.isArray(data)) {
+                runsData = data
+            } else if (data?.runs) {
+                runsData = data.runs
+            } else if (data?.data?.runs) {
+                runsData = data.data.runs
+            } else if (Array.isArray(data?.data)) {
+                runsData = data.data
+            }
+
             setApiRuns(runsData)
-            console.log("Fetched all runs:", runsData)
-            
-            // Extract all recordings from test_case_results for backward compatibility
-            const allRecordings: any[] = []
-            runsData.forEach((run: any) => {
-                if (run.test_case_results) {
-                    run.test_case_results.forEach((result: any) => {
-                        if (result.call_recordings && result.call_recordings.length > 0) {
-                            result.call_recordings.forEach((recording: any) => {
-                                allRecordings.push({
-                                    result_id: result.result_id,
-                                    test_case_id: result.test_case_id,
-                                    run_id: run.id,
-                                    recording_url: recording.recording_url,
-                                    call_number: recording.call_number,
-                                    file_id: recording.file_id,
-                                    concurrent_calls: result.concurrent_calls
-                                })
-                            })
-                        } else if (result.recording_url) {
-                            allRecordings.push({
-                                result_id: result.result_id,
-                                test_case_id: result.test_case_id,
-                                run_id: run.id,
-                                recording_url: result.recording_url,
-                                call_number: 1,
-                                concurrent_calls: 1
-                            })
-                        }
-                    })
-                }
-            })
-            setRecordings(allRecordings)
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to fetch runs:", error)
+            const errorMessage = error?.response?.data?.detail || error?.message || "Failed to fetch test runs"
+            toast.error(errorMessage)
+            setApiRuns([])
         } finally {
             setIsRunsLoading(false)
         }
     }, [user?.id])
 
-    const fetchRecordings = useCallback(async (id: string) => {
-        if (!user?.id) return
-        setIsRecordingsLoading(true)
-        try {
-            const response = await TestSuitesService.getTestRecordingsById(id, user.id) as any
-            const recordingsData = response?.recordings || []
-            setRecordings(recordingsData)
-            console.log("Fetched recordings:", recordingsData)
-        } catch (error) {
-            console.error("Failed to fetch recordings:", error)
-        } finally {
-            setIsRecordingsLoading(false)
-        }
-    }, [user?.id])
 
-    const fetchCallLogs = useCallback(async (requestId: string) => {
-        if (!user?.id) return
-        setIsCallLogsLoading(true)
-        try {
-            const response = await TestSuitesService.getCallLogsByRequestId(requestId, user.id) as any
-            setSelectedCallLogs(response?.call_logs || null)
-        } catch (error) {
-            console.error("Failed to fetch call logs:", error)
-            toast.error("Failed to load conversation transcript")
-            setSelectedCallLogs(null)
-        } finally {
-            setIsCallLogsLoading(false)
-        }
-    }, [user?.id])
-
-    const formatDuration = (start: string, end: string | null) => {
-        if (!end) return "Running..."
-        const startTime = new Date(start).getTime()
-        const endTime = new Date(end).getTime()
-        const diff = Math.abs(endTime - startTime) / 1000
-
-        if (diff < 60) return `${Math.floor(diff)}s`
-        const minutes = Math.floor(diff / 60)
-        const seconds = Math.floor(diff % 60)
-        return `${minutes}m ${seconds}s`
-    }
-
-    const formatDate = (dateStr: string) => {
-        return new Date(dateStr).toLocaleString('en-US', {
-            month: 'short',
-            day: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        })
-    }
 
     const handleRunTests = async () => {
         if (!selectedSuiteId || !user?.id) return
@@ -454,6 +356,25 @@ export function TestSuitesContent() {
             }
         };
     }, [selectedSuiteId, selectedSuiteDetails?.suite_status, fetchSuiteDetails]);
+
+    useEffect(() => {
+        if (activeTab === "runs" && user?.id) {
+            // Always refresh runs data when switching to runs tab
+            console.log("[Runs Tab] Refreshing runs data silently");
+            fetchAllRuns();
+        }
+    }, [activeTab, user?.id, fetchAllRuns]);
+
+    // Reset runs data when suite changes
+    useEffect(() => {
+        if (selectedSuiteId) {
+            // Clear selected run detail when suite changes
+            setSelectedRunDetail(null);
+            setSelectedTestCaseResultId(null);
+            setCurrentCallIndex({});
+            runsInitialFetchDone.current = false;
+        }
+    }, [selectedSuiteId]);
 
     const selectedSuite = suites.find(s => s.id === selectedSuiteId) || suites[0]
 
@@ -954,12 +875,14 @@ export function TestSuitesContent() {
                         ) : (
                             <div className="p-6 lg:p-8 space-y-8">
                                 <Tabs
-                                    defaultValue="configure"
+                                    value={activeTab}
                                     className="space-y-6"
                                     onValueChange={(value) => {
-                                        if (value === "runs") {
-                                            fetchAllRuns()
-                                            if (selectedSuiteId) fetchRecordings(selectedSuiteId)
+                                        setActiveTab(value);
+                                        // Reset detail views when switching tabs
+                                        if (value === "configure") {
+                                            setSelectedRunDetail(null);
+                                            setSelectedTestCaseResultId(null);
                                         }
                                     }}
                                 >
@@ -1132,391 +1055,43 @@ export function TestSuitesContent() {
                                     </TabsContent>
 
                                     <TabsContent value="runs" className="space-y-6 outline-none">
-                                        {selectedRunDetail ? (
-                                            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                                {/* Detail Header */}
-                                                <div className="flex items-center justify-between">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() => setSelectedRunDetail(null)}
-                                                        className="hover:bg-accent/50 -ml-2"
-                                                    >
-                                                        <ChevronLeft className="w-4 h-4 mr-1" />
-                                                        Back to History
-                                                    </Button>
-                                                    <div className="flex gap-2">
-                                                        <Badge variant="outline" className="font-mono text-[10px] border-border/50">
-                                                            ID: {selectedRunDetail.id}
-                                                        </Badge>
-                                                        <Badge
-                                                            variant={selectedRunDetail.status === 'completed' ? 'default' : selectedRunDetail.status === 'running' ? 'secondary' : 'destructive'}
-                                                            className={cn(
-                                                                "capitalize",
-                                                                selectedRunDetail.status === 'running' && "bg-amber-500/10 text-amber-500 border-amber-500/20 hover:bg-amber-500/20"
-                                                            )}
-                                                        >
-                                                            {selectedRunDetail.status}
-                                                        </Badge>
-                                                    </div>
-                                                </div>
-
-                                                {/* Stats Grid */}
-                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                                    <Card className="bg-card/30 border-border/50">
-                                                        <CardHeader className="p-4 pb-2">
-                                                            <div className="flex items-center gap-2 text-muted-foreground">
-                                                                <BarChart3 className="w-4 h-4" />
-                                                                <span className="text-xs font-medium uppercase tracking-wider">Success Rate</span>
-                                                            </div>
-                                                        </CardHeader>
-                                                        <CardContent className="p-4 pt-0">
-                                                            <div className="flex items-baseline gap-2">
-                                                                <span className="text-2xl font-bold text-primary">{selectedRunDetail.successRate}%</span>
-                                                                <span className="text-xs text-muted-foreground">({selectedRunDetail.passedCount}/{selectedRunDetail.totalCount})</span>
-                                                            </div>
-                                                        </CardContent>
-                                                    </Card>
-
-                                                    <Card className="bg-card/30 border-border/50">
-                                                        <CardHeader className="p-4 pb-2">
-                                                            <div className="flex items-center gap-2 text-muted-foreground">
-                                                                <Clock className="w-4 h-4" />
-                                                                <span className="text-xs font-medium uppercase tracking-wider">Duration</span>
-                                                            </div>
-                                                        </CardHeader>
-                                                        <CardContent className="p-4 pt-0">
-                                                            <span className="text-2xl font-bold">{selectedRunDetail.duration}</span>
-                                                        </CardContent>
-                                                    </Card>
-
-                                                    <Card className="bg-card/30 border-border/50">
-                                                        <CardHeader className="p-4 pb-2">
-                                                            <div className="flex items-center gap-2 text-muted-foreground">
-                                                                <Clock className="w-4 h-4" />
-                                                                <span className="text-xs font-medium uppercase tracking-wider">Started At</span>
-                                                            </div>
-                                                        </CardHeader>
-                                                        <CardContent className="p-4 pt-0">
-                                                            <span className="text-lg font-bold">{selectedRunDetail.startedAt}</span>
-                                                        </CardContent>
-                                                    </Card>
-                                                </div>
-
-
-
-                                                {/* Test Case Results with Recordings - Paginated */}
-                                                {(() => {
-                                                    const selectedRun = apiRuns.find((r: any) => r.id === selectedRunDetail.id)
-                                                    if (!selectedRun?.test_case_results || selectedRun.test_case_results.length === 0) {
-                                                        return null
-                                                    }
-                                                    
-                                                    const totalTestCases = selectedRun.test_case_results.length
-                                                    const currentResult = selectedRun.test_case_results[currentTestCaseIndex]
-                                                    const currentCallIdx = currentCallIndex[currentTestCaseIndex] || 0
-                                                    const totalCalls = currentResult?.call_recordings?.length || 0
-                                                    const currentCall = currentResult?.call_recordings?.[currentCallIdx]
-                                                    const currentTranscript = currentResult?.call_transcripts?.[currentCallIdx]
-                                                    
-                                                    const tcName = testCases.find(tc => tc.id === currentResult.test_case_id)?.name || "Test Case";
-                                                    
-                                                    return (
-                                                        <div className="space-y-3">
-                                                            <div className="flex items-center justify-between">
-                                                                <h3 className="text-sm font-semibold flex items-center gap-2 px-1">
-                                                                    <Volume2 className="w-4 h-4 text-primary" />
-                                                                    Test Case Results & Recordings
-                                                                </h3>
-                                                                {totalTestCases > 1 && (
-                                                                    <div className="flex items-center gap-2">
-                                                                        <Button
-                                                                            variant="outline"
-                                                                            size="sm"
-                                                                            onClick={() => {
-                                                                                const prev = currentTestCaseIndex > 0 ? currentTestCaseIndex - 1 : totalTestCases - 1
-                                                                                setCurrentTestCaseIndex(prev)
-                                                                                setCurrentCallIndex({...currentCallIndex, [prev]: 0})
-                                                                            }}
-                                                                            disabled={totalTestCases <= 1}
-                                                                            className="h-7 text-xs"
-                                                                        >
-                                                                            <ChevronLeft className="w-3 h-3 mr-1" />
-                                                                            Previous Test Case
-                                                                        </Button>
-                                                                        <span className="text-xs text-muted-foreground min-w-[80px] text-center">
-                                                                            {currentTestCaseIndex + 1} / {totalTestCases}
-                                                                        </span>
-                                                                        <Button
-                                                                            variant="outline"
-                                                                            size="sm"
-                                                                            onClick={() => {
-                                                                                const next = currentTestCaseIndex < totalTestCases - 1 ? currentTestCaseIndex + 1 : 0
-                                                                                setCurrentTestCaseIndex(next)
-                                                                                setCurrentCallIndex({...currentCallIndex, [next]: 0})
-                                                                            }}
-                                                                            disabled={totalTestCases <= 1}
-                                                                            className="h-7 text-xs"
-                                                                        >
-                                                                            Next Test Case
-                                                                            <ChevronRight className="w-3 h-3 ml-1" />
-                                                                        </Button>
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                            
-                                                            <div className="bg-card/50 border border-border/50 rounded-lg p-4 space-y-4">
-                                                                <div className="flex items-center justify-between">
-                                                                    <div className="flex items-center gap-2">
-                                                                        <span className="text-sm font-medium">{tcName}</span>
-                                                                        <Badge variant="outline" className="text-[10px] py-0 h-4 font-mono">
-                                                                            {currentResult.test_case_id?.substring(0, 8)}
-                                                                        </Badge>
-                                                                        <Badge 
-                                                                            variant={currentResult.status === 'completed' ? 'default' : currentResult.status === 'failed' ? 'destructive' : 'secondary'}
-                                                                            className="text-[10px] capitalize"
-                                                                        >
-                                                                            {currentResult.status}
-                                                                        </Badge>
-                                                                    </div>
-                                                                    <div className="flex items-center gap-2">
-                                                                        {currentResult.concurrent_calls > 1 && (
-                                                                            <Badge variant="secondary" className="text-[10px]">
-                                                                                {currentResult.concurrent_calls} calls
-                                                                            </Badge>
-                                                                        )}
-                                                                        {/* Call Pagination Controls */}
-                                                                        {totalCalls > 1 && (
-                                                                            <div className="flex items-center gap-2">
-                                                                                <Button
-                                                                                    size="sm"
-                                                                                    onClick={() => {
-                                                                                        const prev = currentCallIdx > 0 ? currentCallIdx - 1 : totalCalls - 1
-                                                                                        setCurrentCallIndex({...currentCallIndex, [currentTestCaseIndex]: prev})
-                                                                                    }}
-                                                                                    className="h-7 text-xs bg-orange-600/50 hover:bg-orange-700/50 text-white"
-                                                                                >
-                                                                                    <ChevronLeft className="w-3 h-3 mr-1" />
-                                                                                    Previous Call
-                                                                                </Button>
-                                                                                <span className="text-xs text-muted-foreground min-w-[60px] text-center">
-                                                                                    Call {currentCallIdx + 1} / {totalCalls}
-                                                                                </span>
-                                                                                <Button
-                                                                                    size="sm"
-                                                                                    onClick={() => {
-                                                                                        const next = currentCallIdx < totalCalls - 1 ? currentCallIdx + 1 : 0
-                                                                                        setCurrentCallIndex({...currentCallIndex, [currentTestCaseIndex]: next})
-                                                                                    }}
-                                                                                    className="h-7 text-xs bg-orange-600/50 hover:bg-orange-700/50 text-white"
-                                                                                >
-                                                                                    Next Call
-                                                                                    <ChevronRight className="w-3 h-3 ml-1" />
-                                                                                </Button>
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                                
-                                                                {/* Current Call Recording */}
-                                                                {currentCall && (
-                                                                    <div className="space-y-2">
-                                                                        <div className="text-xs text-muted-foreground font-medium">
-                                                                            Recording:
-                                                                        </div>
-                                                                        <div className="bg-background/50 border border-border/30 rounded p-3">
-                                                                            <AudioPlayer url={currentCall.recording_url} className="bg-background/50" />
-                                                                        </div>
-                                                                    </div>
-                                                                )}
-                                                                
-                                                                {/* Current Call Transcript */}
-                                                                {currentTranscript?.transcript?.call_transcript && (
-                                                                    <div className="space-y-2">
-                                                                        <div className="text-xs text-muted-foreground font-medium">
-                                                                            Transcript:
-                                                                        </div>
-                                                                        <Card className="bg-card/30 border-border/50 overflow-hidden">
-                                                                            <CardContent className="p-4">
-                                                                                <ScrollArea className="h-[300px]">
-                                                                                    <div className="flex flex-col gap-4 pb-4">
-                                                                                        {currentTranscript.transcript.call_transcript.map((msg: any, msgIdx: number) => (
-                                                                                            <div
-                                                                                                key={msgIdx}
-                                                                                                className={cn(
-                                                                                                    "flex flex-col gap-2 max-w-[85%] lg:max-w-[75%] group animate-in fade-in slide-in-from-bottom-3 duration-500",
-                                                                                                    msg.role === 'assistant' ? "self-start" : "self-end items-end"
-                                                                                                )}
-                                                                                                style={{ animationDelay: `${msgIdx * 100}ms` }}
-                                                                                            >
-                                                                                                <div className="flex items-center gap-2 px-1">
-                                                                                                    <span className={cn(
-                                                                                                        "text-[10px] font-bold uppercase tracking-widest",
-                                                                                                        msg.role === 'assistant' ? "text-primary" : "text-muted-foreground/80"
-                                                                                                    )}>
-                                                                                                        {msg.role === 'assistant' ? 'Tester Assistant' : 'Target Agent'}
-                                                                                                    </span>
-                                                                                                </div>
-                                                                                                <div
-                                                                                                    className={cn(
-                                                                                                        "p-4 rounded-2xl text-sm leading-relaxed shadow-sm transition-all group-hover:shadow-md",
-                                                                                                        msg.role === 'assistant'
-                                                                                                            ? "bg-primary text-primary-foreground rounded-tl-none ring-1 ring-primary/20 shadow-primary/10"
-                                                                                                            : "bg-background text-foreground rounded-tr-none border border-border/50 shadow-black/5"
-                                                                                                    )}
-                                                                                                >
-                                                                                                    {msg.content}
-                                                                                                </div>
-                                                                                            </div>
-                                                                                        ))}
-                                                                                    </div>
-                                                                                </ScrollArea>
-                                                                            </CardContent>
-                                                                        </Card>
-                                                                    </div>
-                                                                )}
-                                                            </div>
+                                        <div className="space-y-4">
+                                            {selectedRunDetail ? (
+                                                <RunDetailDashboard
+                                                    run={selectedRunDetail as any}
+                                                    testCases={testCases}
+                                                    onBack={() => {
+                                                        setSelectedRunDetail(null)
+                                                        setSelectedTestCaseResultId(null)
+                                                        setCurrentCallIndex({})
+                                                    }}
+                                                />
+                                            ) : (
+                                                <div className="space-y-4">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <div>
+                                                            <h3 className="text-lg font-semibold tracking-tight">Run History</h3>
+                                                            <p className="text-sm text-muted-foreground">Historical records of all automated tests run for this suite.</p>
                                                         </div>
-                                                    )
-                                                })()}
-
-                                            </div>
-                                        ) : (
-                                            <div className="space-y-4">
-                                                <div className="flex items-center justify-between mb-2">
-                                                    <div>
-                                                        <h3 className="text-lg font-semibold tracking-tight">Run History</h3>
-                                                        <p className="text-sm text-muted-foreground">Historical records of all automated tests run for this suite.</p>
                                                     </div>
+
+                                                    <Card className="bg-card/30 border-border/50 overflow-hidden min-w-0 w-full">
+                                                        <CardContent className="p-0">
+                                                            <RunHistoryTable
+                                                                runs={apiRuns.filter(run => run.test_suite_id === selectedSuiteId)}
+                                                                isLoading={isRunsLoading}
+                                                                onSelectRun={(run) => {
+                                                                    setSelectedRunDetail(run as any)
+                                                                    // Reset pagination when selecting a new run
+                                                                    setCurrentTestCaseIndex(0)
+                                                                    setCurrentCallIndex({})
+                                                                }}
+                                                            />
+                                                        </CardContent>
+                                                    </Card>
                                                 </div>
-
-                                                <Card className="bg-card/30 border-border/50 overflow-hidden min-w-0 w-full">
-                                                    <CardContent className="p-0">
-                                                        {isRunsLoading ? (
-                                                            <div className="p-6 space-y-4">
-                                                                {[1, 2, 3, 4, 5].map((i) => (
-                                                                    <div key={i} className="flex items-center gap-4">
-                                                                        <Skeleton className="h-4 w-24" />
-                                                                        <Skeleton className="h-4 w-32" />
-                                                                        <Skeleton className="h-6 w-20 rounded-full" />
-                                                                        <Skeleton className="h-4 w-16" />
-                                                                        <Skeleton className="h-4 w-16" />
-                                                                        <Skeleton className="h-8 w-20 ml-auto" />
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        ) : (
-                                                            <div className="w-full overflow-x-auto">
-                                                                <Table>
-                                                                    <TableHeader className="bg-muted/10">
-                                                                        <TableRow className="hover:bg-transparent border-border/50">
-                                                                            <TableHead className="text-xs font-bold uppercase tracking-wider w-[100px]">Run ID</TableHead>
-                                                                            <TableHead className="text-xs font-bold uppercase tracking-wider w-[180px]">Date & Time</TableHead>
-                                                                            <TableHead className="text-xs font-bold uppercase tracking-wider text-center w-[120px]">Status</TableHead>
-                                                                            <TableHead className="text-xs font-bold uppercase tracking-wider text-center w-[140px]">Success Rate</TableHead>
-                                                                            <TableHead className="text-xs font-bold uppercase tracking-wider text-center w-[120px]">Duration</TableHead>
-                                                                            <TableHead className="text-xs font-bold uppercase tracking-wider text-right pr-6">Action</TableHead>
-                                                                        </TableRow>
-                                                                    </TableHeader>
-                                                                    <TableBody>
-                                                                        {apiRuns
-                                                                            .filter(run => run.test_suite_id === selectedSuiteId)
-                                                                            .map((run) => {
-                                                                                const successRate = run.total_test_cases > 0
-                                                                                    ? Math.round((run.passed_count / run.total_test_cases) * 100)
-                                                                                    : 0;
-                                                                                const duration = formatDuration(run.started_at, run.completed_at);
-                                                                                const dateObj = new Date(run.started_at);
-                                                                                const dateStr = dateObj.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' });
-                                                                                const timeStr = dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-                                                                                const startedAt = `${dateStr}, ${timeStr}`;
-
-                                                                                return (
-                                                                                    <TableRow
-                                                                                        key={run.id}
-                                                                                        className="border-border/50 hover:bg-accent/30 cursor-pointer transition-colors group"
-                                                                                        onClick={() => {
-                                                                                            setSelectedRunDetail({
-                                                                                                ...run,
-                                                                                                successRate,
-                                                                                                duration,
-                                                                                                startedAt,
-                                                                                                passedCount: run.passed_count,
-                                                                                                totalCount: run.total_test_cases,
-                                                                                                testCases: run.test_case_results || [] // Now provided by API
-                                                                                            })
-                                                                                            // Reset pagination when selecting a new run
-                                                                                            setCurrentTestCaseIndex(0)
-                                                                                            setCurrentCallIndex({})
-                                                                                        }}
-                                                                                    >
-                                                                                        <TableCell className="font-mono text-xs">
-                                                                                            <Tooltip>
-                                                                                                <TooltipTrigger asChild>
-                                                                                                    <span className="cursor-help underline decoration-dotted underline-offset-2">
-                                                                                                        {run.id.substring(0, 8)}...
-                                                                                                    </span>
-                                                                                                </TooltipTrigger>
-                                                                                                <TooltipContent>
-                                                                                                    <p className="font-mono text-xs">{run.id}</p>
-                                                                                                </TooltipContent>
-                                                                                            </Tooltip>
-                                                                                        </TableCell>
-                                                                                        <TableCell>
-                                                                                            <div className="flex flex-col">
-                                                                                                <span className="text-sm font-medium text-foreground">{dateStr}</span>
-                                                                                                <span className="text-[10px] text-muted-foreground uppercase tracking-wide">{timeStr}</span>
-                                                                                            </div>
-                                                                                        </TableCell>
-                                                                                        <TableCell className="text-center">
-                                                                                            <Badge
-                                                                                                variant={run.status === 'completed' ? 'default' : run.status === 'running' ? 'secondary' : 'destructive'}
-                                                                                                className={cn(
-                                                                                                    "capitalize text-[10px] px-2 py-0",
-                                                                                                    run.status === 'running' && "bg-amber-500/10 text-amber-500 border-amber-500/20 hover:bg-amber-500/20"
-                                                                                                )}
-                                                                                            >
-                                                                                                {run.status}
-                                                                                            </Badge>
-                                                                                        </TableCell>
-                                                                                        <TableCell className="text-center">
-                                                                                            <div className="flex flex-col items-center gap-1">
-                                                                                                <span className="text-sm font-semibold">{successRate}%</span>
-                                                                                                <div className="w-16 h-1 bg-muted/50 rounded-full overflow-hidden">
-                                                                                                    <div
-                                                                                                        className={cn(
-                                                                                                            "h-full transition-all duration-1000",
-                                                                                                            successRate >= 80 ? "bg-emerald-500" : successRate >= 50 ? "bg-amber-500" : "bg-rose-500"
-                                                                                                        )}
-                                                                                                        style={{ width: `${successRate}%` }}
-                                                                                                    />
-                                                                                                </div>
-                                                                                            </div>
-                                                                                        </TableCell>
-                                                                                        <TableCell className="text-center text-sm text-muted-foreground">{duration}</TableCell>
-                                                                                        <TableCell className="text-right pr-6">
-                                                                                            <Button variant="ghost" size="icon" className="group-hover:text-primary transition-colors hover:bg-primary/10">
-                                                                                                <Eye className="w-4 h-4" />
-                                                                                            </Button>
-                                                                                        </TableCell>
-                                                                                    </TableRow>
-                                                                                );
-                                                                            })}
-                                                                        {apiRuns.filter(run => run.test_suite_id === selectedSuiteId).length === 0 && (
-                                                                            <TableRow>
-                                                                                <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
-                                                                                    No runs found for this test suite.
-                                                                                </TableCell>
-                                                                            </TableRow>
-                                                                        )}
-                                                                    </TableBody>
-                                                                </Table>
-                                                            </div>
-                                                        )}
-                                                    </CardContent>
-                                                </Card>
-                                            </div>
-                                        )}
+                                            )}
+                                        </div>
                                     </TabsContent>
                                 </Tabs>
                             </div>

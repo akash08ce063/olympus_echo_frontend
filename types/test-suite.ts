@@ -86,3 +86,85 @@ export type Experiment = {
   startedAt: string;
   completedAt?: string;
 };
+
+// --- API Response Types ---
+
+export interface ApiCallRecording {
+  call_number: number;
+  recording_url: string;
+  file_id: string;
+}
+
+export interface ApiTranscriptMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+}
+
+export interface ApiCallTranscript {
+  request_id: string;
+  id: string;
+  call_transcript: ApiTranscriptMessage[];
+  duration_seconds: number;
+  created_at: string;
+}
+
+export interface ApiGoalAnalysis {
+  goal_id: number;
+  goal_description: string;
+  status: 'passed' | 'failed' | 'partial';
+  score: number;
+  analysis: string;
+  evidence: string;
+}
+
+export interface ApiCriterionEvaluated {
+  criterion_id: number;
+  type: string;
+  expected: string;
+  actual: string;
+  passed: boolean;
+  score: number;
+  details: string;
+  evidence: string;
+}
+
+export interface ApiEvaluationResult {
+  summary: string;
+  strengths: string[];
+  weaknesses: string[];
+  overall_score: number;
+  overall_status: 'passed' | 'failed' | 'partial';
+  total_criteria: number;
+  passed_criteria: number;
+  goals_analysis: ApiGoalAnalysis[];
+  criteria_evaluated: ApiCriterionEvaluated[];
+  recommendations: string[];
+  timestamp?: number;
+}
+
+export interface ApiTestCaseResult {
+  result_id: string;
+  test_case_id: string;
+  concurrent_calls: number;
+  status: string;
+  error_message: string | null;
+  started_at: string;
+  completed_at: string | null;
+  recording_url?: string;
+  call_recordings: ApiCallRecording[];
+  call_transcripts: ApiCallTranscript[];
+  evaluation_result: ApiEvaluationResult;
+}
+
+export interface ApiTestRun {
+  id: string;
+  test_suite_id: string;
+  status: string;
+  started_at: string;
+  completed_at: string | null;
+  total_test_cases: number;
+  passed_count: number;
+  failed_count: number;
+  alert_count: number;
+  test_case_results: ApiTestCaseResult[];
+}

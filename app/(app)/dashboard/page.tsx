@@ -44,34 +44,15 @@ import {
 import { useAuth } from "@/hooks/useAuth"
 import { useRouter } from "next/navigation"
 import { TestSuitesService } from "@/services/testSuites"
-import { TargetAgentsService } from "@/services/targetAgents"
-import { UserAgentsService } from "@/services/userAgents"
+import { ApiTestRun } from "@/types/test-suite"
 import { format, formatDistanceToNow } from "date-fns"
 import { cn } from "@/lib/utils"
 
-// --- Types ---
-interface TestRun {
-    id: string
-    test_suite_id: string
-    status: string
-    started_at: string
-    completed_at?: string
-    total_test_cases: number
-    passed_count: number
-    failed_count: number
-}
-
-interface Agent {
-    id: string
-    name: string
-    type: string
-}
 
 interface DashboardStats {
     totalTestRuns: number
     totalTestSuites: number
-    targetAgents: number
-    userAgents: number
+    totalTestCases: number
     successRate: number
     activeTests: number
 }
@@ -83,13 +64,11 @@ export default function DashboardPage() {
     const [stats, setStats] = useState<DashboardStats>({
         totalTestRuns: 0,
         totalTestSuites: 0,
-        targetAgents: 0,
-        userAgents: 0,
+        totalTestCases: 0,
         successRate: 0,
         activeTests: 0
     })
-    const [recentRuns, setRecentRuns] = useState<TestRun[]>([])
-    const [agents, setAgents] = useState<{ targets: Agent[], users: Agent[] }>({ targets: [], users: [] })
+    const [recentRuns, setRecentRuns] = useState<ApiTestRun[]>([])
 
     useEffect(() => {
         if (!user?.id) return
@@ -99,43 +78,58 @@ export default function DashboardPage() {
                 setLoading(true)
 
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const [runsResponse, suitesResponse, targetAgentsResponse, userAgentsResponse]: any = await Promise.all([
+                const [runsResponse, suitesResponse]: any = await Promise.all([
                     TestSuitesService.getAllRuns(user.id),
-                    TestSuitesService.getTestSuites(user.id),
-                    TargetAgentsService.getTargetAgents(user.id),
-                    UserAgentsService.getUserAgents(user.id)
+                    TestSuitesService.getTestSuites(user.id)
                 ])
 
-                const runs = runsResponse.data?.runs || []
-                const targetAgents = targetAgentsResponse.data?.target_agents || []
-                const userAgents = userAgentsResponse.data?.user_agents || []
+                console.log("runsResponse", runsResponse)
+
+                // Robust runs parsing
+                let runs: ApiTestRun[] = []
+                if (Array.isArray(runsResponse)) {
+                    runs = runsResponse
+                } else if (runsResponse?.runs) {
+                    runs = runsResponse.runs
+                } else if (runsResponse?.data?.runs) {
+                    runs = runsResponse.data.runs
+                }
+
+                // Handle suites response
+                const suitesData = (suitesResponse as any)?.test_suites || []
+                const suiteMap = new Map(suitesData.map((s: any) => [s.id, s.name]))
 
                 // Calculate Stats
-                const completedRuns = runs.filter((run: TestRun) =>
-                    ['completed', 'passed', 'failed'].includes(run.status)
+                const completedRuns = runs.filter((run: ApiTestRun) =>
+                    ['completed', 'passed', 'failed', 'pass'].includes(run.status.toLowerCase())
                 )
-                const successfulRuns = runs.filter((run: TestRun) =>
-                    ['passed', 'completed'].includes(run.status) && run.failed_count === 0
+                const successfulRuns = runs.filter((run: ApiTestRun) =>
+                    ['passed', 'completed', 'pass'].includes(run.status.toLowerCase()) && run.failed_count === 0
                 )
-                const activeRuns = runs.filter((run: TestRun) =>
-                    ['running', 'in_progress'].includes(run.status)
+                const activeRuns = runs.filter((run: ApiTestRun) =>
+                    ['running', 'in_progress', 'scheduled'].includes(run.status.toLowerCase())
                 )
+
+                const totalTestCases = runs.reduce((acc, run) => acc + (run.total_test_cases || 0), 0)
 
                 const successRate = completedRuns.length > 0
                     ? Math.round((successfulRuns.length / completedRuns.length) * 100)
                     : 0
 
                 setStats({
-                    totalTestRuns: runsResponse.total,
-                    totalTestSuites: suitesResponse?.total || 0,
-                    targetAgents: targetAgentsResponse.total,
-                    userAgents: userAgentsResponse.total,
+                    totalTestRuns: runs.length,
+                    totalTestSuites: suitesData.length || suitesResponse?.total || 0,
+                    totalTestCases,
                     successRate,
                     activeTests: activeRuns.length
                 })
 
-                setRecentRuns(runs.slice(0, 7)) // Show top 7 recent runs
-                setAgents({ targets: targetAgents.slice(0, 3), users: userAgents.slice(0, 3) })
+                // Enrich recent runs with suite names
+                const enrichedRuns = runs.slice(0, 7).map(run => ({
+                    ...run,
+                    suiteName: suiteMap.get(run.test_suite_id) || `Suite ${run.test_suite_id.slice(0, 6)}...`
+                }))
+                setRecentRuns(enrichedRuns as any)
 
             } catch (error) {
                 console.error("Error fetching dashboard data:", error)
@@ -148,7 +142,7 @@ export default function DashboardPage() {
     }, [user])
 
     // Utility to calculate duration
-    const getDuration = (start: string, end?: string) => {
+    const getDuration = (start: string, end: string | null = null) => {
         if (!end) return "-"
         const startDate = new Date(start)
         const endDate = new Date(end)
@@ -167,12 +161,7 @@ export default function DashboardPage() {
                         Welcome back! Here's an overview of your AI testing performance.
                     </p>
                 </div>
-                <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="h-9 px-3 text-sm font-normal">
-                        <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
-                        Today: {format(new Date(), "MMM d, yyyy")}
-                    </Badge>
-                </div>
+
             </div>
 
             {/* Stats Grid */}
@@ -230,19 +219,17 @@ export default function DashboardPage() {
                     </CardContent>
                 </Card>
 
-                {/* Total Agents */}
+                {/* Total Test Cases */}
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Agent Ecosystem</CardTitle>
-                        <Bot className="h-4 w-4 text-muted-foreground" />
+                        <CardTitle className="text-sm font-medium">Total Test Cases</CardTitle>
+                        <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                         {loading ? <Skeleton className="h-8 w-16" /> : (
                             <>
-                                <div className="text-2xl font-bold">{stats.targetAgents + stats.userAgents}</div>
-                                <p className="text-xs text-muted-foreground">
-                                    {stats.targetAgents} Target / {stats.userAgents} User
-                                </p>
+                                <div className="text-2xl font-bold">{stats.totalTestCases}</div>
+                                <p className="text-xs text-muted-foreground">Across all runs</p>
                             </>
                         )}
                     </CardContent>
@@ -256,7 +243,7 @@ export default function DashboardPage() {
                 <div className="lg:col-span-2 space-y-6">
                     <div className="flex items-center justify-between">
                         <h2 className="text-lg font-semibold tracking-tight">Recent Activity</h2>
-                        <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => router.push('/dashboard/new-history')}>
+                        <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => router.push('/history')}>
                             View All <ArrowRight className="ml-2 h-4 w-4" />
                         </Button>
                     </div>
@@ -313,7 +300,7 @@ export default function DashboardPage() {
                                             </TableCell>
                                             <TableCell>
                                                 <div className="flex flex-col">
-                                                    <span className="font-medium text-sm">Suite {run.test_suite_id.slice(0, 6)}...</span>
+                                                    <span className="font-medium text-sm">{(run as any).suiteName}</span>
                                                     <span className="text-[10px] text-muted-foreground font-mono">{run.id.slice(0, 8)}</span>
                                                 </div>
                                             </TableCell>
@@ -336,8 +323,8 @@ export default function DashboardPage() {
                                                         </Button>
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="end">
-                                                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                        <DropdownMenuItem onClick={() => router.push(`/dashboard/new-history?run=${run.id}`)}>
+
+                                                        <DropdownMenuItem onClick={() => router.push(`/history?run=${run.id}`)}>
                                                             View Details
                                                         </DropdownMenuItem>
                                                         <DropdownMenuItem onClick={() => navigator.clipboard.writeText(run.id)}>
@@ -378,42 +365,6 @@ export default function DashboardPage() {
                         </CardContent>
                     </Card>
 
-                    {/* Agent Overview */}
-                    {/* <Card>
-                        <CardHeader className="pb-3">
-                            <CardTitle className="text-base flex justify-between items-center">
-                                Active Agents
-                                <Button variant="link" className="h-auto p-0 text-xs" onClick={() => router.push('/dashboard/user_agents')}>
-                                    Manage
-                                </Button>
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            {!loading && agents.users.length > 0 ? (
-                                agents.users.map(agent => (
-                                    <div key={agent.id} className="flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-xs">
-                                                {agent.name.charAt(0).toUpperCase()}
-                                            </div>
-                                            <div className="space-y-0.5">
-                                                <p className="text-sm font-medium">{agent.name}</p>
-                                                <p className="text-[10px] text-muted-foreground uppercase">{agent.type || 'User Agent'}</p>
-                                            </div>
-                                        </div>
-                                        <div className="h-2 w-2 rounded-full bg-green-500" title="Active" />
-                                    </div>
-                                ))
-                            ) : (
-                                <p className="text-sm text-muted-foreground">No active user agents.</p>
-                            )}
-                        </CardContent>
-                        <CardFooter className="pt-0 pb-4">
-                            <Button variant="ghost" size="sm" className="w-full text-xs text-muted-foreground" onClick={() => router.push('/dashboard/user_agents')}>
-                                View all {stats.userAgents} agents <ChevronRight className="ml-1 h-3 w-3" />
-                            </Button>
-                        </CardFooter>
-                    </Card> */}
                 </div>
 
             </div>
