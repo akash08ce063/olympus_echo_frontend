@@ -17,6 +17,7 @@ import {
     CheckCircle2,
     XCircle,
     ChevronLeft,
+    ChevronRight,
     Timer,
     Activity,
     Volume2,
@@ -151,6 +152,9 @@ export function TestSuitesContent() {
     const [isCreatingSuite, setIsCreatingSuite] = useState(false)
     const [isRunningTests, setIsRunningTests] = useState(false)
     const [agentTypeForDialog, setAgentTypeForDialog] = useState<"target" | "tester">("target")
+    const [executionMode, setExecutionMode] = useState<"sequential" | "parallel">("sequential")
+    const [currentTestCaseIndex, setCurrentTestCaseIndex] = useState(0)
+    const [currentCallIndex, setCurrentCallIndex] = useState<Record<number, number>>({})
 
     const {
         runExperiment,
@@ -219,6 +223,38 @@ export function TestSuitesContent() {
             const runsData = Array.isArray(response) ? response : (response?.data || response?.runs || [])
             setApiRuns(runsData)
             console.log("Fetched all runs:", runsData)
+            
+            // Extract all recordings from test_case_results for backward compatibility
+            const allRecordings: any[] = []
+            runsData.forEach((run: any) => {
+                if (run.test_case_results) {
+                    run.test_case_results.forEach((result: any) => {
+                        if (result.call_recordings && result.call_recordings.length > 0) {
+                            result.call_recordings.forEach((recording: any) => {
+                                allRecordings.push({
+                                    result_id: result.result_id,
+                                    test_case_id: result.test_case_id,
+                                    run_id: run.id,
+                                    recording_url: recording.recording_url,
+                                    call_number: recording.call_number,
+                                    file_id: recording.file_id,
+                                    concurrent_calls: result.concurrent_calls
+                                })
+                            })
+                        } else if (result.recording_url) {
+                            allRecordings.push({
+                                result_id: result.result_id,
+                                test_case_id: result.test_case_id,
+                                run_id: run.id,
+                                recording_url: result.recording_url,
+                                call_number: 1,
+                                concurrent_calls: 1
+                            })
+                        }
+                    })
+                }
+            })
+            setRecordings(allRecordings)
         } catch (error) {
             console.error("Failed to fetch runs:", error)
         } finally {
@@ -291,9 +327,9 @@ export function TestSuitesContent() {
 
         setIsRunningTests(true)
         try {
-            await TestSuitesService.runTestSuite(selectedSuiteId, user.id)
+            await TestSuitesService.runTestSuite(selectedSuiteId, user.id, 1, executionMode)
             runExperiment(selectedSuiteId)
-            toast.success("Test run started")
+            toast.success(`Test run started in ${executionMode} mode`)
 
             // Silently refresh details to update status
             fetchSuiteDetails(selectedSuiteId, true);
@@ -762,6 +798,19 @@ export function TestSuitesContent() {
                                 <p className="text-xs text-muted-foreground font-mono">Test Suite ID: {selectedSuiteDetails?.id || selectedSuite?.id || "---"}</p>
                             </div>
                             <div className="flex items-center gap-2">
+                                <Select
+                                    value={executionMode}
+                                    onValueChange={(value: "sequential" | "parallel") => setExecutionMode(value)}
+                                    disabled={isRunningTests || selectedSuiteDetails?.suite_status === 'running' || (activeExperiment?.status === 'running' && activeExperiment.datasetId === selectedSuiteId)}
+                                >
+                                    <SelectTrigger className="w-[140px]">
+                                        <SelectValue placeholder="Execution Mode" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="sequential">Sequential</SelectItem>
+                                        <SelectItem value="parallel">Parallel</SelectItem>
+                                    </SelectContent>
+                                </Select>
                                 <Button
                                     onClick={handleRunTests}
                                     disabled={
@@ -1156,115 +1205,181 @@ export function TestSuitesContent() {
 
 
 
-                                                {/* Test Case Recordings */}
-                                                {recordings.filter(r => r.run_id === selectedRunDetail.id).length > 0 && (
-                                                    <div className="space-y-3">
-                                                        <h3 className="text-sm font-semibold flex items-center gap-2 px-1">
-                                                            <Volume2 className="w-4 h-4 text-primary" />
-                                                            Test Recordings
-                                                        </h3>
-                                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                                                            {recordings
-                                                                .filter(r => r.run_id === selectedRunDetail.id)
-                                                                .map((rec, idx) => {
-                                                                    const tcName = testCases.find(tc => tc.id === rec.test_case_id)?.name || rec.test_case_name || "Test Case";
-                                                                    return (
-                                                                        <div key={idx} className="bg-card/50 border border-border/50 rounded-lg p-3 space-y-2">
-                                                                            <div className="flex items-center justify-between">
-                                                                                <span className="text-xs font-medium truncate max-w-[150px]" title={tcName}>
-                                                                                    {tcName}
-                                                                                </span>
-                                                                                <Badge variant="outline" className="text-[10px] py-0 h-4 font-mono">
-                                                                                    {rec.test_case_id?.substring(0, 8)}
-                                                                                </Badge>
-                                                                            </div>
-                                                                            <AudioPlayer url={rec.recording_url} className="bg-background/50" />
-                                                                        </div>
-                                                                    );
-                                                                })}
-                                                        </div>
-                                                    </div>
-                                                )}
-
-                                                {/* Conversation Transcript */}
-                                                <Card className="bg-card/30 border-border/50 overflow-hidden flex flex-col h-150">
-                                                    <CardHeader className="border-b border-border/50 bg-muted/20 flex flex-row items-center justify-between py-4">
-                                                        <div className="space-y-1">
-                                                            <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                                                                <Activity className="w-4 h-4 text-primary" />
-                                                                Call Transcript
-                                                            </CardTitle>
-                                                            <CardDescription className="text-[10px]">Real-time conversation logs between the tester and target agent.</CardDescription>
-                                                        </div>
-                                                        {selectedCallLogs && (
-                                                            <div className="flex items-center gap-3">
-                                                                <Badge variant="outline" className="text-[10px] font-mono bg-background/50 h-6">
-                                                                    ID: {selectedCallLogs.id}
-                                                                </Badge>
-                                                                <Badge variant="secondary" className="text-[10px] font-mono h-6 gap-1.5">
-                                                                    <Clock className="w-3 h-3" />
-                                                                    {selectedCallLogs.call_duration}s
-                                                                </Badge>
-                                                            </div>
-                                                        )}
-                                                    </CardHeader>
-                                                    <CardContent className="p-0 flex-1 overflow-hidden relative bg-muted/5">
-                                                        <ScrollArea className="h-full p-4 lg:p-8">
-                                                            {isCallLogsLoading ? (
-                                                                <div className="space-y-6">
-                                                                    {[1, 2, 3, 4, 5].map((i) => (
-                                                                        <div key={i} className={cn("flex flex-col gap-2 max-w-[70%]", i % 2 === 0 ? "self-end items-end" : "self-start")}>
-                                                                            <Skeleton className="h-3 w-16 rounded mb-1" />
-                                                                            <Skeleton className={cn("h-16 w-full rounded-2xl", i % 2 === 0 ? "rounded-tr-none" : "rounded-tl-none")} />
-                                                                        </div>
-                                                                    ))}
-                                                                </div>
-                                                            ) : selectedCallLogs?.call_transcript ? (
-                                                                <div className="flex flex-col gap-4 pb-4">
-                                                                    {selectedCallLogs.call_transcript.map((msg: any, idx: number) => (
-                                                                        <div
-                                                                            key={idx}
-                                                                            className={cn(
-                                                                                "flex flex-col gap-2 max-w-[85%] lg:max-w-[75%] group animate-in fade-in slide-in-from-bottom-3 duration-500",
-                                                                                msg.role === 'assistant' ? "self-start" : "self-end items-end"
-                                                                            )}
-                                                                            style={{ animationDelay: `${idx * 100}ms` }}
+                                                {/* Test Case Results with Recordings - Paginated */}
+                                                {(() => {
+                                                    const selectedRun = apiRuns.find((r: any) => r.id === selectedRunDetail.id)
+                                                    if (!selectedRun?.test_case_results || selectedRun.test_case_results.length === 0) {
+                                                        return null
+                                                    }
+                                                    
+                                                    const totalTestCases = selectedRun.test_case_results.length
+                                                    const currentResult = selectedRun.test_case_results[currentTestCaseIndex]
+                                                    const currentCallIdx = currentCallIndex[currentTestCaseIndex] || 0
+                                                    const totalCalls = currentResult?.call_recordings?.length || 0
+                                                    const currentCall = currentResult?.call_recordings?.[currentCallIdx]
+                                                    const currentTranscript = currentResult?.call_transcripts?.[currentCallIdx]
+                                                    
+                                                    const tcName = testCases.find(tc => tc.id === currentResult.test_case_id)?.name || "Test Case";
+                                                    
+                                                    return (
+                                                        <div className="space-y-3">
+                                                            <div className="flex items-center justify-between">
+                                                                <h3 className="text-sm font-semibold flex items-center gap-2 px-1">
+                                                                    <Volume2 className="w-4 h-4 text-primary" />
+                                                                    Test Case Results & Recordings
+                                                                </h3>
+                                                                {totalTestCases > 1 && (
+                                                                    <div className="flex items-center gap-2">
+                                                                        <Button
+                                                                            variant="outline"
+                                                                            size="sm"
+                                                                            onClick={() => {
+                                                                                const prev = currentTestCaseIndex > 0 ? currentTestCaseIndex - 1 : totalTestCases - 1
+                                                                                setCurrentTestCaseIndex(prev)
+                                                                                setCurrentCallIndex({...currentCallIndex, [prev]: 0})
+                                                                            }}
+                                                                            disabled={totalTestCases <= 1}
+                                                                            className="h-7 text-xs"
                                                                         >
-                                                                            <div className="flex items-center gap-2 px-1">
-                                                                                <span className={cn(
-                                                                                    "text-[10px] font-bold uppercase tracking-widest",
-                                                                                    msg.role === 'assistant' ? "text-primary" : "text-muted-foreground/80"
-                                                                                )}>
-                                                                                    {msg.role === 'assistant' ? 'Tester Assistant' : 'Target Agent'}
+                                                                            <ChevronLeft className="w-3 h-3 mr-1" />
+                                                                            Previous Test Case
+                                                                        </Button>
+                                                                        <span className="text-xs text-muted-foreground min-w-[80px] text-center">
+                                                                            {currentTestCaseIndex + 1} / {totalTestCases}
+                                                                        </span>
+                                                                        <Button
+                                                                            variant="outline"
+                                                                            size="sm"
+                                                                            onClick={() => {
+                                                                                const next = currentTestCaseIndex < totalTestCases - 1 ? currentTestCaseIndex + 1 : 0
+                                                                                setCurrentTestCaseIndex(next)
+                                                                                setCurrentCallIndex({...currentCallIndex, [next]: 0})
+                                                                            }}
+                                                                            disabled={totalTestCases <= 1}
+                                                                            className="h-7 text-xs"
+                                                                        >
+                                                                            Next Test Case
+                                                                            <ChevronRight className="w-3 h-3 ml-1" />
+                                                                        </Button>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            
+                                                            <div className="bg-card/50 border border-border/50 rounded-lg p-4 space-y-4">
+                                                                <div className="flex items-center justify-between">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-sm font-medium">{tcName}</span>
+                                                                        <Badge variant="outline" className="text-[10px] py-0 h-4 font-mono">
+                                                                            {currentResult.test_case_id?.substring(0, 8)}
+                                                                        </Badge>
+                                                                        <Badge 
+                                                                            variant={currentResult.status === 'completed' ? 'default' : currentResult.status === 'failed' ? 'destructive' : 'secondary'}
+                                                                            className="text-[10px] capitalize"
+                                                                        >
+                                                                            {currentResult.status}
+                                                                        </Badge>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-2">
+                                                                        {currentResult.concurrent_calls > 1 && (
+                                                                            <Badge variant="secondary" className="text-[10px]">
+                                                                                {currentResult.concurrent_calls} calls
+                                                                            </Badge>
+                                                                        )}
+                                                                        {/* Call Pagination Controls */}
+                                                                        {totalCalls > 1 && (
+                                                                            <div className="flex items-center gap-2">
+                                                                                <Button
+                                                                                    size="sm"
+                                                                                    onClick={() => {
+                                                                                        const prev = currentCallIdx > 0 ? currentCallIdx - 1 : totalCalls - 1
+                                                                                        setCurrentCallIndex({...currentCallIndex, [currentTestCaseIndex]: prev})
+                                                                                    }}
+                                                                                    className="h-7 text-xs bg-orange-600/50 hover:bg-orange-700/50 text-white"
+                                                                                >
+                                                                                    <ChevronLeft className="w-3 h-3 mr-1" />
+                                                                                    Previous Call
+                                                                                </Button>
+                                                                                <span className="text-xs text-muted-foreground min-w-[60px] text-center">
+                                                                                    Call {currentCallIdx + 1} / {totalCalls}
                                                                                 </span>
+                                                                                <Button
+                                                                                    size="sm"
+                                                                                    onClick={() => {
+                                                                                        const next = currentCallIdx < totalCalls - 1 ? currentCallIdx + 1 : 0
+                                                                                        setCurrentCallIndex({...currentCallIndex, [currentTestCaseIndex]: next})
+                                                                                    }}
+                                                                                    className="h-7 text-xs bg-orange-600/50 hover:bg-orange-700/50 text-white"
+                                                                                >
+                                                                                    Next Call
+                                                                                    <ChevronRight className="w-3 h-3 ml-1" />
+                                                                                </Button>
                                                                             </div>
-                                                                            <div
-                                                                                className={cn(
-                                                                                    "p-4 rounded-2xl text-sm leading-relaxed shadow-sm transition-all group-hover:shadow-md",
-                                                                                    msg.role === 'assistant'
-                                                                                        ? "bg-primary text-primary-foreground rounded-tl-none ring-1 ring-primary/20 shadow-primary/10"
-                                                                                        : "bg-background text-foreground rounded-tr-none border border-border/50 shadow-black/5"
-                                                                                )}
-                                                                            >
-                                                                                {msg.content}
-                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                                
+                                                                {/* Current Call Recording */}
+                                                                {currentCall && (
+                                                                    <div className="space-y-2">
+                                                                        <div className="text-xs text-muted-foreground font-medium">
+                                                                            Recording:
                                                                         </div>
-                                                                    ))}
-                                                                </div>
-                                                            ) : (
-                                                                <div className="flex flex-col items-center justify-center h-full text-center space-y-4 py-20 grayscale opacity-40">
-                                                                    <div className="p-4 rounded-full bg-muted/50">
-                                                                        <Activity className="w-10 h-10" />
+                                                                        <div className="bg-background/50 border border-border/30 rounded p-3">
+                                                                            <AudioPlayer url={currentCall.recording_url} className="bg-background/50" />
+                                                                        </div>
                                                                     </div>
-                                                                    <div className="space-y-1">
-                                                                        <p className="text-sm font-semibold">Transcript Not Found</p>
-                                                                        <p className="text-xs max-w-50">We couldn't retrieve conversation logs for this run.</p>
+                                                                )}
+                                                                
+                                                                {/* Current Call Transcript */}
+                                                                {currentTranscript?.transcript?.call_transcript && (
+                                                                    <div className="space-y-2">
+                                                                        <div className="text-xs text-muted-foreground font-medium">
+                                                                            Transcript:
+                                                                        </div>
+                                                                        <Card className="bg-card/30 border-border/50 overflow-hidden">
+                                                                            <CardContent className="p-4">
+                                                                                <ScrollArea className="h-[300px]">
+                                                                                    <div className="flex flex-col gap-4 pb-4">
+                                                                                        {currentTranscript.transcript.call_transcript.map((msg: any, msgIdx: number) => (
+                                                                                            <div
+                                                                                                key={msgIdx}
+                                                                                                className={cn(
+                                                                                                    "flex flex-col gap-2 max-w-[85%] lg:max-w-[75%] group animate-in fade-in slide-in-from-bottom-3 duration-500",
+                                                                                                    msg.role === 'assistant' ? "self-start" : "self-end items-end"
+                                                                                                )}
+                                                                                                style={{ animationDelay: `${msgIdx * 100}ms` }}
+                                                                                            >
+                                                                                                <div className="flex items-center gap-2 px-1">
+                                                                                                    <span className={cn(
+                                                                                                        "text-[10px] font-bold uppercase tracking-widest",
+                                                                                                        msg.role === 'assistant' ? "text-primary" : "text-muted-foreground/80"
+                                                                                                    )}>
+                                                                                                        {msg.role === 'assistant' ? 'Tester Assistant' : 'Target Agent'}
+                                                                                                    </span>
+                                                                                                </div>
+                                                                                                <div
+                                                                                                    className={cn(
+                                                                                                        "p-4 rounded-2xl text-sm leading-relaxed shadow-sm transition-all group-hover:shadow-md",
+                                                                                                        msg.role === 'assistant'
+                                                                                                            ? "bg-primary text-primary-foreground rounded-tl-none ring-1 ring-primary/20 shadow-primary/10"
+                                                                                                            : "bg-background text-foreground rounded-tr-none border border-border/50 shadow-black/5"
+                                                                                                    )}
+                                                                                                >
+                                                                                                    {msg.content}
+                                                                                                </div>
+                                                                                            </div>
+                                                                                        ))}
+                                                                                    </div>
+                                                                                </ScrollArea>
+                                                                            </CardContent>
+                                                                        </Card>
                                                                     </div>
-                                                                </div>
-                                                            )}
-                                                        </ScrollArea>
-                                                    </CardContent>
-                                                </Card>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    )
+                                                })()}
+
                                             </div>
                                         ) : (
                                             <div className="space-y-4">
@@ -1286,7 +1401,7 @@ export function TestSuitesContent() {
                                                                         <Skeleton className="h-6 w-20 rounded-full" />
                                                                         <Skeleton className="h-4 w-16" />
                                                                         <Skeleton className="h-4 w-16" />
-                                                                        <Skeleton className="h-8 w-28 ml-auto" />
+                                                                        <Skeleton className="h-8 w-20 ml-auto" />
                                                                     </div>
                                                                 ))}
                                                             </div>
@@ -1300,7 +1415,6 @@ export function TestSuitesContent() {
                                                                             <TableHead className="text-xs font-bold uppercase tracking-wider text-center w-[120px]">Status</TableHead>
                                                                             <TableHead className="text-xs font-bold uppercase tracking-wider text-center w-[140px]">Success Rate</TableHead>
                                                                             <TableHead className="text-xs font-bold uppercase tracking-wider text-center w-[120px]">Duration</TableHead>
-                                                                            <TableHead className="text-xs font-bold uppercase tracking-wider text-center min-w-[240px]">Latest Recording</TableHead>
                                                                             <TableHead className="text-xs font-bold uppercase tracking-wider text-right pr-6">Action</TableHead>
                                                                         </TableRow>
                                                                     </TableHeader>
@@ -1329,9 +1443,11 @@ export function TestSuitesContent() {
                                                                                                 startedAt,
                                                                                                 passedCount: run.passed_count,
                                                                                                 totalCount: run.total_test_cases,
-                                                                                                testCases: [] // API doesn't provide this yet
+                                                                                                testCases: run.test_case_results || [] // Now provided by API
                                                                                             })
-                                                                                            fetchCallLogs(run.id)
+                                                                                            // Reset pagination when selecting a new run
+                                                                                            setCurrentTestCaseIndex(0)
+                                                                                            setCurrentCallIndex({})
                                                                                         }}
                                                                                     >
                                                                                         <TableCell className="font-mono text-xs">
@@ -1378,18 +1494,6 @@ export function TestSuitesContent() {
                                                                                             </div>
                                                                                         </TableCell>
                                                                                         <TableCell className="text-center text-sm text-muted-foreground">{duration}</TableCell>
-                                                                                        <TableCell
-                                                                                            className="text-center min-w-[220px]"
-                                                                                            onClick={(e) => e.stopPropagation()}
-                                                                                        >
-                                                                                            {(() => {
-                                                                                                const runRecording = recordings.find(r => r.run_id === run.id);
-                                                                                                if (runRecording) {
-                                                                                                    return <AudioPlayer url={runRecording.recording_url} className="h-9 px-2 bg-transparent border-none shadow-none" />;
-                                                                                                }
-                                                                                                return <span className="text-muted-foreground/40 text-[10px] italic">No recording</span>;
-                                                                                            })()}
-                                                                                        </TableCell>
                                                                                         <TableCell className="text-right pr-6">
                                                                                             <Button variant="ghost" size="icon" className="group-hover:text-primary transition-colors hover:bg-primary/10">
                                                                                                 <Eye className="w-4 h-4" />
@@ -1400,7 +1504,7 @@ export function TestSuitesContent() {
                                                                             })}
                                                                         {apiRuns.filter(run => run.test_suite_id === selectedSuiteId).length === 0 && (
                                                                             <TableRow>
-                                                                                <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
+                                                                                <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
                                                                                     No runs found for this test suite.
                                                                                 </TableCell>
                                                                             </TableRow>

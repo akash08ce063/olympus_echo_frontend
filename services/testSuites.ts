@@ -49,8 +49,11 @@ export const TestSuitesService = {
         apiClient.delete(TESTSUITS.test_suit.delete(id)),
 
     // Run a test suite
-    runTestSuite: (testSuiteId: string, userId: string, concurrentCalls: number = 1) =>
-        apiClient.post(TESTSUITS.run_test.runAll(testSuiteId, userId), { concurrent_calls: concurrentCalls }),
+    runTestSuite: (testSuiteId: string, userId: string, concurrentCalls: number = 1, executionMode: "sequential" | "parallel" = "sequential") =>
+        apiClient.post(TESTSUITS.run_test.runAll(testSuiteId, userId), { 
+            concurrent_calls: concurrentCalls,
+            execution_mode: executionMode
+        }),
 
     // Run a single test case
     runSingleTest: (testCaseId: string, userId: string, concurrentCalls: number = 1) =>
