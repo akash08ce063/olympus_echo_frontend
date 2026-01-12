@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 
 import * as React from "react"
 import {
@@ -26,6 +27,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar"
 import { useAuth } from "@/hooks/useAuth"
 
@@ -77,6 +79,8 @@ const navSecondary = [
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useAuth()
+  const { state } = useSidebar()
+  const isExpanded = state === "expanded"
 
   return (
     <Sidebar collapsible="icon" className="w-64" {...props}>
@@ -87,9 +91,27 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               asChild
               className="data-[slot=sidebar-menu-button]:p-1.5!"
             >
-              <Link href="/dashboard">
-                <IconInnerShadowTop className="size-5!" />
-                <span className="text-base font-semibold">OlympusEcho</span>
+              <Link href="/dashboard" className="flex items-center gap-2.5">
+                <div className="size-5 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden">
+                  <Image 
+                    src="/olympus.png" 
+                    alt="Olympus Echo Logo" 
+                    width={20} 
+                    height={20} 
+                    className="object-contain"
+                  />
+                </div>
+                {isExpanded && (
+                  <div className="relative h-5 w-auto">
+                    <Image 
+                      src="/text.png" 
+                      alt="Olympus Echo" 
+                      width={100} 
+                      height={20} 
+                      className="object-contain h-full w-auto"
+                    />
+                  </div>
+                )}
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

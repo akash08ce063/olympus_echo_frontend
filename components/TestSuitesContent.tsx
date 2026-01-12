@@ -227,9 +227,17 @@ export function TestSuitesContent() {
             return;
         }
 
+        // Calculate maximum concurrent calls needed across all active test cases
+        // Each test case will use its own default_concurrent_calls, but we need to send enough request IDs
+        const maxConcurrentCalls = testCases.length > 0
+            ? Math.max(...testCases.filter(tc => tc.is_active).map(tc => tc.default_concurrent_calls || 1), 1)
+            : 1;
+
         setIsRunningTests(true)
         try {
-            await TestSuitesService.runTestSuite(selectedSuiteId, user.id, 1, executionMode)
+            // Pass maxConcurrentCalls to ensure we send enough request IDs
+            // The backend will use each test case's own default_concurrent_calls, but having enough IDs ensures all calls work
+            await TestSuitesService.runTestSuite(selectedSuiteId, user.id, maxConcurrentCalls, executionMode)
             runExperiment(selectedSuiteId)
             toast.success(`Test run started in ${executionMode} mode`)
 

@@ -59,9 +59,20 @@ export function ProblemSection() {
                                 whileInView={{ opacity: 1 }}
                                 viewport={{ once: true }}
                                 transition={{ duration: 0.8, delay: 0.3 }}
-                                className="relative z-10 font-bold text-red-500 italic"
+                                className="relative z-10 font-semibold italic"
                             >
-                                Broken?
+                                <span 
+                                    className="metallic-gradient"
+                                    style={{
+                                        backgroundImage: "linear-gradient(135deg, #fee2e2 0%, #fca5a5 33%, #ef4444 66%, #dc2626 100%)",
+                                        backgroundSize: "200% 200%",
+                                        WebkitBackgroundClip: "text",
+                                        WebkitTextFillColor: "transparent",
+                                        animation: "shimmer 3s ease-in-out infinite",
+                                    }}
+                                >
+                                    Broken?
+                                </span>
                             </motion.span>
                             <motion.span
                                 initial={{ width: 0 }}

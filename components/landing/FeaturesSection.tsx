@@ -79,7 +79,16 @@ export function FeaturesSection() {
                         transition={{ duration: 0.8, delay: 0.2 }}
                         className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-6 tracking-tight text-foreground font-heading"
                     >
-                        Why teams choose <span className="text-primary font-bold">Olympus Echo?</span>
+                        Why teams choose <span 
+                            className="font-semibold"
+                            style={{
+                                backgroundImage: "linear-gradient(135deg, #ffedd5 0%, #fb923c 33%, #ea580c 66%, #7c2d12 100%)",
+                                backgroundSize: "200% 200%",
+                                WebkitBackgroundClip: "text",
+                                WebkitTextFillColor: "transparent",
+                                animation: "shimmer 3s ease-in-out infinite",
+                            }}
+                        >Olympus Echo?</span>
                     </motion.h2>
                     <motion.p 
                         initial={{ opacity: 0 }}
@@ -104,11 +113,7 @@ export function FeaturesSection() {
                                 y: -8,
                                 transition: { duration: 0.3 }
                             }}
-                            className={`group relative p-6 md:p-8 rounded-[2.5rem] border transition-all duration-300 backdrop-blur-sm ${
-                                feature.highlight
-                                    ? "bg-primary/[0.05] border-primary/40 ring-1 ring-primary/20 shadow-2xl shadow-primary/10 dark:bg-primary/[0.08]"
-                                    : "bg-card/40 border-border/50 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5"
-                                }`}
+                            className="group relative p-6 md:p-8 rounded-[2.5rem] border transition-all duration-300 backdrop-blur-sm bg-card/40 border-border/50 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5"
                         >
                             <div className={`w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center mb-6 md:mb-8 transition-all duration-300 group-hover:scale-110 ${
                                 feature.highlight 

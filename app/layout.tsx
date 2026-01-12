@@ -14,6 +14,11 @@ const poppins = Poppins({
 export const metadata: Metadata = {
   title: "OlympusEcho | Voice AI Testing Platform",
   description: "Advanced Voice AI testing platform inspired by Hamming.ai",
+  icons: {
+    icon: "/olympus.png",
+    shortcut: "/olympus.png",
+    apple: "/olympus.png",
+  },
 };
 
 export default function RootLayout({

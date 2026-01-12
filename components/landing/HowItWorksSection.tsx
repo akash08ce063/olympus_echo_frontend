@@ -63,9 +63,18 @@ export function HowItWorksSection() {
                             initial={{ opacity: 0 }}
                             animate={isInView ? { opacity: 1 } : {}}
                             transition={{ duration: 0.8, delay: 0.2 }}
-                            className="text-3xl sm:text-4xl md:text-5xl font-black mb-6 md:mb-8 tracking-tight text-foreground font-heading leading-tight"
+                            className="text-3xl sm:text-4xl md:text-5xl font-bold mb-6 md:mb-8 tracking-tight text-foreground font-heading leading-tight"
                         >
-                            How it works — in <br/><span className="text-primary">4 simple steps</span>
+                            How it works — in <br/><span 
+                                className="font-semibold"
+                                style={{
+                                    backgroundImage: "linear-gradient(135deg, #ffedd5 0%, #fb923c 33%, #ea580c 66%, #7c2d12 100%)",
+                                    backgroundSize: "200% 200%",
+                                    WebkitBackgroundClip: "text",
+                                    WebkitTextFillColor: "transparent",
+                                    animation: "shimmer 3s ease-in-out infinite",
+                                }}
+                            >4 simple steps</span>
                         </motion.h2>
                         <motion.p 
                             initial={{ opacity: 0 }}

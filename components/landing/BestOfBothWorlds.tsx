@@ -41,6 +41,14 @@ export function BestOfBothWorlds() {
                             whileInView={{ opacity: 1 }}
                             viewport={{ once: true }}
                             transition={{ duration: 0.6, delay: 0.2 }}
+                            className="font-semibold"
+                            style={{
+                                backgroundImage: "linear-gradient(135deg, #ffedd5 0%, #fb923c 33%, #ea580c 66%, #7c2d12 100%)",
+                                backgroundSize: "200% 200%",
+                                WebkitBackgroundClip: "text",
+                                WebkitTextFillColor: "transparent",
+                                animation: "shimmer 3s ease-in-out infinite",
+                            }}
                     >
                         Olympus Echo
                         </motion.span>
@@ -69,7 +77,7 @@ export function BestOfBothWorlds() {
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true, margin: "-100px" }}
                         transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
-                        className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 tracking-tight text-primary font-heading"
+                        className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 tracking-tight text-foreground font-heading"
                     >
                         The Best of Both Worlds.
                     </motion.h3>

@@ -76,7 +76,6 @@ export function HeroSection() {
                                             backgroundSize: "200% 200%",
                                             WebkitBackgroundClip: "text",
                                             WebkitTextFillColor: "transparent",
-                                            filter: "blur(0.2px)",
                                             animation: "shimmer 3s ease-in-out infinite",
                                         }}
                                     >
@@ -148,7 +147,6 @@ export function HeroSection() {
                                             backgroundSize: "200% 200%",
                                             WebkitBackgroundClip: "text",
                                             WebkitTextFillColor: "transparent",
-                                            filter: "blur(0.2px)",
                                             animation: "shimmer 3s ease-in-out infinite",
                                         }}
                                     >
@@ -215,7 +213,16 @@ export function HeroSection() {
                             transition={{ duration: 0.8, delay: 3.2 }}
                             className="flex flex-col items-center justify-center bg-background/95 backdrop-blur-xl px-8 py-6 rounded-3xl border border-primary/50 shadow-[0_24px_48px_-12px_rgba(var(--primary),0.18)] min-w-[200px] md:min-w-[220px] lg:min-w-[240px]"
                         >
-                            <span className="text-xl md:text-2xl lg:text-3xl font-extrabold text-primary leading-none tracking-tighter">
+                            <span 
+                                className="text-xl md:text-2xl lg:text-3xl font-semibold leading-none tracking-tighter"
+                                style={{
+                                    backgroundImage: orangeGradient,
+                                    backgroundSize: "200% 200%",
+                                    WebkitBackgroundClip: "text",
+                                    WebkitTextFillColor: "transparent",
+                                    animation: "shimmer 3s ease-in-out infinite",
+                                }}
+                            >
                                 Olympus Echo
                             </span>
                             <span className="text-xs md:text-sm lg:text-base font-semibold text-muted-foreground/80 uppercase tracking-[0.33em] mt-4">
@@ -241,7 +248,16 @@ export function HeroSection() {
                             transition={{ duration: 0.8, delay: 3.6 }}
                             className="flex flex-col items-center justify-center bg-background/95 backdrop-blur-xl px-8 py-6 rounded-3xl border border-primary/50 shadow-[0_24px_48px_-12px_rgba(var(--primary),0.18)] min-w-[200px] md:min-w-[220px] lg:min-w-[240px]"
                         >
-                            <span className="text-xl md:text-2xl lg:text-3xl font-extrabold text-primary leading-none tracking-tighter">
+                            <span 
+                                className="text-xl md:text-2xl lg:text-3xl font-semibold leading-none tracking-tighter"
+                                style={{
+                                    backgroundImage: orangeGradient,
+                                    backgroundSize: "200% 200%",
+                                    WebkitBackgroundClip: "text",
+                                    WebkitTextFillColor: "transparent",
+                                    animation: "shimmer 3s ease-in-out infinite",
+                                }}
+                            >
                                 Human-in-the-loop
                             </span>
                             <span className="text-xs md:text-sm lg:text-base font-semibold text-muted-foreground/80 uppercase tracking-[0.33em] mt-4">
