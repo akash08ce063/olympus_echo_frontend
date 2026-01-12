@@ -1,5 +1,6 @@
 import apiClient from "@/lib/api/axios";
 import { TESTSUITS } from "@/lib/api/apiConstant";
+import { v4 as uuidv4 } from "uuid";
 
 export interface TestSuite {
     id: string;
@@ -49,15 +50,41 @@ export const TestSuitesService = {
         apiClient.delete(TESTSUITS.test_suit.delete(id)),
 
     // Run a test suite
-    runTestSuite: (testSuiteId: string, userId: string, concurrentCalls: number = 1, executionMode: "sequential" | "parallel" = "sequential") =>
-        apiClient.post(TESTSUITS.run_test.runAll(testSuiteId, userId), {
-            concurrent_calls: concurrentCalls,
-            execution_mode: executionMode
-        }),
+    runTestSuite: (testSuiteId: string, userId: string, concurrentCalls: number = 1, executionMode: "sequential" | "parallel" = "sequential") => {
+        // Generate multiple request IDs (one per concurrent call) and send as comma-separated
+        const requestIds = Array.from({ length: concurrentCalls }, () => uuidv4());
+        const requestIdsHeader = requestIds.join(",");
+        
+        return apiClient.post(
+            TESTSUITS.run_test.runAll(testSuiteId, userId),
+            {
+                concurrent_calls: concurrentCalls,
+                execution_mode: executionMode
+            },
+            {
+                headers: {
+                    "x-pranthora-callid": requestIdsHeader
+                }
+            }
+        );
+    },
 
     // Run a single test case
-    runSingleTest: (testCaseId: string, userId: string, concurrentCalls: number = 1) =>
-        apiClient.post(TESTSUITS.run_test.runSingleTest(testCaseId, userId), { concurrent_calls: concurrentCalls }),
+    runSingleTest: (testCaseId: string, userId: string, concurrentCalls: number = 1) => {
+        // Generate multiple request IDs (one per concurrent call) and send as comma-separated
+        const requestIds = Array.from({ length: concurrentCalls }, () => uuidv4());
+        const requestIdsHeader = requestIds.join(",");
+        
+        return apiClient.post(
+            TESTSUITS.run_test.runSingleTest(testCaseId, userId),
+            { concurrent_calls: concurrentCalls },
+            {
+                headers: {
+                    "x-pranthora-callid": requestIdsHeader
+                }
+            }
+        );
+    },
 
     // Get all test runs
     getAllRuns: (userId: string) =>

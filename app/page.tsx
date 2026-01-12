@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Menu, Shield, Globe, Github, Twitter, Linkedin, ExternalLink } from 'lucide-react'
 import { motion, useScroll, useSpring } from 'framer-motion'
 
@@ -15,22 +16,7 @@ import { BestOfBothWorlds } from '@/components/landing/BestOfBothWorlds'
 import { FeaturesSection } from '@/components/landing/FeaturesSection'
 import { HowItWorksSection } from '@/components/landing/HowItWorksSection'
 
-// Custom Trident Icon for the logo
-const TridentIcon = ({ className }: { className?: string }) => (
-  <svg 
-    viewBox="0 0 24 24" 
-    fill="none" 
-    stroke="currentColor" 
-    strokeWidth="2.5" 
-    strokeLinecap="round" 
-    strokeLinejoin="round" 
-    className={className}
-  >
-    <path d="M12 2v20" />
-    <path d="M5 2c0 4 2 6 7 6s7-2 7-6" />
-    <path d="M12 8V2" />
-  </svg>
-)
+const orangeGradient = "linear-gradient(135deg, #ffedd5 0%, #fb923c 33%, #ea580c 66%, #7c2d12 100%)"
 
 export default function LandingPage() {
   const { scrollYProgress } = useScroll()
@@ -58,31 +44,35 @@ export default function LandingPage() {
       >
         <div className="container mx-auto flex items-center justify-between">
           <Link className="flex items-center justify-center gap-2.5 group z-50 relative" href="#">
-            <motion.div 
-              className="size-9 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors shadow-inner"
-              whileHover={{ scale: 1.1, rotate: 5 }}
-              transition={{ duration: 0.2 }}
-            >
-              <TridentIcon className="size-5 text-primary" />
-            </motion.div>
+
+              <Image 
+                src="/olympus.png" 
+                alt="Olympus Echo Logo" 
+                width={30} 
+                height={30} 
+                className="object-contain"
+              />
+
             <div className="flex flex-col">
-              <motion.span 
-                className="font-bold text-xl font-heading tracking-tighter leading-none"
+              <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.2 }}
+                className="relative h-6 w-auto"
               >
-                Olympus Echo
-              </motion.span>
-              <span className="text-[8px] font-black uppercase tracking-[0.3em] text-primary/60 leading-none mt-1">Testing Framework</span>
+                <Image 
+                  src="/text.png" 
+                  alt="Olympus Echo" 
+                  width={120} 
+                  height={24} 
+                  className="object-contain h-full w-auto"
+                />
+              </motion.div>
             </div>
           </Link>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex gap-10 items-center">
-            <Link className="text-sm font-semibold hover:text-primary transition-colors tracking-tight" href="/#features">
-              Features
-            </Link>
             <Link className="text-sm font-semibold hover:text-primary transition-colors tracking-tight" href="/login">
               Login
             </Link>
@@ -102,10 +92,24 @@ export default function LandingPage() {
               <SheetContent side="right" className="w-[80vw] sm:w-[350px] p-0 border-l border-border/50">
                 <SheetHeader className="p-6 border-b border-border/50 text-left">
                   <SheetTitle className="flex items-center gap-3">
-                    <div className="size-9 rounded-xl bg-primary/10 flex items-center justify-center">
-                      <TridentIcon className="size-5 text-primary" />
+
+                      <Image 
+                        src="/olympus.png" 
+                        alt="Olympus Echo Logo" 
+                        width={40} 
+                        height={40} 
+                        className="object-contain"
+                      />
+
+                    <div className="relative h-6 w-auto">
+                      <Image 
+                        src="/text.png" 
+                        alt="Olympus Echo" 
+                        width={120} 
+                        height={24} 
+                        className="object-contain h-full w-auto"
+                      />
                     </div>
-                    <span className="font-heading font-bold">OlympusEcho</span>
                   </SheetTitle>
                 </SheetHeader>
                 <div className="flex flex-col p-6 space-y-6">
@@ -154,10 +158,24 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-20">
             <div className="col-span-1 md:col-span-2">
               <Link className="flex items-center gap-3 group mb-6" href="#">
-                <div className="size-10 rounded-2xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors shadow-inner">
-                  <TridentIcon className="size-6 text-primary" />
+
+                  <Image 
+                    src="/olympus.png" 
+                    alt="Olympus Echo Logo" 
+                    width={60} 
+                    height={60} 
+                    className="object-contain"
+                  />
+
+                <div className="relative h-7 w-auto">
+                  <Image 
+                    src="/text.png" 
+                    alt="Olympus Echo" 
+                    width={140} 
+                    height={28} 
+                    className="object-contain h-full w-auto"
+                  />
                 </div>
-                <span className="font-bold text-2xl font-heading tracking-tighter">Olympus Echo</span>
               </Link>
               <p className="text-muted-foreground text-lg leading-relaxed max-w-sm mb-8">
                 The definitive testing framework for high-stakes Voice AI applications. 
