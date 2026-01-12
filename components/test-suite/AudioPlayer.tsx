@@ -67,18 +67,21 @@ export function AudioPlayer({ url, className }: AudioPlayerProps) {
         return `${minutes}:${seconds.toString().padStart(2, "0")}`
     }
 
-    const handleDownload = async () => {
+    const handleDownload = () => {
         try {
-            const response = await fetch(url)
-            const blob = await response.blob()
-            const blobUrl = window.URL.createObjectURL(blob)
+            // Extract filename from URL (remove query parameters first)
+            const urlWithoutQuery = url.split("?")[0]
+            const filename = urlWithoutQuery.split("/").pop() || "audio.wav"
+            
+            // Use direct download link - browser handles it natively (faster, no memory issues)
             const link = document.createElement("a")
-            link.href = blobUrl
-            link.download = url.split("/").pop() || "audio.mp3"
+            link.href = url
+            link.download = filename
+            link.target = "_blank"
+            link.rel = "noopener noreferrer"
             document.body.appendChild(link)
             link.click()
             document.body.removeChild(link)
-            window.URL.revokeObjectURL(blobUrl)
         } catch (err) {
             console.error("Failed to download audio:", err)
         }
