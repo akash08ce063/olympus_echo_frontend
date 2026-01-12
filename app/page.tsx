@@ -182,13 +182,13 @@ export default function LandingPage() {
                 Move fast without breaking customer trust.
               </p>
               <div className="flex gap-5">
-                <Link href="#" className="p-2.5 rounded-xl bg-muted/50 hover:bg-primary/10 hover:text-primary transition-all">
+                <Link href="#" className="p-2.5 rounded-xl bg-muted hover:bg-primary/10 hover:text-primary transition-all">
                   <Twitter className="size-5" />
                 </Link>
-                <Link href="#" className="p-2.5 rounded-xl bg-muted/50 hover:bg-primary/10 hover:text-primary transition-all">
+                <Link href="#" className="p-2.5 rounded-xl bg-muted hover:bg-primary/10 hover:text-primary transition-all">
                   <Linkedin className="size-5" />
             </Link>
-                <Link href="#" className="p-2.5 rounded-xl bg-muted/50 hover:bg-primary/10 hover:text-primary transition-all">
+                <Link href="#" className="p-2.5 rounded-xl bg-muted hover:bg-primary/10 hover:text-primary transition-all">
                   <Github className="size-5" />
             </Link>
               </div>

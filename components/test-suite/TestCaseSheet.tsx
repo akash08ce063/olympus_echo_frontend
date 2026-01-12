@@ -146,7 +146,7 @@ export function TestCaseSheet({ isOpen, onClose, onSave, initialData, testSuiteI
                         {initialData ? "Edit Test Case" : "Add New Test Case"}
                     </DialogTitle>
                     <DialogDescription className="text-muted-foreground mt-1">
-                        Configure your test scenario's goals and evaluation criteria for reliable agent assessment.
+                        Configure your test scenario&apos;s goals and evaluation criteria for reliable agent assessment.
                     </DialogDescription>
                 </DialogHeader>
 
