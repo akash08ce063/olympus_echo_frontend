@@ -694,7 +694,7 @@ export function TestSuitesContent() {
 
                     {/* Header */}
                     {(isLoading || isDetailsLoading) ? (
-                        <div className="h-16 border-b border-border/50 flex items-center justify-between px-6 bg-card/30 backdrop-blur-sm z-10">
+                        <div className="h-16 border-b border-border/50 flex items-center justify-between px-6 bg-card backdrop-blur-sm z-10">
                             <div className="space-y-2">
                                 <Skeleton className="h-6 w-48" />
                                 <Skeleton className="h-3 w-64" />
@@ -705,7 +705,7 @@ export function TestSuitesContent() {
                             </div>
                         </div>
                     ) : (suites.length > 0 && (
-                        <div className="h-16 border-b border-border/50 flex items-center justify-between px-6 bg-card/30 backdrop-blur-sm z-10">
+                        <div className="h-16 border-b border-border/50 flex items-center justify-between px-6 bg-card backdrop-blur-sm z-10">
                             <div className="space-y-0.5">
                                 <div className="flex items-center gap-3">
                                     <h1 className="text-xl font-semibold tracking-tight">{selectedSuiteDetails?.name || selectedSuite?.name || "Select a Suite"}</h1>
@@ -795,7 +795,7 @@ export function TestSuitesContent() {
 
                                     <div className="flex flex-col lg:flex-row items-center gap-6 lg:gap-8">
                                         {/* Tester Assistant Skeleton */}
-                                        <div className="bg-card/30 border border-border/50 rounded-lg p-6 space-y-4 flex-1 w-full">
+                                        <div className="bg-card border border-border/50 rounded-lg p-6 space-y-4 flex-1 w-full">
                                             <div className="flex items-start gap-3">
                                                 <Skeleton className="w-10 h-10 rounded-lg" />
                                                 <div className="space-y-2">
@@ -816,7 +816,7 @@ export function TestSuitesContent() {
                                         </div>
 
                                         {/* Target Assistant Skeleton */}
-                                        <div className="bg-card/30 border border-border/50 rounded-lg p-6 space-y-4 flex-1 w-full">
+                                        <div className="bg-card border border-border/50 rounded-lg p-6 space-y-4 flex-1 w-full">
                                             <div className="flex items-start gap-3">
                                                 <Skeleton className="w-10 h-10 rounded-lg" />
                                                 <div className="space-y-2">
@@ -833,7 +833,7 @@ export function TestSuitesContent() {
                                     </div>
 
                                     {/* Test Cases Skeleton */}
-                                    <div className="bg-card/30 border border-border/50 rounded-lg p-6 space-y-6">
+                                    <div className="bg-card border border-border/50 rounded-lg p-6 space-y-6">
                                         <div className="flex items-center justify-between">
                                             <div className="space-y-1">
                                                 <Skeleton className="h-6 w-32" />
@@ -916,7 +916,7 @@ export function TestSuitesContent() {
                                         {/* Assistants Config Flow */}
                                         <div className="flex flex-col lg:flex-row lg:items-stretch items-center gap-6 lg:gap-8">
                                             {/* Tester Assistant */}
-                                            <Card className="bg-card/30 border-border/50 hover:border-primary/30 transition-all duration-300 group flex-1 w-full lg:w-auto flex flex-col">
+                                            <Card className="bg-card border-border/50 hover:border-primary/30 transition-all duration-300 group flex-1 w-full lg:w-auto flex flex-col">
                                                 <CardHeader className="pb-4 shrink-0">
                                                     <div className="flex items-start gap-3">
                                                         <div className="p-2 rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-300">
@@ -979,7 +979,7 @@ export function TestSuitesContent() {
                                             </div>
 
                                             {/* Target Assistant */}
-                                            <Card className="bg-card/30 border-border/50 hover:border-primary/30 transition-all duration-300 group flex-1 w-full lg:w-auto flex flex-col">
+                                            <Card className="bg-card border-border/50 hover:border-primary/30 transition-all duration-300 group flex-1 w-full lg:w-auto flex flex-col">
                                                 <CardHeader className="pb-4 shrink-0">
                                                     <div className="flex items-start gap-3">
                                                         <div className="p-2 rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-300">
@@ -1083,7 +1083,7 @@ export function TestSuitesContent() {
                                                         </div>
                                                     </div>
 
-                                                    <Card className="bg-card/30 border-border/50 overflow-hidden min-w-0 w-full">
+                                                    <Card className="bg-card border-border/50 overflow-hidden min-w-0 w-full">
                                                         <CardContent className="p-0">
                                                             <RunHistoryTable
                                                                 runs={apiRuns.filter(run => run.test_suite_id === selectedSuiteId)}

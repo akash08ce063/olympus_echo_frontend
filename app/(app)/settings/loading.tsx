@@ -12,7 +12,7 @@ export default function SettingsLoading() {
       {/* Settings Sections */}
       <div className="space-y-6">
         {[1, 2, 3, 4].map((section) => (
-          <div key={section} className="bg-card/30 border border-border/50 rounded-lg p-6 space-y-4">
+          <div key={section} className="bg-card border border-border/50 rounded-lg p-6 space-y-4">
             <Skeleton className="h-6 w-32" />
             <div className="space-y-4">
               {[1, 2, 3].map((item) => (

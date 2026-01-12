@@ -111,7 +111,7 @@ export function DataTable<TData, TValue>({
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id} className="border-border/50 hover:bg-transparent bg-muted/30">
+              <TableRow key={headerGroup.id} className="border-border hover:bg-transparent bg-muted">
                 {headerGroup.headers.map((header) => {
                   return (
                     <TableHead key={header.id} className="font-semibold text-foreground text-sm py-3 px-4">
