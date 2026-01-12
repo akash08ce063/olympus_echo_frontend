@@ -27,26 +27,26 @@
   --color-chart-3: hsl(var(--chart-3));
   --color-chart-4: hsl(var(--chart-4));
   --color-chart-5: hsl(var(--chart-5));
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 0.5rem);
+  --radius-md: calc(var(--radius) - 0.25rem);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
-  --radius-3xl: calc(var(--radius) + 12px);
-  --radius-4xl: calc(var(--radius) + 16px);
+  --radius-xl: calc(var(--radius) + 0.25px);
+  --radius-2xl: calc(var(--radius) + 0.5rem);
+  --radius-3xl: calc(var(--radius) + 0.75rem);
+  --radius-4xl: calc(var(--radius) + 1rem);
   --font-sans: 'Poppins', var(--font-inter);
   --font-heading: var(--font-space);
 }
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    --background: 0 0% 85%;
     --foreground: 20 14.3% 4.1%;
-    --card: 0 0% 100%;
+    --card: 24.6 75% 90%;
     --card-foreground: 20 14.3% 4.1%;
     --popover: 0 0% 100%;
     --popover-foreground: 20 14.3% 4.1%;
-    --primary: 24.6 95% 53.1%;
+    --primary: 24.6 65% 53.1%;
     --primary-foreground: 60 9.1% 97.8%;
     --secondary: 60 4.8% 95.9%;
     --secondary-foreground: 24 9.8% 10%;
@@ -56,10 +56,10 @@
     --accent-foreground: 24 9.8% 10%;
   --destructive: 0 75% 55%;
     --destructive-foreground: 60 9.1% 97.8%;
-    --border: 20 5.9% 90%;
+    --border: 20 5.9% 75%;
     --input: 20 5.9% 90%;
     --ring: 24.6 95% 53.1%;
-    --radius: 0.5rem;
+    --radius: 1rem;
     --chart-1: 12 76% 61%;
     --chart-2: 173 58% 39%;
     --chart-3: 197 37% 24%;
@@ -68,13 +68,13 @@
   }
 
   .dark {
-    --background: 20 14.3% 8%;
+    --background: 0 0% 15%;
     --foreground: 60 9.1% 97.8%;
-    --card: 20 14.3% 12%;
+    --card: 0 0% 45%;
     --card-foreground: 60 9.1% 97.8%;
     --popover: 20 14.3% 12%;
     --popover-foreground: 60 9.1% 97.8%;
-    --primary: 20.5 90.2% 48.2%;
+    --primary: 20.5 65% 48.2%;
     --primary-foreground: 60 9.1% 97.8%;
     --secondary: 12 6.5% 18%;
     --secondary-foreground: 60 9.1% 97.8%;
