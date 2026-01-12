@@ -53,9 +53,9 @@ export default function TesterAgentsPage() {
     const [isDeletingAgent, setIsDeletingAgent] = useState(false)
     const [agentToDelete, setAgentToDelete] = useState<Assistant | null>(null)
 
-    const fetchAgents = useCallback(async () => {
+    const fetchAgents = useCallback(async (silent = false) => {
         if (!user?.id) return
-        setIsLoading(true)
+        if (!silent) setIsLoading(true)
         try {
             const response = await TargetAgentsService.getTargetAgents(user.id) as any
             const agentsList = response?.target_agents || []
@@ -87,7 +87,7 @@ export default function TesterAgentsPage() {
     }, [fetchAgents])
 
     const handleAddAssistant = (newAssistant: Assistant) => {
-        fetchAgents() // Re-fetch all agents from the backend to ensure consistency
+        fetchAgents(true) // Re-fetch all agents from the backend to ensure consistency
         setEditingAssistant(null)
         setIsAddDialogOpen(false)
     }

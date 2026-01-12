@@ -59,9 +59,9 @@ export default function UserAgentsPage() {
     const [isDeletingAgent, setIsDeletingAgent] = useState(false)
     const [agentToDelete, setAgentToDelete] = useState<Assistant | null>(null)
 
-    const fetchAgents = useCallback(async () => {
+    const fetchAgents = useCallback(async (silent = false) => {
         if (!user?.id) return
-        setIsLoading(true)
+        if (!silent) setIsLoading(true)
         try {
             const response = await UserAgentsService.getUserAgents(user.id) as any
             const agentsList = response?.user_agents || []
@@ -92,7 +92,7 @@ export default function UserAgentsPage() {
     }, [fetchAgents])
 
     const handleAddAssistant = (newAssistant: Assistant) => {
-        fetchAgents() // Re-fetch all agents from the backend to ensure consistency
+        fetchAgents(true) // Re-fetch all agents from the backend to ensure consistency
         setEditingAssistant(null)
         setIsAddDialogOpen(false)
     }
@@ -257,7 +257,7 @@ export default function UserAgentsPage() {
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                            <AlertDialogCancel disabled={isDeletingAgent} onClick={()=> setIsDeleteAgentOpen(false) }>Cancel</AlertDialogCancel>
+                            <AlertDialogCancel disabled={isDeletingAgent} onClick={() => setIsDeleteAgentOpen(false)}>Cancel</AlertDialogCancel>
                             <Button
                                 onClick={handleDeleteAssistant}
                                 disabled={isDeletingAgent}
