@@ -381,19 +381,19 @@ function TestSuitesPageLegacy() {
                             </CardHeader>
                             <CardContent>
                                 <Tabs defaultValue="configure" className="space-y-6">
-                                    <TabsList className="bg-muted p-1 border border-border">
+                                    <TabsList className="bg-muted p-4 border border-border">
                                         <TabsTrigger
                                             value="configure"
-                                            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm transition-all duration-200"
+                                            className="p-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm transition-all duration-200"
                                         >
-                                            <Settings className="w-4 h-4 mr-2" />
+                                            <Settings />
                                             Configure Tests
                                         </TabsTrigger>
                                         <TabsTrigger
                                             value="runs"
-                                            className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all duration-200"
+                                            className="p-4 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all duration-200"
                                         >
-                                            <Play className="w-4 h-4 mr-2" />
+                                            <Play />
                                             Runs
                                         </TabsTrigger>
                                     </TabsList>

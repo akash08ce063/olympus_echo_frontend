@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Play, Pause, Volume2, Loader2, XCircle } from "lucide-react"
+import { Play, Pause, Download, Loader2, XCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
@@ -67,6 +67,23 @@ export function AudioPlayer({ url, className }: AudioPlayerProps) {
         return `${minutes}:${seconds.toString().padStart(2, "0")}`
     }
 
+    const handleDownload = async () => {
+        try {
+            const response = await fetch(url)
+            const blob = await response.blob()
+            const blobUrl = window.URL.createObjectURL(blob)
+            const link = document.createElement("a")
+            link.href = blobUrl
+            link.download = url.split("/").pop() || "audio.mp3"
+            document.body.appendChild(link)
+            link.click()
+            document.body.removeChild(link)
+            window.URL.revokeObjectURL(blobUrl)
+        } catch (err) {
+            console.error("Failed to download audio:", err)
+        }
+    }
+
     return (
         <div className={cn("flex flex-col gap-1 bg-muted rounded-lg p-3 border min-w-[200px]", className)}>
             <div className="flex items-center gap-3">
@@ -117,7 +134,19 @@ export function AudioPlayer({ url, className }: AudioPlayerProps) {
                     />
                 </div>
 
-                <Volume2 className={cn("h-4 w-4 shrink-0 transition-opacity", error ? "opacity-20" : "text-muted-foreground")} />
+                <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8 shrink-0"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        handleDownload();
+                    }}
+                    disabled={!!error}
+                    title="Download audio"
+                >
+                    <Download className={cn("h-4 w-4 transition-opacity", error ? "opacity-20" : "text-muted-foreground")} />
+                </Button>
             </div>
             <div className="flex justify-between text-[10px] text-muted-foreground font-mono px-11">
                 {error ? (
