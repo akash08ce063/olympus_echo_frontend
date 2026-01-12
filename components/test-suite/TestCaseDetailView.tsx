@@ -92,7 +92,7 @@ export function TestCaseDetailView({
                         <div className="text-xs text-muted-foreground font-medium">
                             Recording:
                         </div>
-                        <div className="bg-background/50 border border-border/30 rounded p-3">
+                        <div>
                             <AudioPlayer url={currentCall.recording_url} className="bg-background/50" />
                         </div>
                     </div>
