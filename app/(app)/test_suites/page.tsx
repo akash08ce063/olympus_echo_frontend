@@ -384,14 +384,14 @@ function TestSuitesPageLegacy() {
                                     <TabsList className="bg-muted p-4 border border-border">
                                         <TabsTrigger
                                             value="configure"
-                                            className="p-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm transition-all duration-200"
+                                            className="p-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground dark:data-[state=active]:bg-primary dark:data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm transition-all duration-200"
                                         >
                                             <Settings />
                                             Configure Tests
                                         </TabsTrigger>
                                         <TabsTrigger
                                             value="runs"
-                                            className="p-4 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all duration-200"
+                                            className="p-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground dark:data-[state=active]:bg-primary dark:data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm transition-all duration-200"
                                         >
                                             <Play />
                                             Runs

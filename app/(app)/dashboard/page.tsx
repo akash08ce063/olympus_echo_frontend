@@ -358,7 +358,7 @@ export default function DashboardPage() {
                                 <Bot className="mr-2 h-4 w-4" />
                                 Create Agent
                             </Button>
-                            <Button variant="secondary" className="w-full justify-start" onClick={() => router.push('/history')}>
+                            <Button variant="outline" className="w-full justify-start" onClick={() => router.push('/history')}>
                                 <BarChart3 className="mr-2 h-4 w-4" />
                                 View Analytics
                             </Button>

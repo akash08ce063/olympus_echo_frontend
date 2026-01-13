@@ -884,7 +884,6 @@ export function TestSuitesContent() {
                             <div className="p-6 lg:p-8 space-y-8">
                                 <Tabs
                                     value={activeTab}
-                                    className="space-y-6"
                                     onValueChange={(value) => {
                                         setActiveTab(value);
                                         // Reset detail views when switching tabs
@@ -894,19 +893,19 @@ export function TestSuitesContent() {
                                         }
                                     }}
                                 >
-                                    <TabsList className="bg-muted/30 p-1 border border-border/50 inline-flex">
+                                    <TabsList className="bg-muted p-1 inline-flex border inset-shadow-sm">
                                         <TabsTrigger
                                             value="configure"
-                                            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm transition-all duration-200"
+                                            className="p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground dark:data-[state=active]:bg-primary dark:data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm border-0 transition-all duration-200"
                                         >
-                                            <Settings className="w-4 h-4 mr-2" />
+                                            <Settings className="w-4 h-4" />
                                             Configure Tests
                                         </TabsTrigger>
                                         <TabsTrigger
                                             value="runs"
-                                            className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all duration-200"
+                                            className="p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground dark:data-[state=active]:bg-primary dark:data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm border-0 transition-all duration-200"
                                         >
-                                            <Play className="w-4 h-4 mr-2" />
+                                            <Play className="w-4 h-4" />
                                             Runs
                                         </TabsTrigger>
                                     </TabsList>
