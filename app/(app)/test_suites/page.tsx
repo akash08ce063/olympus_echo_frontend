@@ -381,17 +381,17 @@ function TestSuitesPageLegacy() {
                             </CardHeader>
                             <CardContent>
                                 <Tabs defaultValue="configure" className="space-y-6">
-                                    <TabsList className="bg-muted p-4 border border-border">
+                                    <TabsList className="bg-muted p-1.5 border border-border rounded-full">
                                         <TabsTrigger
                                             value="configure"
-                                            className="p-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground dark:data-[state=active]:bg-primary dark:data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm transition-all duration-200"
+                                            className="p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground dark:data-[state=active]:bg-primary dark:data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm transition-all duration-200"
                                         >
                                             <Settings />
                                             Configure Tests
                                         </TabsTrigger>
                                         <TabsTrigger
                                             value="runs"
-                                            className="p-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground dark:data-[state=active]:bg-primary dark:data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm transition-all duration-200"
+                                            className="p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground dark:data-[state=active]:bg-primary dark:data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm transition-all duration-200"
                                         >
                                             <Play />
                                             Runs

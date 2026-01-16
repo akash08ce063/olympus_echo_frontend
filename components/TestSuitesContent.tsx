@@ -893,7 +893,7 @@ export function TestSuitesContent() {
                                         }
                                     }}
                                 >
-                                    <TabsList className="bg-muted p-1 inline-flex border inset-shadow-sm">
+                                    <TabsList className="bg-muted p-1.5 inline-flex border rounded-full inset-shadow-sm">
                                         <TabsTrigger
                                             value="configure"
                                             className="p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground dark:data-[state=active]:bg-primary dark:data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm border-0 transition-all duration-200"
