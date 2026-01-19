@@ -12,7 +12,7 @@ export default function DashboardLoading() {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="bg-card/30 border border-border/50 rounded-lg p-6 space-y-4">
+          <div key={i} className="bg-card border border-border/50 rounded-lg p-6 space-y-4">
             <div className="flex items-center justify-between">
               <Skeleton className="h-4 w-24" />
               <Skeleton className="w-8 h-8 rounded" />
@@ -25,18 +25,18 @@ export default function DashboardLoading() {
 
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-card/30 border border-border/50 rounded-lg p-6 space-y-4">
+        <div className="bg-card border border-border/50 rounded-lg p-6 space-y-4">
           <Skeleton className="h-6 w-32" />
           <Skeleton className="h-64 w-full" />
         </div>
-        <div className="bg-card/30 border border-border/50 rounded-lg p-6 space-y-4">
+        <div className="bg-card border border-border/50 rounded-lg p-6 space-y-4">
           <Skeleton className="h-6 w-32" />
           <Skeleton className="h-64 w-full" />
         </div>
       </div>
 
       {/* Recent Activity */}
-      <div className="bg-card/30 border border-border/50 rounded-lg p-6 space-y-4">
+      <div className="bg-card border border-border/50 rounded-lg p-6 space-y-4">
         <Skeleton className="h-6 w-32" />
         <div className="space-y-3">
           {[1, 2, 3, 4, 5].map((i) => (

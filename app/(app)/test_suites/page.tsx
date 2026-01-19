@@ -381,19 +381,19 @@ function TestSuitesPageLegacy() {
                             </CardHeader>
                             <CardContent>
                                 <Tabs defaultValue="configure" className="space-y-6">
-                                    <TabsList className="bg-muted/30 p-1 border border-border/50">
+                                    <TabsList className="bg-muted p-1.5 border border-border rounded-full">
                                         <TabsTrigger
                                             value="configure"
-                                            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm transition-all duration-200"
+                                            className="p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground dark:data-[state=active]:bg-primary dark:data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm transition-all duration-200"
                                         >
-                                            <Settings className="w-4 h-4 mr-2" />
+                                            <Settings />
                                             Configure Tests
                                         </TabsTrigger>
                                         <TabsTrigger
                                             value="runs"
-                                            className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all duration-200"
+                                            className="p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground dark:data-[state=active]:bg-primary dark:data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm transition-all duration-200"
                                         >
-                                            <Play className="w-4 h-4 mr-2" />
+                                            <Play />
                                             Runs
                                         </TabsTrigger>
                                     </TabsList>
@@ -405,7 +405,7 @@ function TestSuitesPageLegacy() {
                                             <div className="space-y-3">
                                                 <Label className="text-sm text-muted-foreground">Testing Mode</Label>
                                                 <Select defaultValue="chat">
-                                                    <SelectTrigger className="w-full max-w-xs bg-card/50 border-border/50">
+                                                    <SelectTrigger className="w-full max-w-xs bg-card border-border">
                                                         <div className="flex items-center gap-2">
                                                             <MessageSquare className="w-4 h-4 text-muted-foreground" />
                                                             <SelectValue />

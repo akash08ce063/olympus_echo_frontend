@@ -28,7 +28,7 @@ export function TranscriptView({
                 <MessageSquare className="w-4 h-4 text-primary" />
                 <h4 className="text-sm font-semibold">Conversation Transcript</h4>
             </div>
-            <Card className="bg-card/30 border-border/50 overflow-hidden">
+            <Card className="bg-card border-border/50 overflow-hidden">
                 <CardContent className="p-0">
                     {hasTranscript ? (
                         <ScrollArea className="h-[calc(100vh-20rem)]">

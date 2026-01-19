@@ -4,7 +4,7 @@ export default function TestSuitesLoading() {
   return (
     <div className="h-full flex">
       {/* Sidebar Skeleton */}
-      <div className="w-80 border-r border-border/50 bg-card/30 p-4">
+      <div className="w-80 border-r border-border/50 bg-card p-4">
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <Skeleton className="h-6 w-32" />
@@ -36,7 +36,7 @@ export default function TestSuitesLoading() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Target Agent Card */}
-          <div className="bg-card/30 border border-border/50 rounded-lg p-6 space-y-4">
+          <div className="bg-card border border-border/50 rounded-lg p-6 space-y-4">
             <div className="flex items-start gap-3">
               <Skeleton className="w-10 h-10 rounded-lg" />
               <div className="space-y-2">
@@ -52,7 +52,7 @@ export default function TestSuitesLoading() {
           </div>
 
           {/* User Agent Card */}
-          <div className="bg-card/30 border border-border/50 rounded-lg p-6 space-y-4">
+          <div className="bg-card border border-border/50 rounded-lg p-6 space-y-4">
             <div className="flex items-start gap-3">
               <Skeleton className="w-10 h-10 rounded-lg" />
               <div className="space-y-2">
@@ -69,7 +69,7 @@ export default function TestSuitesLoading() {
         </div>
 
         {/* Test Cases Section */}
-        <div className="bg-card/30 border border-border/50 rounded-lg p-6 space-y-4">
+        <div className="bg-card border border-border/50 rounded-lg p-6 space-y-4">
           <div className="flex items-center justify-between">
             <Skeleton className="h-6 w-32" />
             <Skeleton className="h-8 w-8 rounded-md" />

@@ -103,7 +103,7 @@ export function RunDetailDashboard({
 
             {/* Summary Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card className="bg-card/30 border-border/50">
+                <Card className="bg-card border-border/50">
                     <CardHeader className="p-3 pb-1 flex flex-row items-center justify-between space-y-0">
                         <div className="flex items-center gap-2 text-muted-foreground">
                             <Activity className="w-3.5 h-3.5" />
@@ -119,7 +119,7 @@ export function RunDetailDashboard({
                     </CardContent>
                 </Card>
 
-                <Card className="bg-card/30 border-border/50">
+                <Card className="bg-card border-border/50">
                     <CardHeader className="p-3 pb-1 flex flex-row items-center justify-between space-y-0">
                         <div className="flex items-center gap-2 text-muted-foreground">
                             <Clock className="w-3.5 h-3.5" />
@@ -131,7 +131,7 @@ export function RunDetailDashboard({
                     </CardContent>
                 </Card>
 
-                <Card className="bg-card/30 border-border/50">
+                <Card className="bg-card border-border/50">
                     <CardHeader className="p-3 pb-1 flex flex-row items-center justify-between space-y-0">
                         <div className="flex items-center gap-2 text-muted-foreground">
                             <Calendar className="w-3.5 h-3.5" />

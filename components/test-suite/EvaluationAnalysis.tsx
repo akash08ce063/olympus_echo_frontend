@@ -4,7 +4,6 @@ import { Activity, CheckCircle2, XCircle, Eye, CheckCircle } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { cn } from "@/lib/utils"
-import { Card, CardContent } from "@/components/ui/card"
 import { useMemo } from "react"
 
 interface EvaluationAnalysisProps {
@@ -63,7 +62,7 @@ export function EvaluationAnalysis({ evaluationResult }: EvaluationAnalysisProps
                     <span className="text-xs text-muted-foreground">Overall Score</span>
                     <span className="text-lg font-bold text-foreground">{((evaluationResult.overall_score || 0) * 100).toFixed(0)}%</span>
                 </div>
-                <div className="h-2 bg-muted/30 rounded-full overflow-hidden">
+                <div className="h-2 bg-accent rounded-full overflow-hidden">
                     <div
                         className={cn(
                             "h-full rounded-full transition-all duration-500",
@@ -77,20 +76,20 @@ export function EvaluationAnalysis({ evaluationResult }: EvaluationAnalysisProps
 
             {/* Stats Grid */}
             <div className="grid grid-cols-3 gap-3">
-                <div className="bg-muted/20 rounded-xl p-3 text-center border border-border/20 shadow-sm">
-                    <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">Goals</div>
+                <div className="bg-card rounded-xl p-3 text-center border border-border/20 shadow-sm">
+                    <div className="text-xs text-card-foreground uppercase tracking-wider font-semibold mb-1">Goals</div>
                     <div className="text-base font-bold">{evaluationResult.goals_analysis?.length || 0}</div>
                 </div>
-                <div className="bg-muted/20 rounded-xl p-3 text-center border border-border/20 shadow-sm">
-                    <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">Criteria</div>
+                <div className="bg-card rounded-xl p-3 text-center border border-border/20 shadow-sm">
+                    <div className="text-xs text-card-foreground uppercase tracking-wider font-semibold mb-1">Criteria</div>
                     <div className="text-base font-bold">
                         <span className="text-green-500">{evaluationResult.passed_criteria || 0}</span>
-                        <span className="text-muted-foreground mx-0.5">/</span>
+                        <span className="text-card-foreground mx-0.5">/</span>
                         <span>{evaluationResult.total_criteria || 0}</span>
                     </div>
                 </div>
-                <div className="bg-muted/20 rounded-xl p-3 text-center border border-border/20 shadow-sm">
-                    <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">Issues</div>
+                <div className="bg-card rounded-xl p-3 text-center border border-border/20 shadow-sm">
+                    <div className="text-xs text-card-foreground uppercase tracking-wider font-semibold mb-1">Issues</div>
                     <div className="text-base font-bold text-red-500">{evaluationResult.weaknesses?.length || 0}</div>
                 </div>
             </div>
@@ -100,7 +99,7 @@ export function EvaluationAnalysis({ evaluationResult }: EvaluationAnalysisProps
                 {/* Summary */}
                 {evaluationResult.summary && (
                     <AccordionItem value="summary" className="border border-border/30 rounded-xl overflow-hidden shadow-sm">
-                        <AccordionTrigger className="text-sm font-bold hover:no-underline px-4 py-4 bg-muted/5">
+                        <AccordionTrigger className="text-sm font-bold hover:no-underline px-4 py-4 bg-card">
                             <div className="flex items-center gap-2.5">
                                 <Eye className="w-4 h-4 text-primary" />
                                 <span>Summary</span>
@@ -117,7 +116,7 @@ export function EvaluationAnalysis({ evaluationResult }: EvaluationAnalysisProps
                 {/* Goals Analysis */}
                 {evaluationResult.goals_analysis && evaluationResult.goals_analysis.length > 0 && (
                     <AccordionItem value="goals" className="border border-border/30 rounded-xl overflow-hidden shadow-sm">
-                        <AccordionTrigger className="text-sm font-bold hover:no-underline px-4 py-4 bg-muted/5">
+                        <AccordionTrigger className="text-sm font-bold hover:no-underline px-4 py-4 bg-card">
                             <div className="flex items-center gap-2.5">
                                 <Activity className="w-4 h-4 text-primary" />
                                 <span>Goals Analysis ({evaluationResult.goals_analysis.length})</span>
@@ -163,7 +162,7 @@ export function EvaluationAnalysis({ evaluationResult }: EvaluationAnalysisProps
                 {/* Criteria Evaluation */}
                 {evaluationResult.criteria_evaluated && evaluationResult.criteria_evaluated.length > 0 && (
                     <AccordionItem value="criteria" className="border border-border/30 rounded-xl overflow-hidden shadow-sm">
-                        <AccordionTrigger className="text-sm font-bold hover:no-underline px-4 py-4 bg-muted/5">
+                        <AccordionTrigger className="text-sm font-bold hover:no-underline px-4 py-4 bg-card">
                             <div className="flex items-center gap-2.5">
                                 <CheckCircle2 className="w-4 h-4 text-primary" />
                                 <span>
@@ -215,7 +214,7 @@ export function EvaluationAnalysis({ evaluationResult }: EvaluationAnalysisProps
                     <>
                         {evaluationResult.strengths && evaluationResult.strengths.length > 0 && (
                             <AccordionItem value="strengths" className="border border-border/30 rounded-xl overflow-hidden shadow-sm">
-                                <AccordionTrigger className="text-sm font-bold hover:no-underline px-4 py-4 bg-muted/5">
+                                <AccordionTrigger className="text-sm font-bold hover:no-underline px-4 py-4 bg-card">
                                     <div className="flex items-center gap-2.5">
                                         <CheckCircle2 className="w-4 h-4 text-green-500" />
                                         <span className="text-green-600">Strengths ({evaluationResult.strengths.length})</span>
@@ -234,7 +233,7 @@ export function EvaluationAnalysis({ evaluationResult }: EvaluationAnalysisProps
                         )}
                         {evaluationResult.weaknesses && evaluationResult.weaknesses.length > 0 && (
                             <AccordionItem value="weaknesses" className="border border-border/30 rounded-xl overflow-hidden shadow-sm">
-                                <AccordionTrigger className="text-sm font-bold hover:no-underline px-4 py-4 bg-muted/5">
+                                <AccordionTrigger className="text-sm font-bold hover:no-underline px-4 py-4 bg-card">
                                     <div className="flex items-center gap-2.5">
                                         <XCircle className="w-4 h-4 text-red-500" />
                                         <span className="text-red-600">Weaknesses ({evaluationResult.weaknesses.length})</span>
@@ -257,7 +256,7 @@ export function EvaluationAnalysis({ evaluationResult }: EvaluationAnalysisProps
                 {/* Recommendations */}
                 {evaluationResult.recommendations && evaluationResult.recommendations.length > 0 && (
                     <AccordionItem value="recommendations" className="border border-border/30 rounded-xl overflow-hidden shadow-sm">
-                        <AccordionTrigger className="text-sm font-bold hover:no-underline px-4 py-4 bg-muted/5">
+                        <AccordionTrigger className="text-sm font-bold hover:no-underline px-4 py-4 bg-card">
                             <div className="flex items-center gap-2.5">
                                 <Eye className="w-4 h-4 text-primary" />
                                 <span>Recommendations ({evaluationResult.recommendations.length})</span>

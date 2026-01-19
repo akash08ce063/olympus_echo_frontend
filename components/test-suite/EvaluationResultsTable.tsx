@@ -23,7 +23,7 @@ export function EvaluationResultsTable({
                 <Beaker className="w-4 h-4 text-primary" />
                 Evaluation Results
             </h3>
-            <Card className="bg-card/30 border-border/50 overflow-hidden">
+            <Card className="bg-card border-border/50 overflow-hidden">
                 <CardContent className="p-0">
                     <Table>
                         <TableHeader>

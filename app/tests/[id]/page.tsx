@@ -114,7 +114,7 @@ export default function SuiteDetailPage() {
 
                 {/* Main Tabs */}
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                    <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center justify-center mb-4">
                         <TabsList className="bg-muted">
                             <TabsTrigger value="config" className="gap-2"><Settings className="h-4 w-4" /> Configure Tests</TabsTrigger>
                             <TabsTrigger value="runs" className="gap-2"><Play className="h-4 w-4" /> Runs</TabsTrigger>

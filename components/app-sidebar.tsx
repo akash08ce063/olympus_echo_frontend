@@ -6,18 +6,13 @@ import Image from "next/image"
 import * as React from "react"
 import {
   IconFlask,
-  IconChartBar,
   IconDashboard,
   IconHistory,
-  IconInnerShadowTop,
-  IconNotification,
   IconRobot,
-  IconSettings,
   IconUsers,
 } from "@tabler/icons-react"
 
 import { NavMain } from "@/components/nav-main"
-import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
 import {
   Sidebar,
@@ -64,18 +59,19 @@ const navMain = [
   // },
 ]
 
-const navSecondary = [
-  {
-    title: "Notifications",
-    url: "/notifications",
-    icon: IconNotification,
-  },
-  {
-    title: "Settings",
-    url: "/settings",
-    icon: IconSettings,
-  },
-]
+// Commented because unused, remove if no errors
+// const navSecondary = [
+//   {
+//     title: "Notifications",
+//     url: "/notifications",
+//     icon: IconNotification,
+//   },
+//   {
+//     title: "Settings",
+//     url: "/settings",
+//     icon: IconSettings,
+//   },
+// ]
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useAuth()

@@ -21,7 +21,7 @@ export default function TesterAgentsLoading() {
       {/* Agents Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {[1, 2, 3, 4, 5, 6].map((i) => (
-          <div key={i} className="bg-card/30 border border-border/50 rounded-lg p-6 space-y-4">
+          <div key={i} className="bg-card border border-border/50 rounded-lg p-6 space-y-4">
             <div className="flex items-start justify-between">
               <div className="space-y-2">
                 <Skeleton className="h-6 w-32" />
