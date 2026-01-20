@@ -36,7 +36,7 @@ export function AgentsContent() {
         {
             id: "1",
             name: "Main Support Bot",
-            websocketUrl: "ws://localhost:8080",
+            websocketUrl: "ws://localhost:6068",
             sampleRate: "16000",
             encoding: "pcm_16",
             createdAt: "Dec 31, 2025",
