@@ -19,8 +19,12 @@ export function TranscriptView({
 }: TranscriptViewProps) {
     // Handle both direct structure (from getAllRuns) and potentially nested if legacy exists
     // Primary target: transcript.call_transcript (array of messages)
-    const transcriptMessages = transcript?.call_transcript || transcript?.transcript?.call_transcript;
-    const hasTranscript = transcriptMessages && transcriptMessages.length > 0;
+    // Handle case where transcript is already the array of messages
+    const transcriptMessages = Array.isArray(transcript)
+        ? transcript
+        : (transcript?.call_transcript || transcript?.transcript?.call_transcript || transcript?.transcript);
+
+    const hasTranscript = Array.isArray(transcriptMessages) && transcriptMessages.length > 0;
 
     return (
         <div className="space-y-2">

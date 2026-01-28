@@ -51,10 +51,16 @@ export function RunDetailDashboard({
         }
 
         const currentCallIdx = currentCallIndex[0] || 0
-        const totalCalls = selectedResult?.call_recordings?.length || 0
-        const currentCall = selectedResult?.call_recordings?.[currentCallIdx]
-        const currentTranscript = selectedResult?.call_transcripts?.[currentCallIdx]
-        const evaluationResult = selectedResult?.evaluation_result
+        const totalCalls = selectedResult?.calls?.length || selectedResult?.call_recordings?.length || 0
+
+        // Handle the new structure where data is inside the 'calls' array
+        const callDetail = selectedResult?.calls?.[currentCallIdx];
+
+        const currentCall = callDetail || selectedResult?.call_recordings?.[currentCallIdx];
+        const currentTranscript = callDetail?.transcript || selectedResult?.transcript || selectedResult?.call_transcripts?.[currentCallIdx];
+        const evaluationResult = callDetail?.evaluation_result || selectedResult?.evaluation_result;
+        const recordingUrl = callDetail?.recording_url || selectedResult?.recording_url || selectedResult?.call_recordings?.[currentCallIdx]?.recording_url;
+
         const tcName = testCases.find(tc => tc.id === selectedResult.test_case_id)?.name || "Test Case";
 
         return (
@@ -63,7 +69,7 @@ export function RunDetailDashboard({
                 testCaseName={tcName}
                 currentCallIdx={currentCallIdx}
                 totalCalls={totalCalls}
-                currentCall={currentCall}
+                currentCall={{ ...currentCall, recording_url: recordingUrl }}
                 currentTranscript={currentTranscript}
                 evaluationResult={evaluationResult}
                 selectedRunDetailId={run.id}
