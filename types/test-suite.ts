@@ -142,18 +142,32 @@ export interface ApiEvaluationResult {
   timestamp?: number;
 }
 
+export interface ApiCallDetail {
+  call_number: number;
+  result_id: string;
+  status: string;
+  error_message: string | null;
+  evaluation_result: ApiEvaluationResult;
+  started_at: string;
+  completed_at: string | null;
+  transcript: ApiTranscriptMessage[];
+  recording_url: string;
+}
+
 export interface ApiTestCaseResult {
   result_id: string;
   test_case_id: string;
   concurrent_calls: number;
   status: string;
-  error_message: string | null;
-  started_at: string;
-  completed_at: string | null;
+  error_message?: string | null;
+  started_at?: string;
+  completed_at?: string | null;
   recording_url?: string;
-  call_recordings: ApiCallRecording[];
-  call_transcripts: ApiCallTranscript[];
-  evaluation_result: ApiEvaluationResult;
+  call_recordings?: ApiCallRecording[];
+  call_transcripts?: ApiCallTranscript[];
+  transcript?: ApiTranscriptMessage[] | null;
+  evaluation_result?: ApiEvaluationResult;
+  calls?: ApiCallDetail[];
 }
 
 export interface ApiTestRun {

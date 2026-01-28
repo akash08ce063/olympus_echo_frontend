@@ -39,12 +39,15 @@ export function EvaluationResultsTable({
                         <TableBody>
                             {testCaseResults.map((result: any) => {
                                 const tcName = testCases.find(tc => tc.id === result.test_case_id)?.name || "Test Case";
-                                const evalResult = result.evaluation_result || {}
+
+                                // Fallback to the first call's evaluation if top-level is missing
+                                const evalResult = result.evaluation_result || result.calls?.[0]?.evaluation_result || {}
+
                                 const overallScore = evalResult.overall_score || 0
                                 const passedCriteria = evalResult.passed_criteria || 0
                                 const totalCriteria = evalResult.total_criteria || 0
                                 const overallStatus = evalResult.overall_status || result.status
-                                
+
                                 return (
                                     <TableRow
                                         key={result.result_id}
@@ -58,7 +61,7 @@ export function EvaluationResultsTable({
                                             </div>
                                         </TableCell>
                                         <TableCell className="text-center">
-                                            <Badge 
+                                            <Badge
                                                 variant={overallStatus === 'passed' || result.status === 'completed' ? 'default' : overallStatus === 'failed' || result.status === 'failed' ? 'destructive' : 'secondary'}
                                                 className="text-[10px] capitalize"
                                             >
