@@ -12,6 +12,12 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip"
+import {
     AlertDialog,
     AlertDialogCancel,
     AlertDialogContent,
@@ -86,7 +92,7 @@ export function TestCasesSection({
             accessorKey: "name",
             header: "Name",
             cell: ({ row }) => (
-                <div className="font-medium text-foreground truncate max-w-50" title={row.getValue("name")}>
+                <div className="font-medium text-foreground truncate max-w-[150px]" title={row.getValue("name")}>
                     {row.getValue("name")}
                 </div>
             )
@@ -133,9 +139,16 @@ export function TestCasesSection({
                 const goals = row.original.goals || []
                 const goalText = goals[0]?.text || (typeof goals[0] === 'string' ? goals[0] : "---")
                 return (
-                    <div className="text-sm text-foreground truncate max-w-75" title={goalText}>
-                        {goalText}
-                    </div>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <div className="text-sm text-foreground truncate max-w-[200px] md:max-w-[300px] cursor-default">
+                                {goalText}
+                            </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="max-w-[400px] break-words">
+                            <p>{goalText}</p>
+                        </TooltipContent>
+                    </Tooltip>
                 )
             }
         },
@@ -266,11 +279,12 @@ export function TestCasesSection({
             />
 
             {/* Test Cases Table */}
-            <div className="w-full">
+            <div className="grid grid-cols-1">
                 <DataTable
                     columns={columns}
                     data={testCases}
                     searchKey="name"
+                    stickyLastColumn={true}
                 />
             </div>
 
