@@ -3,7 +3,9 @@ import { TESTSUITS } from "@/lib/api/apiConstant";
 
 export interface CreateTargetAgentPayload {
     name: string;
-    websocket_url: string;
+    connection_type?: 'websocket' | 'phone';
+    websocket_url?: string;
+    phone_number?: string;
     sample_rate: number;
     encoding: string;
     user_id: string;

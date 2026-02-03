@@ -27,7 +27,9 @@ import { toast } from "sonner";
 export interface Assistant {
   id: string;
   name: string;
-  websocketUrl: string;
+  websocketUrl?: string;
+  phoneNumber?: string;
+  connectionType?: 'websocket' | 'phone';
   sampleRate: string;
   encoding: string;
   createdAt: string;
@@ -54,7 +56,9 @@ export function AddAssistantDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
+    connectionType: "websocket" as "websocket" | "phone",
     websocketUrl: "",
+    phoneNumber: "",
     sampleRate: "8000",
     encoding: "mulaw",
     systemPrompt: "",
@@ -66,7 +70,9 @@ export function AddAssistantDialog({
       if (initialData) {
         setFormData({
           name: initialData.name,
-          websocketUrl: initialData.websocketUrl,
+          connectionType: initialData.connectionType || (initialData.phoneNumber ? "phone" : "websocket"),
+          websocketUrl: initialData.websocketUrl || "",
+          phoneNumber: initialData.phoneNumber || "",
           sampleRate: initialData.sampleRate,
           encoding: initialData.encoding,
           systemPrompt: initialData.systemPrompt || "",
@@ -75,7 +81,9 @@ export function AddAssistantDialog({
       } else {
         setFormData({
           name: "",
+          connectionType: "websocket",
           websocketUrl: "",
+          phoneNumber: "",
           sampleRate: "8000",
           encoding: "mulaw",
           systemPrompt: "",
@@ -86,7 +94,13 @@ export function AddAssistantDialog({
   }, [open, initialData]);
 
   const handleSubmit = useCallback(async () => {
-    if (!formData.name || (agentType === "target" && !formData.websocketUrl) || (agentType === "tester" && !formData.systemPrompt)) {
+    const isWebsocket = formData.connectionType === "websocket";
+    const isPhone = formData.connectionType === "phone";
+
+    if (!formData.name ||
+      (agentType === "target" && isWebsocket && !formData.websocketUrl) ||
+      (agentType === "target" && isPhone && !formData.phoneNumber) ||
+      (agentType === "tester" && !formData.systemPrompt)) {
       toast.error("Please fill in all required fields");
       return;
     }
@@ -104,12 +118,14 @@ export function AddAssistantDialog({
         if (agentType === "target") {
           const payload = {
             name: formData.name,
-            websocket_url: formData.websocketUrl,
+            connection_type: formData.connectionType,
+            websocket_url: formData.connectionType === "websocket" ? formData.websocketUrl : undefined,
+            phone_number: formData.connectionType === "phone" ? formData.phoneNumber : undefined,
             sample_rate: parseInt(formData.sampleRate, 10),
             encoding: formData.encoding,
             user_id: user.id,
           };
-          response = await TargetAgentsService.updateTargetAgent(initialData.id, payload);
+          response = await TargetAgentsService.updateTargetAgent(initialData.id, payload as any);
           toast.success("Target agent updated successfully");
         } else {
           // Update tester agent
@@ -127,12 +143,14 @@ export function AddAssistantDialog({
         if (agentType === "target") {
           const payload = {
             name: formData.name,
-            websocket_url: formData.websocketUrl,
+            connection_type: formData.connectionType,
+            websocket_url: formData.connectionType === "websocket" ? formData.websocketUrl : undefined,
+            phone_number: formData.connectionType === "phone" ? formData.phoneNumber : undefined,
             sample_rate: parseInt(formData.sampleRate, 10),
             encoding: formData.encoding,
             user_id: user.id,
           };
-          response = await TargetAgentsService.createTargetAgent(payload);
+          response = await TargetAgentsService.createTargetAgent(payload as any);
           toast.success("Target agent created successfully");
         } else {
           const payload = {
@@ -159,7 +177,9 @@ export function AddAssistantDialog({
       onAddAssistant(updatedAssistant);
       setFormData({
         name: "",
+        connectionType: "websocket",
         websocketUrl: "",
+        phoneNumber: "",
         sampleRate: "8000",
         encoding: "mulaw",
         systemPrompt: "",
@@ -224,14 +244,42 @@ export function AddAssistantDialog({
           {agentType === "target" ? (
             <>
               <div className="space-y-2">
-                <Label>Websocket URL</Label>
-                <Input
-                  placeholder="ws://localhost:6068"
-                  value={formData.websocketUrl}
-                  onChange={handleInputChange("websocketUrl")}
-                  className="bg-background/50 border-border/50 focus:border-primary/50 font-mono text-sm"
-                />
+                <Label>Connection Type</Label>
+                <Select
+                  value={formData.connectionType}
+                  onValueChange={handleSelectChange("connectionType")}
+                >
+                  <SelectTrigger className="w-full bg-background/50 border-border/50 focus:ring-primary/20">
+                    <SelectValue placeholder="Select Connection Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="websocket">Websocket</SelectItem>
+                    <SelectItem value="phone">Phone Number</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
+
+              {formData.connectionType === "websocket" ? (
+                <div className="space-y-2">
+                  <Label>Websocket URL</Label>
+                  <Input
+                    placeholder="ws://localhost:6068"
+                    value={formData.websocketUrl}
+                    onChange={handleInputChange("websocketUrl")}
+                    className="bg-background/50 border-border/50 focus:border-primary/50 font-mono text-sm"
+                  />
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label>Phone Number</Label>
+                  <Input
+                    placeholder="+1234567890"
+                    value={formData.phoneNumber}
+                    onChange={handleInputChange("phoneNumber")}
+                    className="bg-background/50 border-border/50 focus:border-primary/50 font-mono text-sm"
+                  />
+                </div>
+              )}
 
               <div className="space-y-4">
                 <div className="space-y-2">
@@ -310,7 +358,7 @@ export function AddAssistantDialog({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={isSubmitting || !formData.name.trim() || (agentType === "target" ? !formData.websocketUrl.trim() : !formData.systemPrompt.trim())}
+            disabled={isSubmitting || !formData.name.trim() || (agentType === "target" ? (formData.connectionType === "websocket" ? !formData.websocketUrl.trim() : !formData.phoneNumber.trim()) : !formData.systemPrompt.trim())}
             className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/25"
           >
             {isSubmitting ? (
