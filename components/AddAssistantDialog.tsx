@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { Bot, Loader2 } from "lucide-react";
+import Image from "next/image";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,11 +19,21 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 import { Textarea } from "./ui/textarea";
 import { Slider } from "./ui/slider";
 import { Alert, AlertDescription } from "./ui/alert";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "./ui/tabs";
 import { Info } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { TargetAgentsService } from "@/services/targetAgents";
+import { TargetAgentsService, type CreateTargetAgentPayload, type TargetAgentType } from "@/services/targetAgents";
 import { UserAgentsService } from "@/services/userAgents";
 import { toast } from "sonner";
+
+export interface ConnectionMetadata {
+  method?: "GET" | "POST" | "PUT" | "PATCH";
+  headers?: Record<string, string>;
+  payload?: Record<string, unknown>;
+  response_websocket_url_path?: string;
+}
+
+export type TargetProvider = "custom" | "vapi" | "retell";
 
 export interface Assistant {
   id: string;
@@ -33,6 +44,12 @@ export interface Assistant {
   createdAt: string;
   systemPrompt?: string;
   temperature?: number;
+  /** Target agent type: custom (ws/http), vapi, retell. */
+  agentType?: TargetProvider;
+  /** For custom HTTP(S): how to get WebSocket URL from the endpoint. */
+  connectionMetadata?: ConnectionMetadata | null;
+  /** For vapi/retell: assistant_id, api_key. */
+  providerConfig?: { assistant_id?: string; api_key?: string } | null;
 }
 
 interface AddAssistantDialogProps {
@@ -54,7 +71,17 @@ export function AddAssistantDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
+    targetProvider: "custom" as TargetProvider,
     websocketUrl: "",
+    connectionType: "websocket" as "websocket" | "http",
+    connectionMetadata: {
+      method: "POST",
+      headersJson: "{}",
+      payloadJson: "{}",
+      responseWebsocketUrlPath: "websocket_url",
+    },
+    vapiAssistantId: "",
+    vapiApiKey: "",
     sampleRate: "8000",
     encoding: "mulaw",
     systemPrompt: "",
@@ -64,9 +91,23 @@ export function AddAssistantDialog({
   useEffect(() => {
     if (open) {
       if (initialData) {
+        const provider = (initialData.agentType as TargetProvider) || "custom";
+        const isHttp = (initialData.websocketUrl || "").startsWith("http://") || (initialData.websocketUrl || "").startsWith("https://");
+        const meta = initialData.connectionMetadata;
+        const pc = initialData.providerConfig;
         setFormData({
           name: initialData.name,
-          websocketUrl: initialData.websocketUrl,
+          targetProvider: provider,
+          websocketUrl: initialData.websocketUrl || "",
+          connectionType: isHttp ? "http" : "websocket",
+          connectionMetadata: {
+            method: meta?.method || "POST",
+            headersJson: meta?.headers ? JSON.stringify(meta.headers, null, 2) : "{}",
+            payloadJson: meta?.payload ? JSON.stringify(meta.payload, null, 2) : "{}",
+            responseWebsocketUrlPath: meta?.response_websocket_url_path || "websocket_url",
+          },
+          vapiAssistantId: pc?.assistant_id || "",
+          vapiApiKey: pc?.api_key || "",
           sampleRate: initialData.sampleRate,
           encoding: initialData.encoding,
           systemPrompt: initialData.systemPrompt || "",
@@ -75,7 +116,17 @@ export function AddAssistantDialog({
       } else {
         setFormData({
           name: "",
+          targetProvider: "custom",
           websocketUrl: "",
+          connectionType: "websocket",
+          connectionMetadata: {
+            method: "POST",
+            headersJson: "{}",
+            payloadJson: "{}",
+            responseWebsocketUrlPath: "websocket_url",
+          },
+          vapiAssistantId: "",
+          vapiApiKey: "",
           sampleRate: "8000",
           encoding: "mulaw",
           systemPrompt: "",
@@ -85,10 +136,91 @@ export function AddAssistantDialog({
     }
   }, [open, initialData]);
 
+  const buildTargetAgentPayload = useCallback((connectionMeta: ConnectionMetadata | null): CreateTargetAgentPayload => {
+    const base = {
+      name: formData.name,
+      sample_rate: parseInt(formData.sampleRate, 10),
+      encoding: formData.encoding,
+      user_id: user!.id,
+    };
+    if (formData.targetProvider === "vapi") {
+      return {
+        ...base,
+        agent_type: "vapi" as TargetAgentType,
+        websocket_url: "",
+        provider_config: {
+          assistant_id: formData.vapiAssistantId.trim(),
+          api_key: formData.vapiApiKey.trim(),
+        },
+      };
+    }
+    if (formData.targetProvider === "retell") {
+      return { ...base, agent_type: "retell" as TargetAgentType, websocket_url: "", provider_config: {} };
+    }
+    return {
+      ...base,
+      agent_type: "custom" as TargetAgentType,
+      websocket_url: formData.websocketUrl.trim(),
+      connection_metadata: connectionMeta ?? undefined,
+    };
+  }, [formData, user]);
+
+  const parseConnectionMetadata = useCallback((): ConnectionMetadata | null => {
+    if (formData.connectionType !== "http") return null;
+    try {
+      const headers = formData.connectionMetadata.headersJson?.trim()
+        ? (JSON.parse(formData.connectionMetadata.headersJson) as Record<string, string>)
+        : undefined;
+      const payload = formData.connectionMetadata.payloadJson?.trim()
+        ? (JSON.parse(formData.connectionMetadata.payloadJson) as Record<string, unknown>)
+        : undefined;
+      const path = formData.connectionMetadata.responseWebsocketUrlPath?.trim() || "websocket_url";
+      return {
+        method: (formData.connectionMetadata.method || "POST") as "GET" | "POST" | "PUT" | "PATCH",
+        headers,
+        payload,
+        response_websocket_url_path: path,
+      };
+    } catch {
+      toast.error("Invalid JSON in Headers or Payload");
+      return null;
+    }
+  }, [formData.connectionType, formData.connectionMetadata]);
+
   const handleSubmit = useCallback(async () => {
-    if (!formData.name || (agentType === "target" && !formData.websocketUrl) || (agentType === "tester" && !formData.systemPrompt)) {
+    if (!formData.name.trim()) {
+      toast.error("Name is required");
+      return;
+    }
+    if (agentType === "tester" && !formData.systemPrompt) {
       toast.error("Please fill in all required fields");
       return;
+    }
+    if (agentType === "target") {
+      if (formData.targetProvider === "custom" && !formData.websocketUrl.trim()) {
+        toast.error("URL is required for Custom agent");
+        return;
+      }
+      if (formData.targetProvider === "vapi") {
+        if (!formData.vapiAssistantId.trim() || !formData.vapiApiKey.trim()) {
+          toast.error("Vapi Assistant ID and API Key are required");
+          return;
+        }
+      }
+      if (formData.targetProvider === "retell") {
+        toast.error("Retell is not available yet");
+        return;
+      }
+    }
+
+    let connectionMetadata: ConnectionMetadata | null = null;
+    if (agentType === "target" && formData.targetProvider === "custom" && formData.connectionType === "http") {
+      if (!formData.connectionMetadata.responseWebsocketUrlPath?.trim()) {
+        toast.error("Response path is required for HTTP endpoint");
+        return;
+      }
+      connectionMetadata = parseConnectionMetadata();
+      if (!connectionMetadata) return;
     }
 
     if (!user?.id) {
@@ -102,13 +234,7 @@ export function AddAssistantDialog({
       if (initialData?.id) {
         // Update existing agent
         if (agentType === "target") {
-          const payload = {
-            name: formData.name,
-            websocket_url: formData.websocketUrl,
-            sample_rate: parseInt(formData.sampleRate, 10),
-            encoding: formData.encoding,
-            user_id: user.id,
-          };
+          const payload = buildTargetAgentPayload(connectionMetadata);
           response = await TargetAgentsService.updateTargetAgent(initialData.id, payload);
           toast.success("Target agent updated successfully");
         } else {
@@ -125,13 +251,7 @@ export function AddAssistantDialog({
       } else {
         // Create new agent
         if (agentType === "target") {
-          const payload = {
-            name: formData.name,
-            websocket_url: formData.websocketUrl,
-            sample_rate: parseInt(formData.sampleRate, 10),
-            encoding: formData.encoding,
-            user_id: user.id,
-          };
+          const payload = buildTargetAgentPayload(connectionMetadata);
           response = await TargetAgentsService.createTargetAgent(payload);
           toast.success("Target agent created successfully");
         } else {
@@ -154,12 +274,22 @@ export function AddAssistantDialog({
           day: '2-digit',
           year: 'numeric'
         }),
+        agentType: formData.targetProvider,
+        connectionMetadata: connectionMetadata ?? undefined,
+        providerConfig: formData.targetProvider === "vapi"
+          ? { assistant_id: formData.vapiAssistantId.trim(), api_key: formData.vapiApiKey.trim() }
+          : undefined,
       };
 
       onAddAssistant(updatedAssistant);
       setFormData({
         name: "",
+        targetProvider: "custom",
         websocketUrl: "",
+        connectionType: "websocket",
+        connectionMetadata: { method: "POST", headersJson: "{}", payloadJson: "{}", responseWebsocketUrlPath: "websocket_url" },
+        vapiAssistantId: "",
+        vapiApiKey: "",
         sampleRate: "8000",
         encoding: "mulaw",
         systemPrompt: "",
@@ -179,6 +309,13 @@ export function AddAssistantDialog({
       (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData((prev) => ({ ...prev, [field]: e.target.value }));
       };
+
+  const setConnectionMetadataField = (key: keyof typeof formData.connectionMetadata) => (value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      connectionMetadata: { ...prev.connectionMetadata, [key]: value },
+    }));
+  };
 
   const handleSelectChange = (field: keyof typeof formData) => (value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -223,49 +360,243 @@ export function AddAssistantDialog({
 
           {agentType === "target" ? (
             <>
-              <div className="space-y-2">
-                <Label>Websocket URL</Label>
-                <Input
-                  placeholder="ws://localhost:6068"
-                  value={formData.websocketUrl}
-                  onChange={handleInputChange("websocketUrl")}
-                  className="bg-background/50 border-border/50 focus:border-primary/50 font-mono text-sm"
-                />
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">Provider</Label>
+                <Tabs
+                  value={formData.targetProvider}
+                  onValueChange={(v) => setFormData((prev) => ({ ...prev, targetProvider: v as TargetProvider }))}
+                  className="w-full"
+                >
+                  <TabsList className="grid w-full grid-cols-3 h-auto p-1 bg-muted/50">
+                    <TabsTrigger
+                      value="custom"
+                      className="flex items-center gap-2 py-2.5 data-[state=active]:bg-orange-500/10 data-[state=active]:border-orange-500/30"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="p-1 rounded-md bg-orange-500/10">
+                          <Bot className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                        </div>
+                        <span className="font-medium">Custom</span>
+                      </div>
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="vapi"
+                      className="flex items-center gap-2 py-2.5 data-[state=active]:bg-indigo-500/10 data-[state=active]:border-indigo-500/30"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="p-1 rounded-md bg-indigo-500/10 flex items-center justify-center">
+                          <Image
+                            src="/vapi-favicon.ico"
+                            alt="Vapi"
+                            width={16}
+                            height={16}
+                            className="w-4 h-4"
+                          />
+                        </div>
+                        <span className="font-medium">Vapi</span>
+                      </div>
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="retell"
+                      className="flex items-center gap-2 py-2.5 data-[state=active]:bg-purple-500/10 data-[state=active]:border-purple-500/30"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="p-1 rounded-md bg-white flex items-center justify-center">
+                          <Image
+                            src="/retell-logo-custom.png"
+                            alt="Retell AI"
+                            width={16}
+                            height={16}
+                            className="w-4 h-4"
+                          />
+                        </div>
+                        <span className="font-medium">Retell</span>
+                      </div>
+                    </TabsTrigger>
+                  </TabsList>
+
+                  {/* Custom Agent Tab Content */}
+                  <TabsContent value="custom" className="space-y-4 mt-4">
+                    <div className="space-y-3 rounded-md border border-orange-500/20 bg-orange-500/5 p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="p-1 rounded-md bg-orange-500/10">
+                          <Bot className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                        </div>
+                        <h4 className="text-sm font-semibold text-orange-700 dark:text-orange-300">Custom Agent Configuration</h4>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Connection type</Label>
+                        <Select
+                          value={formData.connectionType}
+                          onValueChange={(v: "websocket" | "http") => setFormData((prev) => ({ ...prev, connectionType: v }))}
+                        >
+                          <SelectTrigger className="w-full bg-background/50 border-border/50 focus:ring-primary/20">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="websocket">WebSocket URL (ws:// or wss://)</SelectItem>
+                            <SelectItem value="http">HTTP URL (returns WebSocket URL)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>{formData.connectionType === "http" ? "HTTP endpoint URL" : "WebSocket URL"}</Label>
+                        <Input
+                          placeholder={formData.connectionType === "http" ? "https://api.example.com/agent/session" : "ws://localhost:6068"}
+                          value={formData.websocketUrl}
+                          onChange={handleInputChange("websocketUrl")}
+                          className="bg-background/50 border-border/50 focus:border-primary/50 font-mono text-sm"
+                        />
+                      </div>
+                      {formData.connectionType === "http" && (
+                        <div className="space-y-3 rounded-md border border-border/50 bg-muted/30 p-3">
+                          <p className="text-sm font-medium text-muted-foreground">HTTP request (to get WebSocket URL)</p>
+                          <div className="space-y-2">
+                            <Label className="text-xs">Method</Label>
+                            <Select
+                              value={formData.connectionMetadata.method}
+                              onValueChange={setConnectionMetadataField("method")}
+                            >
+                              <SelectTrigger className="w-full bg-background/50 border-border/50">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="GET">GET</SelectItem>
+                                <SelectItem value="POST">POST</SelectItem>
+                                <SelectItem value="PUT">PUT</SelectItem>
+                                <SelectItem value="PATCH">PATCH</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-xs">Headers (JSON)</Label>
+                            <Textarea
+                              placeholder='{"Authorization": "Bearer ...", "Content-Type": "application/json"}'
+                              value={formData.connectionMetadata.headersJson}
+                              onChange={(e) => setConnectionMetadataField("headersJson")(e.target.value)}
+                              className="min-h-[60px] font-mono text-xs bg-background/50 border-border/50"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-xs">Payload / Body (JSON)</Label>
+                            <Textarea
+                              placeholder='{"agent_id": "...", "session_id": "..."}'
+                              value={formData.connectionMetadata.payloadJson}
+                              onChange={(e) => setConnectionMetadataField("payloadJson")(e.target.value)}
+                              className="min-h-[60px] font-mono text-xs bg-background/50 border-border/50"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-xs">Response path to WebSocket URL (dot-notation)</Label>
+                            <Input
+                              placeholder="data.websocket_url or websocket_url"
+                              value={formData.connectionMetadata.responseWebsocketUrlPath}
+                              onChange={(e) => setConnectionMetadataField("responseWebsocketUrlPath")(e.target.value)}
+                              className="bg-background/50 border-border/50 font-mono text-sm"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </TabsContent>
+
+                  {/* Vapi Agent Tab Content */}
+                  <TabsContent value="vapi" className="space-y-4 mt-4">
+                    <div className="space-y-3 rounded-md border border-indigo-500/20 bg-indigo-500/5 p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Image
+                          src="/vapi-favicon.ico"
+                          alt="Vapi"
+                          width={20}
+                          height={20}
+                          className="w-5 h-5"
+                        />
+                        <h4 className="text-sm font-semibold text-indigo-700 dark:text-indigo-300">Vapi Configuration</h4>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm">API Key</Label>
+                        <Input
+                          type="password"
+                          placeholder="Vapi API key"
+                          value={formData.vapiApiKey}
+                          onChange={(e) => setFormData((prev) => ({ ...prev, vapiApiKey: e.target.value }))}
+                          className="bg-background/50 border-border/50 font-mono text-sm"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm">Assistant ID</Label>
+                        <Input
+                          placeholder="Vapi assistant ID"
+                          value={formData.vapiAssistantId}
+                          onChange={(e) => setFormData((prev) => ({ ...prev, vapiAssistantId: e.target.value }))}
+                          className="bg-background/50 border-border/50 font-mono text-sm"
+                        />
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  {/* Retell Agent Tab Content */}
+                  <TabsContent value="retell" className="space-y-4 mt-4">
+                    <Alert className="border-purple-500/20 bg-purple-500/10">
+                      <Info className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                      <AlertDescription className="text-purple-700 dark:text-purple-300 text-sm">
+                        <div className="flex items-center gap-2">
+                          <Image
+                            src="/retell-logo-custom.png"
+                            alt="Retell AI"
+                            width={16}
+                            height={16}
+                            className="w-4 h-4"
+                          />
+                          <strong>Retell AI integration is coming soon.</strong>
+                        </div>
+                      </AlertDescription>
+                    </Alert>
+                  </TabsContent>
+                </Tabs>
               </div>
 
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Sample Rate</Label>
-                  <Select
-                    value={formData.sampleRate}
-                    onValueChange={handleSelectChange("sampleRate")}
-                  >
-                    <SelectTrigger className="w-full bg-background/50 border-border/50 focus:ring-primary/20">
-                      <SelectValue placeholder="Select Sample Rate" />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-60">
-                      <SelectItem value="8000">8 kHz</SelectItem>
-                      <SelectItem value="16000">16 kHz</SelectItem>
-                    </SelectContent>
-                  </Select>
+              {/* Audio Configuration - Separate Section */}
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center gap-2">
+                  <div className="h-px flex-1 bg-border"></div>
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Audio Configuration</Label>
+                  <div className="h-px flex-1 bg-border"></div>
                 </div>
+                <div className="space-y-4 rounded-md border border-border/50 bg-muted/20 p-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Sample Rate</Label>
+                    <Select
+                      value={formData.sampleRate}
+                      onValueChange={handleSelectChange("sampleRate")}
+                    >
+                      <SelectTrigger className="w-full bg-background/50 border-border/50 focus:ring-primary/20">
+                        <SelectValue placeholder="Select Sample Rate" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-60">
+                        <SelectItem value="8000">8 kHz</SelectItem>
+                        <SelectItem value="16000">16 kHz</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Encoding</Label>
-                  <Select
-                    value={formData.encoding}
-                    onValueChange={handleSelectChange("encoding")}
-                  >
-                    <SelectTrigger className="w-full bg-background/50 border-border/50 focus:ring-primary/20">
-                      <SelectValue placeholder="Select Encoding" />
-                    </SelectTrigger>
-                    <SelectContent className="">
-                      <SelectItem value="pcm_s16le">PCM 16-bit</SelectItem>
-                      <SelectItem value="mulaw">μ-law</SelectItem>
-                      <SelectItem value="alaw">A-law</SelectItem>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Encoding</Label>
+                    <Select
+                      value={formData.encoding}
+                      onValueChange={handleSelectChange("encoding")}
+                    >
+                      <SelectTrigger className="w-full bg-background/50 border-border/50 focus:ring-primary/20">
+                        <SelectValue placeholder="Select Encoding" />
+                      </SelectTrigger>
+                      <SelectContent className="">
+                        <SelectItem value="pcm_s16le">PCM 16-bit</SelectItem>
+                        <SelectItem value="mulaw">μ-law</SelectItem>
+                        <SelectItem value="alaw">A-law</SelectItem>
 
-                    </SelectContent>
-                  </Select>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
             </>
@@ -310,7 +641,14 @@ export function AddAssistantDialog({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={isSubmitting || !formData.name.trim() || (agentType === "target" ? !formData.websocketUrl.trim() : !formData.systemPrompt.trim())}
+            disabled={
+              isSubmitting ||
+              !formData.name.trim() ||
+              (agentType === "tester" ? !formData.systemPrompt.trim() : false) ||
+              (agentType === "target" && formData.targetProvider === "custom" && !formData.websocketUrl.trim()) ||
+              (agentType === "target" && formData.targetProvider === "vapi" && (!formData.vapiAssistantId.trim() || !formData.vapiApiKey.trim())) ||
+              (agentType === "target" && formData.targetProvider === "retell")
+            }
             className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/25"
           >
             {isSubmitting ? (
