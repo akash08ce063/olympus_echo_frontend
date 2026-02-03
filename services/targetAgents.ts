@@ -1,12 +1,25 @@
 import apiClient from "@/lib/api/axios";
 import { TESTSUITS } from "@/lib/api/apiConstant";
 
+/** For HTTP(S) agent URLs: how to request and parse the WebSocket URL from the response. */
+export interface ConnectionMetadata {
+    method?: "GET" | "POST" | "PUT" | "PATCH";
+    headers?: Record<string, string>;
+    payload?: Record<string, unknown>;
+    response_websocket_url_path?: string;
+}
+
+export type TargetAgentType = "custom" | "vapi" | "retell";
+
 export interface CreateTargetAgentPayload {
     name: string;
-    websocket_url: string;
+    agent_type?: TargetAgentType;
+    websocket_url?: string;
     sample_rate: number;
     encoding: string;
     user_id: string;
+    connection_metadata?: ConnectionMetadata | null;
+    provider_config?: { assistant_id?: string; api_key?: string } | null;
 }
 
 export const TargetAgentsService = {

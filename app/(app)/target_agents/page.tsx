@@ -63,14 +63,17 @@ export default function TesterAgentsPage() {
             const transformedAgents: Assistant[] = agentsList.map((agent: any) => ({
                 id: agent.id,
                 name: agent.name,
-                websocketUrl: agent.websocket_url,
-                sampleRate: agent.sample_rate.toString(),
-                encoding: agent.encoding,
+                websocketUrl: agent.websocket_url ?? "",
+                sampleRate: agent.sample_rate?.toString() ?? "8000",
+                encoding: agent.encoding ?? "mulaw",
                 createdAt: new Date(agent.created_at).toLocaleDateString('en-US', {
                     month: 'short',
                     day: '2-digit',
                     year: 'numeric'
-                })
+                }),
+                agentType: (agent.agent_type || "custom") as Assistant["agentType"],
+                connectionMetadata: agent.connection_metadata ?? undefined,
+                providerConfig: agent.provider_config ?? undefined,
             }))
 
             setAgents(transformedAgents)
@@ -134,25 +137,38 @@ export default function TesterAgentsPage() {
             )
         },
         {
-            accessorKey: "websocketUrl",
-            header: "Websocket URL",
+            accessorKey: "agentType",
+            header: "Provider",
             cell: ({ row }) => {
-                const url = row.getValue("websocketUrl") as string;
+                const t = (row.original as Assistant).agentType || "custom";
+                const label = t === "vapi" ? "Vapi" : t === "retell" ? "Retell" : "Custom";
+                const color = t === "vapi" ? "text-blue-600 dark:text-blue-400" : t === "retell" ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400";
+                return <span className={`text-xs font-medium ${color}`}>{label}</span>;
+            }
+        },
+        {
+            accessorKey: "websocketUrl",
+            header: "URL / Config",
+            cell: ({ row }) => {
+                const a = row.original as Assistant;
+                const url = a.websocketUrl || "";
+                if (a.agentType === "vapi") return <span className="text-xs text-muted-foreground">Vapi assistant</span>;
+                if (a.agentType === "retell") return <span className="text-xs text-muted-foreground">—</span>;
                 const truncatedUrl = url.length > 30 ? url.substring(0, 30) + "..." : url;
                 return (
                     <TooltipProvider>
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono cursor-help">
-                                    {truncatedUrl}
+                                    {truncatedUrl || "—"}
                                 </code>
                             </TooltipTrigger>
                             <TooltipContent side="bottom" className="max-w-md break-all">
-                                <p className="text-xs font-mono">{url}</p>
+                                <p className="text-xs font-mono">{url || "—"}</p>
                             </TooltipContent>
                         </Tooltip>
                     </TooltipProvider>
-                )
+                );
             }
         },
         {
