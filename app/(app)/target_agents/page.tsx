@@ -60,20 +60,27 @@ export default function TesterAgentsPage() {
             const response = await TargetAgentsService.getTargetAgents(user.id) as any
             const agentsList = response?.target_agents || []
 
-            const transformedAgents: Assistant[] = agentsList.map((agent: any) => ({
-                id: agent.id,
-                name: agent.name,
-                websocketUrl: agent.websocket_url,
-                phoneNumber: agent.phone_number,
-                connectionType: agent.connection_type || (agent.phone_number ? 'phone' : 'websocket'),
-                sampleRate: agent.sample_rate.toString(),
-                encoding: agent.encoding,
-                createdAt: new Date(agent.created_at).toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: '2-digit',
-                    year: 'numeric'
-                })
-            }))
+            const transformedAgents: Assistant[] = agentsList.map((agent: any) => {
+                const agentType = (agent.agent_type || 'custom').toLowerCase()
+                const isPhone = agentType === 'phone'
+                const connectionMetadata = agent.connection_metadata || {}
+                const phoneNumber = isPhone ? connectionMetadata.phone_number : undefined
+
+                return {
+                    id: agent.id,
+                    name: agent.name,
+                    websocketUrl: !isPhone ? agent.websocket_url : undefined,
+                    phoneNumber,
+                    connectionType: isPhone ? 'phone' : 'websocket',
+                    sampleRate: agent.sample_rate.toString(),
+                    encoding: agent.encoding,
+                    createdAt: new Date(agent.created_at).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: '2-digit',
+                        year: 'numeric'
+                    })
+                }
+            })
 
             setAgents(transformedAgents)
         } catch (error) {

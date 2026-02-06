@@ -71,6 +71,10 @@ export default function UserAgentsPage() {
                 name: agent.name,
                 systemPrompt: agent.system_prompt,
                 temperature: agent.temperature,
+                // Flatten phone_numbers JSON into a simple string[] for the dialog
+                phoneNumbers: Array.isArray(agent.phone_numbers?.phone_numbers)
+                    ? agent.phone_numbers.phone_numbers.filter((p: any) => typeof p === "string" && p.trim().length > 0)
+                    : [],
                 createdAt: new Date(agent.created_at).toLocaleDateString('en-US', {
                     month: 'short',
                     day: '2-digit',
