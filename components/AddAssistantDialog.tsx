@@ -34,22 +34,27 @@ export interface ConnectionMetadata {
 }
 
 export type TargetProvider = "custom" | "vapi" | "retell";
+export type AssistantAgentType = TargetProvider | "phone";
 
 export interface Assistant {
   id: string;
   name: string;
-  websocketUrl: string;
+  websocketUrl?: string;
+  phoneNumber?: string;
+  connectionType?: "websocket" | "http" | "phone";
   sampleRate: string;
   encoding: string;
   createdAt: string;
   systemPrompt?: string;
   temperature?: number;
   /** Target agent type: custom (ws/http), vapi, retell. */
-  agentType?: TargetProvider;
+  agentType?: AssistantAgentType;
   /** For custom HTTP(S): how to get WebSocket URL from the endpoint. */
   connectionMetadata?: ConnectionMetadata | null;
   /** For vapi/retell: assistant_id, api_key. */
   providerConfig?: { assistant_id?: string; api_key?: string } | null;
+  // For tester agents, optional list of phone numbers used for phone tests
+  phoneNumbers?: string[];
 }
 
 interface AddAssistantDialogProps {
@@ -73,7 +78,8 @@ export function AddAssistantDialog({
     name: "",
     targetProvider: "custom" as TargetProvider,
     websocketUrl: "",
-    connectionType: "websocket" as "websocket" | "http",
+    connectionType: "websocket" as "websocket" | "http" | "phone",
+    phoneNumber: "",
     connectionMetadata: {
       method: "POST",
       headersJson: "{}",
@@ -86,20 +92,25 @@ export function AddAssistantDialog({
     encoding: "mulaw",
     systemPrompt: "",
     temperature: 0.7,
+    testerPhoneNumbersRaw: "",
   });
 
   useEffect(() => {
     if (open) {
       if (initialData) {
-        const provider = (initialData.agentType as TargetProvider) || "custom";
+        const provider = (initialData.agentType === "phone" ? "custom" : (initialData.agentType as TargetProvider)) || "custom";
         const isHttp = (initialData.websocketUrl || "").startsWith("http://") || (initialData.websocketUrl || "").startsWith("https://");
         const meta = initialData.connectionMetadata;
         const pc = initialData.providerConfig;
+        const inferredConnectionType =
+          initialData.connectionType ||
+          (initialData.phoneNumber ? "phone" : isHttp ? "http" : "websocket");
         setFormData({
           name: initialData.name,
           targetProvider: provider,
           websocketUrl: initialData.websocketUrl || "",
-          connectionType: isHttp ? "http" : "websocket",
+          connectionType: inferredConnectionType,
+          phoneNumber: initialData.phoneNumber || "",
           connectionMetadata: {
             method: meta?.method || "POST",
             headersJson: meta?.headers ? JSON.stringify(meta.headers, null, 2) : "{}",
@@ -112,6 +123,7 @@ export function AddAssistantDialog({
           encoding: initialData.encoding,
           systemPrompt: initialData.systemPrompt || "",
           temperature: initialData.temperature ?? 0.7,
+          testerPhoneNumbersRaw: (initialData.phoneNumbers || []).join(", "),
         });
       } else {
         setFormData({
@@ -119,6 +131,7 @@ export function AddAssistantDialog({
           targetProvider: "custom",
           websocketUrl: "",
           connectionType: "websocket",
+          phoneNumber: "",
           connectionMetadata: {
             method: "POST",
             headersJson: "{}",
@@ -131,6 +144,7 @@ export function AddAssistantDialog({
           encoding: "mulaw",
           systemPrompt: "",
           temperature: 0.7,
+          testerPhoneNumbersRaw: "",
         });
       }
     }
@@ -156,6 +170,14 @@ export function AddAssistantDialog({
     }
     if (formData.targetProvider === "retell") {
       return { ...base, agent_type: "retell" as TargetAgentType, websocket_url: "", provider_config: {} };
+    }
+    if (formData.targetProvider === "custom" && formData.connectionType === "phone") {
+      return {
+        ...base,
+        agent_type: "phone" as TargetAgentType,
+        websocket_url: "",
+        connection_metadata: { phone_number: formData.phoneNumber.trim() },
+      };
     }
     return {
       ...base,
@@ -197,9 +219,15 @@ export function AddAssistantDialog({
       return;
     }
     if (agentType === "target") {
-      if (formData.targetProvider === "custom" && !formData.websocketUrl.trim()) {
-        toast.error("URL is required for Custom agent");
-        return;
+      if (formData.targetProvider === "custom") {
+        if (formData.connectionType === "phone" && !formData.phoneNumber.trim()) {
+          toast.error("Phone number is required for Phone connection");
+          return;
+        }
+        if ((formData.connectionType === "websocket" || formData.connectionType === "http") && !formData.websocketUrl.trim()) {
+          toast.error("URL is required for Custom agent");
+          return;
+        }
       }
       if (formData.targetProvider === "vapi") {
         if (!formData.vapiAssistantId.trim() || !formData.vapiApiKey.trim()) {
@@ -207,10 +235,7 @@ export function AddAssistantDialog({
           return;
         }
       }
-      if (formData.targetProvider === "retell") {
-        toast.error("Retell is not available yet");
-        return;
-      }
+      // Retell can be created, but backend execution is not supported yet.
     }
 
     let connectionMetadata: ConnectionMetadata | null = null;
@@ -230,11 +255,17 @@ export function AddAssistantDialog({
 
     setIsSubmitting(true);
     try {
-      let response;
+      // For tester/user agents, parse optional phone numbers
+      const testerPhoneNumbers = formData.testerPhoneNumbersRaw
+        .split(",")
+        .map((p) => p.trim())
+        .filter((p) => p.length > 0);
+
+      let response: unknown;
       if (initialData?.id) {
         // Update existing agent
         if (agentType === "target") {
-          const payload = buildTargetAgentPayload(connectionMetadata);
+          const payload: CreateTargetAgentPayload = buildTargetAgentPayload(connectionMetadata);
           response = await TargetAgentsService.updateTargetAgent(initialData.id, payload);
           toast.success("Target agent updated successfully");
         } else {
@@ -244,6 +275,9 @@ export function AddAssistantDialog({
             system_prompt: formData.systemPrompt,
             temperature: formData.temperature,
             user_id: user.id,
+            ...(testerPhoneNumbers.length > 0
+              ? { phone_numbers: { phone_numbers: testerPhoneNumbers } }
+              : {}),
           };
           response = await UserAgentsService.updateUserAgent(initialData.id, payload);
           toast.success("Tester agent updated successfully");
@@ -251,7 +285,7 @@ export function AddAssistantDialog({
       } else {
         // Create new agent
         if (agentType === "target") {
-          const payload = buildTargetAgentPayload(connectionMetadata);
+          const payload: CreateTargetAgentPayload = buildTargetAgentPayload(connectionMetadata);
           response = await TargetAgentsService.createTargetAgent(payload);
           toast.success("Target agent created successfully");
         } else {
@@ -260,15 +294,22 @@ export function AddAssistantDialog({
             system_prompt: formData.systemPrompt,
             temperature: formData.temperature,
             user_id: user.id,
+            ...(testerPhoneNumbers.length > 0
+              ? { phone_numbers: { phone_numbers: testerPhoneNumbers } }
+              : {}),
           };
           response = await UserAgentsService.createUserAgent(payload);
           toast.success("Tester agent created successfully");
         }
       }
 
+      const responseId =
+        (response as { data?: { id?: string } })?.data?.id ??
+        (response as { id?: string })?.id;
+
       const updatedAssistant: Assistant = {
         ...formData,
-        id: (response as any)?.id || response?.data?.id || initialData?.id || Date.now().toString(),
+        id: responseId || initialData?.id || Date.now().toString(),
         createdAt: initialData?.createdAt || new Date().toLocaleDateString('en-US', {
           month: 'short',
           day: '2-digit',
@@ -279,6 +320,7 @@ export function AddAssistantDialog({
         providerConfig: formData.targetProvider === "vapi"
           ? { assistant_id: formData.vapiAssistantId.trim(), api_key: formData.vapiApiKey.trim() }
           : undefined,
+        phoneNumbers: testerPhoneNumbers,
       };
 
       onAddAssistant(updatedAssistant);
@@ -287,6 +329,7 @@ export function AddAssistantDialog({
         targetProvider: "custom",
         websocketUrl: "",
         connectionType: "websocket",
+        phoneNumber: "",
         connectionMetadata: { method: "POST", headersJson: "{}", payloadJson: "{}", responseWebsocketUrlPath: "websocket_url" },
         vapiAssistantId: "",
         vapiApiKey: "",
@@ -294,6 +337,7 @@ export function AddAssistantDialog({
         encoding: "mulaw",
         systemPrompt: "",
         temperature: 0.7,
+        testerPhoneNumbersRaw: "",
       });
       onOpenChange(false);
     } catch (error) {
@@ -428,7 +472,7 @@ export function AddAssistantDialog({
                         <Label>Connection type</Label>
                         <Select
                           value={formData.connectionType}
-                          onValueChange={(v: "websocket" | "http") => setFormData((prev) => ({ ...prev, connectionType: v }))}
+                          onValueChange={(v: "websocket" | "http" | "phone") => setFormData((prev) => ({ ...prev, connectionType: v }))}
                         >
                           <SelectTrigger className="w-full bg-background/50 border-border/50 focus:ring-primary/20">
                             <SelectValue />
@@ -436,18 +480,31 @@ export function AddAssistantDialog({
                           <SelectContent>
                             <SelectItem value="websocket">WebSocket URL (ws:// or wss://)</SelectItem>
                             <SelectItem value="http">HTTP URL (returns WebSocket URL)</SelectItem>
+                            <SelectItem value="phone">Phone Number</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="space-y-2">
-                        <Label>{formData.connectionType === "http" ? "HTTP endpoint URL" : "WebSocket URL"}</Label>
-                        <Input
-                          placeholder={formData.connectionType === "http" ? "https://api.example.com/agent/session" : "ws://localhost:6068"}
-                          value={formData.websocketUrl}
-                          onChange={handleInputChange("websocketUrl")}
-                          className="bg-background/50 border-border/50 focus:border-primary/50 font-mono text-sm"
-                        />
-                      </div>
+                      {formData.connectionType === "phone" ? (
+                        <div className="space-y-2">
+                          <Label>Phone Number</Label>
+                          <Input
+                            placeholder="+1234567890"
+                            value={formData.phoneNumber}
+                            onChange={handleInputChange("phoneNumber")}
+                            className="bg-background/50 border-border/50 focus:border-primary/50 font-mono text-sm"
+                          />
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <Label>{formData.connectionType === "http" ? "HTTP endpoint URL" : "WebSocket URL"}</Label>
+                          <Input
+                            placeholder={formData.connectionType === "http" ? "https://api.example.com/agent/session" : "ws://localhost:6068"}
+                            value={formData.websocketUrl}
+                            onChange={handleInputChange("websocketUrl")}
+                            className="bg-background/50 border-border/50 focus:border-primary/50 font-mono text-sm"
+                          />
+                        </div>
+                      )}
                       {formData.connectionType === "http" && (
                         <div className="space-y-3 rounded-md border border-border/50 bg-muted/30 p-3">
                           <p className="text-sm font-medium text-muted-foreground">HTTP request (to get WebSocket URL)</p>
@@ -612,6 +669,19 @@ export function AddAssistantDialog({
                 />
               </div>
 
+              <div className="space-y-2">
+                <Label>Phone Numbers for Phone Tests (optional)</Label>
+                <Input
+                  placeholder="+15551234567, +15557654321"
+                  value={formData.testerPhoneNumbersRaw}
+                  onChange={(e) => setFormData(prev => ({ ...prev, testerPhoneNumbersRaw: e.target.value }))}
+                  className="bg-background/50 border-border/50 focus:border-primary/50 font-mono text-xs"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Comma-separated E.164 numbers. These will be mapped to the underlying Pranthora agent for phone-type tests.
+                </p>
+              </div>
+
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <Label>Temperature</Label>
@@ -645,9 +715,8 @@ export function AddAssistantDialog({
               isSubmitting ||
               !formData.name.trim() ||
               (agentType === "tester" ? !formData.systemPrompt.trim() : false) ||
-              (agentType === "target" && formData.targetProvider === "custom" && !formData.websocketUrl.trim()) ||
-              (agentType === "target" && formData.targetProvider === "vapi" && (!formData.vapiAssistantId.trim() || !formData.vapiApiKey.trim())) ||
-              (agentType === "target" && formData.targetProvider === "retell")
+              (agentType === "target" && formData.targetProvider === "custom" && (formData.connectionType === "phone" ? !formData.phoneNumber.trim() : !formData.websocketUrl.trim())) ||
+              (agentType === "target" && formData.targetProvider === "vapi" && (!formData.vapiAssistantId.trim() || !formData.vapiApiKey.trim()))
             }
             className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/25"
           >

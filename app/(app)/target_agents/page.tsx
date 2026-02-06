@@ -53,28 +53,52 @@ export default function TesterAgentsPage() {
     const [isDeletingAgent, setIsDeletingAgent] = useState(false)
     const [agentToDelete, setAgentToDelete] = useState<Assistant | null>(null)
 
+    type TargetAgentApi = {
+        id: string
+        name: string
+        websocket_url?: string | null
+        sample_rate?: number | null
+        encoding?: string | null
+        created_at: string
+        agent_type?: string | null
+        connection_metadata?: Record<string, unknown> | null
+        provider_config?: Record<string, unknown> | null
+    }
+
     const fetchAgents = useCallback(async (silent = false) => {
         if (!user?.id) return
         if (!silent) setIsLoading(true)
         try {
-            const response = await TargetAgentsService.getTargetAgents(user.id) as any
+            // apiClient returns response.data directly (see `lib/api/axios.ts`)
+            const response = await TargetAgentsService.getTargetAgents(user.id) as unknown as { target_agents?: TargetAgentApi[] }
             const agentsList = response?.target_agents || []
 
-            const transformedAgents: Assistant[] = agentsList.map((agent: any) => ({
-                id: agent.id,
-                name: agent.name,
-                websocketUrl: agent.websocket_url ?? "",
-                sampleRate: agent.sample_rate?.toString() ?? "8000",
-                encoding: agent.encoding ?? "mulaw",
-                createdAt: new Date(agent.created_at).toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: '2-digit',
-                    year: 'numeric'
-                }),
-                agentType: (agent.agent_type || "custom") as Assistant["agentType"],
-                connectionMetadata: agent.connection_metadata ?? undefined,
-                providerConfig: agent.provider_config ?? undefined,
-            }))
+            const transformedAgents: Assistant[] = agentsList.map((agent: TargetAgentApi) => {
+                const agentTypeRaw = (agent.agent_type || "custom").toString().toLowerCase()
+                const isPhone = agentTypeRaw === "phone"
+                const websocketUrl = agent.websocket_url ?? ""
+                const isHttp = typeof websocketUrl === "string" && (websocketUrl.startsWith("http://") || websocketUrl.startsWith("https://"))
+                const connectionMetadata = agent.connection_metadata || {}
+                const phoneNumber = isPhone ? (connectionMetadata["phone_number"] as string | undefined) : undefined
+
+                return {
+                    id: agent.id,
+                    name: agent.name,
+                    websocketUrl: isPhone ? undefined : websocketUrl,
+                    phoneNumber,
+                    connectionType: isPhone ? "phone" : (isHttp ? "http" : "websocket"),
+                    sampleRate: agent.sample_rate?.toString() ?? "8000",
+                    encoding: agent.encoding ?? "mulaw",
+                    createdAt: new Date(agent.created_at).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: '2-digit',
+                        year: 'numeric'
+                    }),
+                    agentType: (agentTypeRaw || "custom") as Assistant["agentType"],
+                    connectionMetadata: agent.connection_metadata ?? undefined,
+                    providerConfig: agent.provider_config ?? undefined,
+                }
+            })
 
             setAgents(transformedAgents)
         } catch (error) {
@@ -89,7 +113,7 @@ export default function TesterAgentsPage() {
         fetchAgents()
     }, [fetchAgents])
 
-    const handleAddAssistant = (newAssistant: Assistant) => {
+    const handleAddAssistant = (_newAssistant: Assistant) => {
         fetchAgents(true) // Re-fetch all agents from the backend to ensure consistency
         setEditingAssistant(null)
         setIsAddDialogOpen(false)
@@ -140,31 +164,46 @@ export default function TesterAgentsPage() {
             accessorKey: "agentType",
             header: "Provider",
             cell: ({ row }) => {
-                const t = (row.original as Assistant).agentType || "custom";
-                const label = t === "vapi" ? "Vapi" : t === "retell" ? "Retell" : "Custom";
-                const color = t === "vapi" ? "text-blue-600 dark:text-blue-400" : t === "retell" ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400";
+                const t = String((row.original as Assistant).agentType ?? "custom");
+                const label = t === "vapi" ? "Vapi" : t === "retell" ? "Retell" : t === "phone" ? "Phone" : "Custom";
+                const color = t === "vapi"
+                    ? "text-blue-600 dark:text-blue-400"
+                    : t === "retell"
+                        ? "text-amber-600 dark:text-amber-400"
+                        : t === "phone"
+                            ? "text-fuchsia-600 dark:text-fuchsia-400"
+                            : "text-emerald-600 dark:text-emerald-400";
                 return <span className={`text-xs font-medium ${color}`}>{label}</span>;
             }
         },
         {
             accessorKey: "websocketUrl",
-            header: "URL / Config",
+            header: "Connection",
             cell: ({ row }) => {
-                const a = row.original as Assistant;
-                const url = a.websocketUrl || "";
-                if (a.agentType === "vapi") return <span className="text-xs text-muted-foreground">Vapi assistant</span>;
-                if (a.agentType === "retell") return <span className="text-xs text-muted-foreground">—</span>;
-                const truncatedUrl = url.length > 30 ? url.substring(0, 30) + "..." : url;
+                const assistant = row.original as Assistant;
+                const isPhone = assistant.connectionType === "phone";
+                const value = isPhone ? assistant.phoneNumber : assistant.websocketUrl;
+
+                if (assistant.agentType === "vapi") return <span className="text-xs text-muted-foreground">Vapi assistant</span>;
+                if (assistant.agentType === "retell") return <span className="text-xs text-muted-foreground">—</span>;
+                if (!value) return <span className="text-muted-foreground">-</span>;
+
+                const displayValue = value.length > 30 ? value.substring(0, 30) + "..." : value;
                 return (
                     <TooltipProvider>
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono cursor-help">
-                                    {truncatedUrl || "—"}
-                                </code>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[10px] uppercase font-bold text-muted-foreground bg-muted/50 px-1 rounded">
+                                        {isPhone ? "Phone" : (assistant.connectionType === "http" ? "HTTP" : "WS")}
+                                    </span>
+                                    <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono cursor-help">
+                                        {displayValue}
+                                    </code>
+                                </div>
                             </TooltipTrigger>
                             <TooltipContent side="bottom" className="max-w-md break-all">
-                                <p className="text-xs font-mono">{url || "—"}</p>
+                                <p className="text-xs font-mono">{value}</p>
                             </TooltipContent>
                         </Tooltip>
                     </TooltipProvider>
@@ -277,7 +316,7 @@ export default function TesterAgentsPage() {
                         <AlertDialogHeader>
                             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                             <AlertDialogDescription>
-                                This action cannot be undone. This will permanently delete the agent "{agentToDelete?.name}".
+                                This action cannot be undone. This will permanently delete the agent &quot;{agentToDelete?.name}&quot;.
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>

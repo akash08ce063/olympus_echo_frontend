@@ -9,7 +9,7 @@ export interface ConnectionMetadata {
     response_websocket_url_path?: string;
 }
 
-export type TargetAgentType = "custom" | "vapi" | "retell";
+export type TargetAgentType = "custom" | "vapi" | "retell" | "phone";
 
 export interface CreateTargetAgentPayload {
     name: string;
@@ -18,8 +18,8 @@ export interface CreateTargetAgentPayload {
     sample_rate: number;
     encoding: string;
     user_id: string;
-    connection_metadata?: ConnectionMetadata | null;
-    provider_config?: { assistant_id?: string; api_key?: string } | null;
+    connection_metadata?: (ConnectionMetadata | Record<string, any>) | null;
+    provider_config?: ({ assistant_id?: string; api_key?: string } | Record<string, any>) | null;
 }
 
 export const TargetAgentsService = {
