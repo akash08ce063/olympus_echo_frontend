@@ -3,12 +3,13 @@ import { TESTSUITS } from "@/lib/api/apiConstant";
 
 export interface CreateTargetAgentPayload {
     name: string;
-    connection_type?: 'websocket' | 'phone';
+    agent_type: "custom" | "vapi" | "retell" | "phone";
     websocket_url?: string;
-    phone_number?: string;
     sample_rate: number;
     encoding: string;
     user_id: string;
+    connection_metadata?: Record<string, any>;
+    provider_config?: Record<string, any>;
 }
 
 export const TargetAgentsService = {

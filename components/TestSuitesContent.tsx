@@ -219,12 +219,28 @@ export function TestSuitesContent() {
     const handleRunTests = async () => {
         if (!selectedSuiteId || !user?.id) return
 
-        const targetAgentId = selectedSuiteDetails?.target_agent?.id || selectedSuite?.target_agent_id;
-        const userAgentId = selectedSuiteDetails?.user_agent?.id || selectedSuite?.user_agent_id;
+        const targetAgent = selectedSuiteDetails?.target_agent
+        const userAgent = selectedSuiteDetails?.user_agent
+        const targetAgentId = targetAgent?.id || selectedSuite?.target_agent_id
+        const userAgentId = userAgent?.id || selectedSuite?.user_agent_id
 
         if (!targetAgentId || !userAgentId) {
             toast.error("Please select both Target Agent and Tester Assistant before running tests");
             return;
+        }
+
+        // If target agent is phone-type, enforce that user agent has phone_numbers configured
+        const targetAgentType = (targetAgent?.agent_type || "").toLowerCase();
+        if (targetAgentType === "phone") {
+            const phoneCfg = (userAgent as any)?.phone_numbers || {};
+            const phoneList: string[] = Array.isArray(phoneCfg?.phone_numbers)
+                ? phoneCfg.phone_numbers.filter((p: any) => typeof p === "string" && p.trim().length > 0)
+                : [];
+
+            if (phoneList.length === 0) {
+                toast.error("Selected tester assistant has no phone_numbers configured for phone target agent.");
+                return;
+            }
         }
 
         // Calculate maximum concurrent calls needed across all active test cases
@@ -243,9 +259,10 @@ export function TestSuitesContent() {
 
             // Silently refresh details to update status
             fetchSuiteDetails(selectedSuiteId, true);
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to start test run:", error)
-            toast.error("Failed to start test run")
+            const errorMessage = error?.response?.data?.detail || error?.message || "Failed to start test run"
+            toast.error(errorMessage)
         } finally {
             setIsRunningTests(false)
         }
@@ -538,6 +555,22 @@ export function TestSuitesContent() {
     const handleRunSingleTest = useCallback(async (testCaseId: string, concurrentCalls: number) => {
         if (!user?.id) return;
         try {
+            // Phone-type gating for single test runs as well
+            const targetAgent = selectedSuiteDetails?.target_agent;
+            const userAgent = selectedSuiteDetails?.user_agent;
+            const targetAgentType = (targetAgent?.agent_type || "").toLowerCase();
+            if (targetAgentType === "phone") {
+                const phoneCfg = (userAgent as any)?.phone_numbers || {};
+                const phoneList: string[] = Array.isArray(phoneCfg?.phone_numbers)
+                    ? phoneCfg.phone_numbers.filter((p: any) => typeof p === "string" && p.trim().length > 0)
+                    : [];
+
+                if (phoneList.length === 0) {
+                    toast.error("Selected tester assistant has no phone_numbers configured for phone target agent.");
+                    return;
+                }
+            }
+
             const response: any = await TestSuitesService.runSingleTest(testCaseId, user.id, concurrentCalls);
             toast.success("Test run initiated");
 
@@ -555,9 +588,10 @@ export function TestSuitesContent() {
                 console.log("Refreshing suite details");
                 fetchSuiteDetails(selectedSuiteId, true);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to run single test:", error);
-            toast.error("Failed to initiate test run");
+            const errorMessage = error?.response?.data?.detail || error?.message || "Failed to initiate test run";
+            toast.error(errorMessage);
         }
     }, [user?.id, selectedSuiteId, fetchSuiteDetails]);
 

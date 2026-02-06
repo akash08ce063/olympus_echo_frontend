@@ -35,6 +35,8 @@ export interface Assistant {
   createdAt: string;
   systemPrompt?: string;
   temperature?: number;
+  // For tester agents, optional list of phone numbers used for phone tests
+  phoneNumbers?: string[];
 }
 
 interface AddAssistantDialogProps {
@@ -63,6 +65,7 @@ export function AddAssistantDialog({
     encoding: "mulaw",
     systemPrompt: "",
     temperature: 0.7,
+    testerPhoneNumbersRaw: "",
   });
 
   useEffect(() => {
@@ -77,6 +80,7 @@ export function AddAssistantDialog({
           encoding: initialData.encoding,
           systemPrompt: initialData.systemPrompt || "",
           temperature: initialData.temperature ?? 0.7,
+          testerPhoneNumbersRaw: (initialData.phoneNumbers || []).join(", "),
         });
       } else {
         setFormData({
@@ -88,6 +92,7 @@ export function AddAssistantDialog({
           encoding: "mulaw",
           systemPrompt: "",
           temperature: 0.7,
+          testerPhoneNumbersRaw: "",
         });
       }
     }
@@ -112,15 +117,23 @@ export function AddAssistantDialog({
 
     setIsSubmitting(true);
     try {
+      // For tester/user agents, parse optional phone numbers
+      const testerPhoneNumbers = formData.testerPhoneNumbersRaw
+        .split(",")
+        .map((p) => p.trim())
+        .filter((p) => p.length > 0);
+
       let response;
       if (initialData?.id) {
         // Update existing agent
         if (agentType === "target") {
           const payload = {
             name: formData.name,
-            connection_type: formData.connectionType,
+            agent_type: formData.connectionType === "websocket" ? "custom" : "phone",
             websocket_url: formData.connectionType === "websocket" ? formData.websocketUrl : undefined,
-            phone_number: formData.connectionType === "phone" ? formData.phoneNumber : undefined,
+            connection_metadata: formData.connectionType === "phone"
+              ? { phone_number: formData.phoneNumber }
+              : undefined,
             sample_rate: parseInt(formData.sampleRate, 10),
             encoding: formData.encoding,
             user_id: user.id,
@@ -134,6 +147,9 @@ export function AddAssistantDialog({
             system_prompt: formData.systemPrompt,
             temperature: formData.temperature,
             user_id: user.id,
+            ...(testerPhoneNumbers.length > 0
+              ? { phone_numbers: { phone_numbers: testerPhoneNumbers } }
+              : {}),
           };
           response = await UserAgentsService.updateUserAgent(initialData.id, payload);
           toast.success("Tester agent updated successfully");
@@ -143,9 +159,11 @@ export function AddAssistantDialog({
         if (agentType === "target") {
           const payload = {
             name: formData.name,
-            connection_type: formData.connectionType,
+            agent_type: formData.connectionType === "websocket" ? "custom" : "phone",
             websocket_url: formData.connectionType === "websocket" ? formData.websocketUrl : undefined,
-            phone_number: formData.connectionType === "phone" ? formData.phoneNumber : undefined,
+            connection_metadata: formData.connectionType === "phone"
+              ? { phone_number: formData.phoneNumber }
+              : undefined,
             sample_rate: parseInt(formData.sampleRate, 10),
             encoding: formData.encoding,
             user_id: user.id,
@@ -158,6 +176,9 @@ export function AddAssistantDialog({
             system_prompt: formData.systemPrompt,
             temperature: formData.temperature,
             user_id: user.id,
+            ...(testerPhoneNumbers.length > 0
+              ? { phone_numbers: { phone_numbers: testerPhoneNumbers } }
+              : {}),
           };
           response = await UserAgentsService.createUserAgent(payload);
           toast.success("Tester agent created successfully");
@@ -172,6 +193,7 @@ export function AddAssistantDialog({
           day: '2-digit',
           year: 'numeric'
         }),
+        phoneNumbers: testerPhoneNumbers,
       };
 
       onAddAssistant(updatedAssistant);
@@ -184,6 +206,7 @@ export function AddAssistantDialog({
         encoding: "mulaw",
         systemPrompt: "",
         temperature: 0.7,
+        testerPhoneNumbersRaw: "",
       });
       onOpenChange(false);
     } catch (error) {
@@ -327,6 +350,19 @@ export function AddAssistantDialog({
                   onChange={(e) => setFormData(prev => ({ ...prev, systemPrompt: e.target.value }))}
                   className="bg-background/50 border-border/50 focus:border-primary/50 min-h-30 resize-none"
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Phone Numbers for Phone Tests (optional)</Label>
+                <Input
+                  placeholder="+15551234567, +15557654321"
+                  value={formData.testerPhoneNumbersRaw}
+                  onChange={(e) => setFormData(prev => ({ ...prev, testerPhoneNumbersRaw: e.target.value }))}
+                  className="bg-background/50 border-border/50 focus:border-primary/50 font-mono text-xs"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Comma-separated E.164 numbers. These will be mapped to the underlying Pranthora agent for phone-type tests.
+                </p>
               </div>
 
               <div className="space-y-4">
