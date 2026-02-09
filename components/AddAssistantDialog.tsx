@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { Bot, Loader2 } from "lucide-react";
+import { Bot, Loader2, Eye, EyeOff, Phone, Plus, X } from "lucide-react";
 import Image from "next/image";
 
 import { Button } from "@/components/ui/button";
@@ -33,8 +33,8 @@ export interface ConnectionMetadata {
   response_websocket_url_path?: string;
 }
 
-export type TargetProvider = "custom" | "vapi" | "retell";
-export type AssistantAgentType = TargetProvider | "phone";
+export type TargetProvider = "custom" | "vapi" | "retell" | "phone";
+export type AssistantAgentType = TargetProvider;
 
 export interface Assistant {
   id: string;
@@ -74,6 +74,8 @@ export function AddAssistantDialog({
 }: AddAssistantDialogProps) {
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showVapiApiKey, setShowVapiApiKey] = useState(false);
+  const [newTesterPhone, setNewTesterPhone] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     targetProvider: "custom" as TargetProvider,
@@ -92,13 +94,13 @@ export function AddAssistantDialog({
     encoding: "mulaw",
     systemPrompt: "",
     temperature: 0.7,
-    testerPhoneNumbersRaw: "",
+    testerPhoneNumbers: [] as string[],
   });
 
   useEffect(() => {
     if (open) {
       if (initialData) {
-        const provider = (initialData.agentType === "phone" ? "custom" : (initialData.agentType as TargetProvider)) || "custom";
+        const provider = (initialData.agentType as TargetProvider) || "custom";
         const isHttp = (initialData.websocketUrl || "").startsWith("http://") || (initialData.websocketUrl || "").startsWith("https://");
         const meta = initialData.connectionMetadata;
         const pc = initialData.providerConfig;
@@ -123,7 +125,7 @@ export function AddAssistantDialog({
           encoding: initialData.encoding,
           systemPrompt: initialData.systemPrompt || "",
           temperature: initialData.temperature ?? 0.7,
-          testerPhoneNumbersRaw: (initialData.phoneNumbers || []).join(", "),
+          testerPhoneNumbers: initialData.phoneNumbers || [],
         });
       } else {
         setFormData({
@@ -144,7 +146,7 @@ export function AddAssistantDialog({
           encoding: "mulaw",
           systemPrompt: "",
           temperature: 0.7,
-          testerPhoneNumbersRaw: "",
+          testerPhoneNumbers: [],
         });
       }
     }
@@ -171,7 +173,7 @@ export function AddAssistantDialog({
     if (formData.targetProvider === "retell") {
       return { ...base, agent_type: "retell" as TargetAgentType, websocket_url: "", provider_config: {} };
     }
-    if (formData.targetProvider === "custom" && formData.connectionType === "phone") {
+    if (formData.targetProvider === "phone") {
       return {
         ...base,
         agent_type: "phone" as TargetAgentType,
@@ -219,17 +221,23 @@ export function AddAssistantDialog({
       return;
     }
     if (agentType === "target") {
-      if (formData.targetProvider === "custom") {
-        if (formData.connectionType === "phone" && !formData.phoneNumber.trim()) {
-          toast.error("Phone number is required for Phone connection");
+      if (formData.targetProvider === "phone") {
+        if (!formData.phoneNumber.trim()) {
+          toast.error("Phone number is required");
           return;
         }
+        // E.164 validation: starts with +, followed by 10-15 digits
+        const e164Regex = /^\+[1-9]\d{9,14}$/;
+        if (!e164Regex.test(formData.phoneNumber.trim())) {
+          toast.error("Invalid phone number format. Please use E.164 format (e.g., +1234567890)");
+          return;
+        }
+      } else if (formData.targetProvider === "custom") {
         if ((formData.connectionType === "websocket" || formData.connectionType === "http") && !formData.websocketUrl.trim()) {
           toast.error("URL is required for Custom agent");
           return;
         }
-      }
-      if (formData.targetProvider === "vapi") {
+      } else if (formData.targetProvider === "vapi") {
         if (!formData.vapiAssistantId.trim() || !formData.vapiApiKey.trim()) {
           toast.error("Vapi Assistant ID and API Key are required");
           return;
@@ -255,11 +263,17 @@ export function AddAssistantDialog({
 
     setIsSubmitting(true);
     try {
-      // For tester/user agents, parse optional phone numbers
-      const testerPhoneNumbers = formData.testerPhoneNumbersRaw
-        .split(",")
-        .map((p) => p.trim())
-        .filter((p) => p.length > 0);
+      const testerPhoneNumbers = formData.testerPhoneNumbers;
+
+      // The validation is now handled during "Add" or on the chips, 
+      // but we maintain a safety check here.
+      const e164Regex = /^\+[1-9]\d{9,14}$/;
+      for (const phone of testerPhoneNumbers) {
+        if (!e164Regex.test(phone)) {
+          toast.error(`Invalid tester phone number: ${phone}. Please use E.164 format.`);
+          return;
+        }
+      }
 
       let response: unknown;
       if (initialData?.id) {
@@ -320,7 +334,7 @@ export function AddAssistantDialog({
         providerConfig: formData.targetProvider === "vapi"
           ? { assistant_id: formData.vapiAssistantId.trim(), api_key: formData.vapiApiKey.trim() }
           : undefined,
-        phoneNumbers: testerPhoneNumbers,
+        phoneNumbers: formData.testerPhoneNumbers,
       };
 
       onAddAssistant(updatedAssistant);
@@ -337,8 +351,9 @@ export function AddAssistantDialog({
         encoding: "mulaw",
         systemPrompt: "",
         temperature: 0.7,
-        testerPhoneNumbersRaw: "",
+        testerPhoneNumbers: [],
       });
+      setNewTesterPhone("");
       onOpenChange(false);
     } catch (error) {
       console.error("Failed to add assistant:", error);
@@ -346,7 +361,7 @@ export function AddAssistantDialog({
     } finally {
       setIsSubmitting(false);
     }
-  }, [formData, user, onAddAssistant, onOpenChange]);
+  }, [formData, user, onAddAssistant, onOpenChange, buildTargetAgentPayload, initialData, agentType, parseConnectionMetadata]);
 
   const handleInputChange =
     (field: keyof typeof formData) =>
@@ -367,6 +382,32 @@ export function AddAssistantDialog({
 
   const handleSliderChange = (value: number[]) => {
     setFormData((prev) => ({ ...prev, temperature: value[0] }));
+  };
+
+  const addTesterPhone = () => {
+    const phone = newTesterPhone.trim();
+    if (!phone) return;
+    const e164Regex = /^\+[1-9]\d{9,14}$/;
+    if (!e164Regex.test(phone)) {
+      toast.error("Invalid phone number format. Please use E.164 format (e.g., +1234567890)");
+      return;
+    }
+    if (formData.testerPhoneNumbers.includes(phone)) {
+      toast.error("Phone number already added");
+      return;
+    }
+    setFormData((prev) => ({
+      ...prev,
+      testerPhoneNumbers: [...prev.testerPhoneNumbers, phone],
+    }));
+    setNewTesterPhone("");
+  };
+
+  const removeTesterPhone = (phoneToRemove: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      testerPhoneNumbers: prev.testerPhoneNumbers.filter((p) => p !== phoneToRemove),
+    }));
   };
 
   return (
@@ -411,10 +452,10 @@ export function AddAssistantDialog({
                   onValueChange={(v) => setFormData((prev) => ({ ...prev, targetProvider: v as TargetProvider }))}
                   className="w-full"
                 >
-                  <TabsList className="grid w-full grid-cols-3 h-auto p-1 bg-muted/50">
+                  <TabsList className="grid w-full grid-cols-4 h-auto p-1 bg-muted/50">
                     <TabsTrigger
                       value="custom"
-                      className="flex items-center gap-2 py-2.5 data-[state=active]:bg-orange-500/10 data-[state=active]:border-orange-500/30"
+                      className="flex items-center gap-2 py-2.5 data-[state=active]:bg-orange-500/10 data-[state=active]:border-orange-500/30 cursor-pointer"
                     >
                       <div className="flex items-center gap-2">
                         <div className="p-1 rounded-md bg-orange-500/10">
@@ -425,7 +466,7 @@ export function AddAssistantDialog({
                     </TabsTrigger>
                     <TabsTrigger
                       value="vapi"
-                      className="flex items-center gap-2 py-2.5 data-[state=active]:bg-indigo-500/10 data-[state=active]:border-indigo-500/30"
+                      className="flex items-center gap-2 py-2.5 data-[state=active]:bg-indigo-500/10 data-[state=active]:border-indigo-500/30 cursor-pointer"
                     >
                       <div className="flex items-center gap-2">
                         <div className="p-1 rounded-md bg-indigo-500/10 flex items-center justify-center">
@@ -442,7 +483,7 @@ export function AddAssistantDialog({
                     </TabsTrigger>
                     <TabsTrigger
                       value="retell"
-                      className="flex items-center gap-2 py-2.5 data-[state=active]:bg-purple-500/10 data-[state=active]:border-purple-500/30"
+                      className="flex items-center gap-2 py-2.5 data-[state=active]:bg-purple-500/10 data-[state=active]:border-purple-500/30 cursor-pointer"
                     >
                       <div className="flex items-center gap-2">
                         <div className="p-1 rounded-md bg-white flex items-center justify-center">
@@ -455,6 +496,17 @@ export function AddAssistantDialog({
                           />
                         </div>
                         <span className="font-medium">Retell</span>
+                      </div>
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="phone"
+                      className="flex items-center gap-2 py-2.5 data-[state=active]:bg-emerald-500/10 data-[state=active]:border-emerald-500/30 cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="p-1 rounded-md bg-emerald-500/10">
+                          <Phone className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                        </div>
+                        <span className="font-medium">Phone</span>
                       </div>
                     </TabsTrigger>
                   </TabsList>
@@ -472,7 +524,7 @@ export function AddAssistantDialog({
                         <Label>Connection type</Label>
                         <Select
                           value={formData.connectionType}
-                          onValueChange={(v: "websocket" | "http" | "phone") => setFormData((prev) => ({ ...prev, connectionType: v }))}
+                          onValueChange={(v: "websocket" | "http") => setFormData((prev) => ({ ...prev, connectionType: v }))}
                         >
                           <SelectTrigger className="w-full bg-background/50 border-border/50 focus:ring-primary/20">
                             <SelectValue />
@@ -480,31 +532,18 @@ export function AddAssistantDialog({
                           <SelectContent>
                             <SelectItem value="websocket">WebSocket URL (ws:// or wss://)</SelectItem>
                             <SelectItem value="http">HTTP URL (returns WebSocket URL)</SelectItem>
-                            <SelectItem value="phone">Phone Number</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
-                      {formData.connectionType === "phone" ? (
-                        <div className="space-y-2">
-                          <Label>Phone Number</Label>
-                          <Input
-                            placeholder="+1234567890"
-                            value={formData.phoneNumber}
-                            onChange={handleInputChange("phoneNumber")}
-                            className="bg-background/50 border-border/50 focus:border-primary/50 font-mono text-sm"
-                          />
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          <Label>{formData.connectionType === "http" ? "HTTP endpoint URL" : "WebSocket URL"}</Label>
-                          <Input
-                            placeholder={formData.connectionType === "http" ? "https://api.example.com/agent/session" : "ws://localhost:6068"}
-                            value={formData.websocketUrl}
-                            onChange={handleInputChange("websocketUrl")}
-                            className="bg-background/50 border-border/50 focus:border-primary/50 font-mono text-sm"
-                          />
-                        </div>
-                      )}
+                      <div className="space-y-2">
+                        <Label>{formData.connectionType === "http" ? "HTTP endpoint URL" : "WebSocket URL"}</Label>
+                        <Input
+                          placeholder={formData.connectionType === "http" ? "https://api.example.com/agent/session" : "ws://localhost:6068"}
+                          value={formData.websocketUrl}
+                          onChange={handleInputChange("websocketUrl")}
+                          className="bg-background/50 border-border/50 focus:border-primary/50 font-mono text-sm"
+                        />
+                      </div>
                       {formData.connectionType === "http" && (
                         <div className="space-y-3 rounded-md border border-border/50 bg-muted/30 p-3">
                           <p className="text-sm font-medium text-muted-foreground">HTTP request (to get WebSocket URL)</p>
@@ -572,13 +611,26 @@ export function AddAssistantDialog({
                       </div>
                       <div className="space-y-2">
                         <Label className="text-sm">API Key</Label>
-                        <Input
-                          type="password"
-                          placeholder="Vapi API key"
-                          value={formData.vapiApiKey}
-                          onChange={(e) => setFormData((prev) => ({ ...prev, vapiApiKey: e.target.value }))}
-                          className="bg-background/50 border-border/50 font-mono text-sm"
-                        />
+                        <div className="relative group">
+                          <Input
+                            type={showVapiApiKey ? "text" : "password"}
+                            placeholder="Vapi API key"
+                            value={formData.vapiApiKey}
+                            onChange={(e) => setFormData((prev) => ({ ...prev, vapiApiKey: e.target.value }))}
+                            className="bg-background/50 border-border/50 font-mono text-sm pr-10"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowVapiApiKey(!showVapiApiKey)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                          >
+                            {showVapiApiKey ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                          </button>
+                        </div>
                       </div>
                       <div className="space-y-2">
                         <Label className="text-sm">Assistant ID</Label>
@@ -594,21 +646,60 @@ export function AddAssistantDialog({
 
                   {/* Retell Agent Tab Content */}
                   <TabsContent value="retell" className="space-y-4 mt-4">
-                    <Alert className="border-purple-500/20 bg-purple-500/10">
-                      <Info className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-                      <AlertDescription className="text-purple-700 dark:text-purple-300 text-sm">
-                        <div className="flex items-center gap-2">
+                    <div className="flex flex-col items-center justify-center py-10 px-6 rounded-xl border border-purple-500/20 bg-purple-500/5 text-center gap-5 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-purple-500/20 blur-xl rounded-full"></div>
+                        <div className="relative p-4 rounded-2xl bg-gradient-to-br from-purple-500/20 to-purple-600/10 ring-1 ring-purple-500/30 shadow-inner">
                           <Image
                             src="/retell-logo-custom.png"
                             alt="Retell AI"
-                            width={16}
-                            height={16}
-                            className="w-4 h-4"
+                            width={40}
+                            height={40}
+                            className="w-10 h-10 opacity-90 drop-shadow-md"
                           />
-                          <strong>Retell AI integration is coming soon.</strong>
                         </div>
-                      </AlertDescription>
-                    </Alert>
+                      </div>
+                      <div className="space-y-1.5">
+                        <h4 className="text-lg font-bold text-purple-700 dark:text-purple-300 tracking-tight">Retell AI Integration</h4>
+                        {/* <p className="text-sm text-purple-600/70 dark:text-purple-400/70 max-w-[280px] leading-relaxed">
+                          We are currently engineering the Retell AI provider. Stay tuned for a seamless voice experience!
+                        </p> */}
+                      </div>
+                      <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-500/10 text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-[0.15em] border border-purple-500/20 shadow-sm">
+                        <span className="relative flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-purple-500"></span>
+                        </span>
+                        Coming Soon
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  {/* Phone Agent Tab Content */}
+                  <TabsContent value="phone" className="space-y-4 mt-4">
+                    <div className="space-y-3 rounded-md border border-emerald-500/20 bg-emerald-500/5 p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="p-1 rounded-md bg-emerald-500/10">
+                          <Phone className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                        </div>
+                        <h4 className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">Phone Connection Configuration</h4>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Phone Number</Label>
+                        <Input
+                          placeholder="+1234567890"
+                          value={formData.phoneNumber}
+                          onChange={handleInputChange("phoneNumber")}
+                          className={`bg-background/50 border-border/50 focus:border-primary/50 font-mono text-sm ${formData.phoneNumber && !/^\+[1-9]\d{9,14}$/.test(formData.phoneNumber.trim())
+                            ? "border-red-500 focus:border-red-500"
+                            : ""
+                            }`}
+                        />
+                        <p className="text-[10px] text-muted-foreground mt-1">
+                          Enter the E.164 formatted phone number for the agent.
+                        </p>
+                      </div>
+                    </div>
                   </TabsContent>
                 </Tabs>
               </div>
@@ -669,16 +760,63 @@ export function AddAssistantDialog({
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label>Phone Numbers for Phone Tests (optional)</Label>
-                <Input
-                  placeholder="+15551234567, +15557654321"
-                  value={formData.testerPhoneNumbersRaw}
-                  onChange={(e) => setFormData(prev => ({ ...prev, testerPhoneNumbersRaw: e.target.value }))}
-                  className="bg-background/50 border-border/50 focus:border-primary/50 font-mono text-xs"
-                />
-                <p className="text-[11px] text-muted-foreground">
-                  Comma-separated E.164 numbers. These will be mapped to the underlying Pranthora agent for phone-type tests.
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">Phone Numbers for Phone Tests (optional)</Label>
+
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {formData.testerPhoneNumbers.length === 0 && (
+                    <span className="text-xs text-muted-foreground italic">No phone numbers added yet.</span>
+                  )}
+                  {formData.testerPhoneNumbers.map((phone) => (
+                    <div
+                      key={phone}
+                      className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 border border-primary/20 text-xs font-mono text-primary animate-in fade-in zoom-in duration-200"
+                    >
+                      {phone}
+                      <button
+                        type="button"
+                        onClick={() => removeTesterPhone(phone)}
+                        className="p-0.5 hover:bg-primary/20 rounded-full transition-colors cursor-pointer"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Input
+                      placeholder="+1234567890"
+                      value={newTesterPhone}
+                      onChange={(e) => setNewTesterPhone(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          addTesterPhone();
+                        }
+                      }}
+                      className={`bg-background/50 border-border/50 focus:border-primary/50 font-mono text-sm pr-10 ${newTesterPhone && !/^\+[1-9]\d{9,14}$/.test(newTesterPhone.trim())
+                        ? "border-red-500 focus:border-red-500"
+                        : ""
+                        }`}
+                    />
+                    <Phone className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50 pointer-events-none" />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={addTesterPhone}
+                    disabled={!newTesterPhone.trim() || !/^\+[1-9]\d{9,14}$/.test(newTesterPhone.trim())}
+                    className="shrink-0 cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    Add
+                  </Button>
+                </div>
+                <p className="text-[10px] text-muted-foreground italic">
+                  Press Enter or click Add to include the number in the list.
                 </p>
               </div>
 
@@ -705,7 +843,7 @@ export function AddAssistantDialog({
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-            className="border-border/50"
+            className="border-border/50 cursor-pointer"
           >
             Cancel
           </Button>
@@ -715,10 +853,11 @@ export function AddAssistantDialog({
               isSubmitting ||
               !formData.name.trim() ||
               (agentType === "tester" ? !formData.systemPrompt.trim() : false) ||
-              (agentType === "target" && formData.targetProvider === "custom" && (formData.connectionType === "phone" ? !formData.phoneNumber.trim() : !formData.websocketUrl.trim())) ||
+              (agentType === "target" && formData.targetProvider === "phone" && !formData.phoneNumber.trim()) ||
+              (agentType === "target" && formData.targetProvider === "custom" && !formData.websocketUrl.trim()) ||
               (agentType === "target" && formData.targetProvider === "vapi" && (!formData.vapiAssistantId.trim() || !formData.vapiApiKey.trim()))
             }
-            className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/25"
+            className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/25 cursor-pointer"
           >
             {isSubmitting ? (
               <>
