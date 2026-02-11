@@ -45,7 +45,9 @@ function TestHistoryContent() {
     const [loading, setLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState("")
     const [statusFilter, setStatusFilter] = useState("all")
-    const [selectedRun, setSelectedRun] = useState<ApiTestRun | null>(null)
+    const [selectedRun, setSelectedRun] = useState<ApiTestRun | null>(null);
+
+    console.log("runs", runs);
 
     // Handle initial run selection from URL
     useEffect(() => {
@@ -119,8 +121,8 @@ function TestHistoryContent() {
 
     const filteredRuns = useMemo(() => {
         return runs.filter(run => {
-            const matchesSearch = run.test_suite_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                run.id.toLowerCase().includes(searchTerm.toLowerCase())
+            const matchesSearch = run?.test_suite_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                run?.id?.toLowerCase().includes(searchTerm.toLowerCase())
             const matchesStatus = statusFilter === "all" || run.status.toLowerCase() === statusFilter.toLowerCase()
             return matchesSearch && matchesStatus
         })
