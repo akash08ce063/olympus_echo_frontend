@@ -15,9 +15,19 @@ export function AudioPlayer({ url, className }: AudioPlayerProps) {
     const [isPlaying, setIsPlaying] = React.useState(false)
     const [duration, setDuration] = React.useState(0)
     const [currentTime, setCurrentTime] = React.useState(0)
-    const [isLoading, setIsLoading] = React.useState(true)
-    const [error, setError] = React.useState<string | null>(null)
+    const [isLoading, setIsLoading] = React.useState(!!url)
+    const [error, setError] = React.useState<string | null>(url ? null : "No recording available")
     const audioRef = React.useRef<HTMLAudioElement>(null)
+
+    React.useEffect(() => {
+        if (!url) {
+            setIsLoading(false)
+            setError("No recording available")
+        } else {
+            setIsLoading(true)
+            setError(null)
+        }
+    }, [url])
 
     const togglePlay = () => {
         if (audioRef.current && !error) {
@@ -72,7 +82,7 @@ export function AudioPlayer({ url, className }: AudioPlayerProps) {
             // Extract filename from URL (remove query parameters first)
             const urlWithoutQuery = url.split("?")[0]
             const filename = urlWithoutQuery.split("/").pop() || "audio.wav"
-            
+
             // Use direct download link - browser handles it natively (faster, no memory issues)
             const link = document.createElement("a")
             link.href = url
