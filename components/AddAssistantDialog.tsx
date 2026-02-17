@@ -51,8 +51,8 @@ export interface Assistant {
   agentType?: AssistantAgentType;
   /** For custom HTTP(S): how to get WebSocket URL from the endpoint. */
   connectionMetadata?: ConnectionMetadata | null;
-  /** For vapi/retell: assistant_id, api_key. */
-  providerConfig?: { assistant_id?: string; api_key?: string } | null;
+  /** For vapi/retell: assistant_id (vapi) or agent_id (retell), api_key. */
+  providerConfig?: { assistant_id?: string; agent_id?: string; api_key?: string } | null;
   // For tester agents, optional list of phone numbers used for phone tests
   phoneNumbers?: string[];
 }
@@ -75,6 +75,7 @@ export function AddAssistantDialog({
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showVapiApiKey, setShowVapiApiKey] = useState(false);
+  const [showRetellApiKey, setShowRetellApiKey] = useState(false);
   const [newTesterPhone, setNewTesterPhone] = useState("");
   const [formData, setFormData] = useState({
     name: "",
@@ -90,6 +91,8 @@ export function AddAssistantDialog({
     },
     vapiAssistantId: "",
     vapiApiKey: "",
+    retellAgentId: "",
+    retellApiKey: "",
     sampleRate: "8000",
     encoding: "mulaw",
     systemPrompt: "",
@@ -100,7 +103,8 @@ export function AddAssistantDialog({
   useEffect(() => {
     if (open) {
       if (initialData) {
-        const provider = (initialData.agentType as TargetProvider) || "custom";
+        const rawProvider = (initialData.agentType as TargetProvider) || "custom";
+        const provider = rawProvider === "retell" ? "custom" : rawProvider;
         const isHttp = (initialData.websocketUrl || "").startsWith("http://") || (initialData.websocketUrl || "").startsWith("https://");
         const meta = initialData.connectionMetadata;
         const pc = initialData.providerConfig;
@@ -119,8 +123,10 @@ export function AddAssistantDialog({
             payloadJson: meta?.payload ? JSON.stringify(meta.payload, null, 2) : "{}",
             responseWebsocketUrlPath: meta?.response_websocket_url_path || "websocket_url",
           },
-          vapiAssistantId: pc?.assistant_id || "",
-          vapiApiKey: pc?.api_key || "",
+          vapiAssistantId: provider === "vapi" ? (pc?.assistant_id || "") : "",
+          vapiApiKey: provider === "vapi" ? (pc?.api_key || "") : "",
+          retellAgentId: "",
+          retellApiKey: "",
           sampleRate: initialData.sampleRate,
           encoding: initialData.encoding,
           systemPrompt: initialData.systemPrompt || "",
@@ -142,6 +148,8 @@ export function AddAssistantDialog({
           },
           vapiAssistantId: "",
           vapiApiKey: "",
+          retellAgentId: "",
+          retellApiKey: "",
           sampleRate: "8000",
           encoding: "mulaw",
           systemPrompt: "",
@@ -171,7 +179,15 @@ export function AddAssistantDialog({
       };
     }
     if (formData.targetProvider === "retell") {
-      return { ...base, agent_type: "retell" as TargetAgentType, websocket_url: "", provider_config: {} };
+      return {
+        ...base,
+        agent_type: "retell" as TargetAgentType,
+        websocket_url: "",
+        provider_config: {
+          agent_id: formData.retellAgentId.trim(),
+          api_key: formData.retellApiKey.trim(),
+        },
+      };
     }
     if (formData.targetProvider === "phone") {
       return {
@@ -242,8 +258,10 @@ export function AddAssistantDialog({
           toast.error("Vapi Assistant ID and API Key are required");
           return;
         }
+      } else if (formData.targetProvider === "retell") {
+        toast.error("Retell AI is under development and is not available yet.");
+        return;
       }
-      // Retell can be created, but backend execution is not supported yet.
     }
 
     let connectionMetadata: ConnectionMetadata | null = null;
@@ -347,6 +365,8 @@ export function AddAssistantDialog({
         connectionMetadata: { method: "POST", headersJson: "{}", payloadJson: "{}", responseWebsocketUrlPath: "websocket_url" },
         vapiAssistantId: "",
         vapiApiKey: "",
+        retellAgentId: "",
+        retellApiKey: "",
         sampleRate: "8000",
         encoding: "mulaw",
         systemPrompt: "",
@@ -483,7 +503,8 @@ export function AddAssistantDialog({
                     </TabsTrigger>
                     <TabsTrigger
                       value="retell"
-                      className="flex items-center gap-2 py-2.5 data-[state=active]:bg-purple-500/10 data-[state=active]:border-purple-500/30 cursor-pointer"
+                      disabled
+                      className="flex items-center gap-2 py-2.5 data-[state=active]:bg-purple-500/10 data-[state=active]:border-purple-500/30 cursor-not-allowed opacity-70"
                     >
                       <div className="flex items-center gap-2">
                         <div className="p-1 rounded-md bg-white flex items-center justify-center">
@@ -644,35 +665,34 @@ export function AddAssistantDialog({
                     </div>
                   </TabsContent>
 
-                  {/* Retell Agent Tab Content */}
+                  {/* Retell Agent Tab Content - Under development */}
                   <TabsContent value="retell" className="space-y-4 mt-4">
-                    <div className="flex flex-col items-center justify-center py-10 px-6 rounded-xl border border-purple-500/20 bg-purple-500/5 text-center gap-5 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                      <div className="relative">
-                        <div className="absolute inset-0 bg-purple-500/20 blur-xl rounded-full"></div>
-                        <div className="relative p-4 rounded-2xl bg-gradient-to-br from-purple-500/20 to-purple-600/10 ring-1 ring-purple-500/30 shadow-inner">
-                          <Image
-                            src="/retell-logo-custom.png"
-                            alt="Retell AI"
-                            width={40}
-                            height={40}
-                            className="w-10 h-10 opacity-90 drop-shadow-md"
-                          />
-                        </div>
+                    <div className="space-y-3 rounded-md border border-purple-500/20 bg-purple-500/5 p-4 opacity-60 pointer-events-none">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Image
+                          src="/retell-logo-custom.png"
+                          alt="Retell AI"
+                          width={20}
+                          height={20}
+                          className="w-5 h-5"
+                        />
+                        <h4 className="text-sm font-semibold text-purple-700 dark:text-purple-300">Retell AI Configuration</h4>
                       </div>
-                      <div className="space-y-1.5">
-                        <h4 className="text-lg font-bold text-purple-700 dark:text-purple-300 tracking-tight">Retell AI Integration</h4>
-                        {/* <p className="text-sm text-purple-600/70 dark:text-purple-400/70 max-w-[280px] leading-relaxed">
-                          We are currently engineering the Retell AI provider. Stay tuned for a seamless voice experience!
-                        </p> */}
+                      <div className="space-y-2">
+                        <Label className="text-sm">API Key</Label>
+                        <Input placeholder="Retell API key" disabled className="bg-background/50 border-border/50 font-mono text-sm" />
                       </div>
-                      <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-500/10 text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-[0.15em] border border-purple-500/20 shadow-sm">
-                        <span className="relative flex h-2 w-2">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-2 w-2 bg-purple-500"></span>
-                        </span>
-                        Coming Soon
+                      <div className="space-y-2">
+                        <Label className="text-sm">Agent ID</Label>
+                        <Input placeholder="Retell agent ID" disabled className="bg-background/50 border-border/50 font-mono text-sm" />
                       </div>
                     </div>
+                    <Alert className="border-purple-500/30 bg-purple-500/10">
+                      <Info className="h-4 w-4 text-purple-600 dark:text-purple-400 shrink-0" />
+                      <AlertDescription>
+                        <span className="font-semibold text-purple-700 dark:text-purple-300">Coming soon.</span> Retell AI is under development and is not available on the website yet.
+                      </AlertDescription>
+                    </Alert>
                   </TabsContent>
 
                   {/* Phone Agent Tab Content */}
@@ -855,7 +875,8 @@ export function AddAssistantDialog({
               (agentType === "tester" ? !formData.systemPrompt.trim() : false) ||
               (agentType === "target" && formData.targetProvider === "phone" && !formData.phoneNumber.trim()) ||
               (agentType === "target" && formData.targetProvider === "custom" && !formData.websocketUrl.trim()) ||
-              (agentType === "target" && formData.targetProvider === "vapi" && (!formData.vapiAssistantId.trim() || !formData.vapiApiKey.trim()))
+              (agentType === "target" && formData.targetProvider === "vapi" && (!formData.vapiAssistantId.trim() || !formData.vapiApiKey.trim())) ||
+            (agentType === "target" && formData.targetProvider === "retell")
             }
             className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/25 cursor-pointer"
           >

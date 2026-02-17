@@ -48,6 +48,17 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Skeleton } from "@/components/ui/skeleton"
+import {
+    Pagination,
+    PaginationContent,
+    PaginationItem,
+    PaginationLink,
+    PaginationNext,
+    PaginationPrevious,
+    PaginationFirst,
+    PaginationLast,
+    PaginationEllipsis,
+} from "@/components/ui/pagination"
 import { RunHistoryTable } from "@/components/test-suite/RunHistoryTable"
 import { RunDetailDashboard } from "@/components/test-suite/RunDetailDashboard"
 import {
@@ -175,44 +186,61 @@ export function TestSuitesContent() {
 
     const [selectedRunDetail, setSelectedRunDetail] = useState<any | null>(null)
     const [apiRuns, setApiRuns] = useState<any[]>([])
+    const [suiteRunsTotal, setSuiteRunsTotal] = useState(0)
+    const [suiteRunsPage, setSuiteRunsPage] = useState(1)
+    const [suiteRunsPageSize, setSuiteRunsPageSize] = useState(10)
     const [isRunsLoading, setIsRunsLoading] = useState(false)
     const [activeTab, setActiveTab] = useState<string>("configure")
     const runsInitialFetchDone = useRef<boolean>(false)
 
-    const fetchAllRuns = useCallback(async () => {
-        if (!user?.id) return
+    const RUNS_PAGE_SIZE_OPTIONS = [10, 15, 25, 50] as const
+    const suiteRunsTotalPages = Math.max(1, Math.ceil(suiteRunsTotal / suiteRunsPageSize))
+
+    const fetchSuiteRuns = useCallback(async () => {
+        if (!user?.id || !selectedSuiteId) return
 
         setIsRunsLoading(true)
-        setApiRuns([]) // Clear previous data
+        setApiRuns([])
 
         try {
-            const response = await TestSuitesService.getAllRuns(user.id)
+            const offset = (suiteRunsPage - 1) * suiteRunsPageSize
+            const response = await TestSuitesService.getAllRuns(
+                user.id,
+                suiteRunsPageSize,
+                offset,
+                selectedSuiteId
+            )
 
-            // Handle different response structures
-            // Axios interceptor returns response.data directly, so response is already the data
             let runsData: any[] = []
+            let total = 0
             const data = response as any
 
             if (Array.isArray(data)) {
                 runsData = data
+                total = data.length
             } else if (data?.runs) {
                 runsData = data.runs
+                total = typeof data.total === "number" ? data.total : data.runs.length
             } else if (data?.data?.runs) {
                 runsData = data.data.runs
+                total = data.data.total ?? data.data.runs.length
             } else if (Array.isArray(data?.data)) {
                 runsData = data.data
+                total = data.data.length
             }
 
             setApiRuns(runsData)
+            setSuiteRunsTotal(total)
         } catch (error: any) {
             console.error("Failed to fetch runs:", error)
             const errorMessage = error?.response?.data?.detail || error?.message || "Failed to fetch test runs"
             toast.error(errorMessage)
             setApiRuns([])
+            setSuiteRunsTotal(0)
         } finally {
             setIsRunsLoading(false)
         }
-    }, [user?.id])
+    }, [user?.id, selectedSuiteId, suiteRunsPage, suiteRunsPageSize])
 
 
 
@@ -230,11 +258,6 @@ export function TestSuitesContent() {
         }
 
         const targetAgentType = (targetAgent?.agent_type || "").toLowerCase();
-
-        if (targetAgentType === "retell") {
-            toast.error("Retell target agents are not supported for execution yet.");
-            return;
-        }
 
         if (targetAgentType === "vapi") {
             const pc = (targetAgent as any)?.provider_config || {};
@@ -410,20 +433,20 @@ export function TestSuitesContent() {
     }, [selectedSuiteId, selectedSuiteDetails?.suite_status, fetchSuiteDetails]);
 
     useEffect(() => {
-        if (activeTab === "runs" && user?.id) {
-            // Always refresh runs data when switching to runs tab
-            console.log("[Runs Tab] Refreshing runs data silently");
-            fetchAllRuns();
+        if (activeTab === "runs" && user?.id && selectedSuiteId) {
+            fetchSuiteRuns();
         }
-    }, [activeTab, user?.id, fetchAllRuns]);
+    }, [activeTab, user?.id, selectedSuiteId, fetchSuiteRuns]);
 
-    // Reset runs data when suite changes
+    // Reset run history pagination and clear runs when suite changes
     useEffect(() => {
         if (selectedSuiteId) {
-            // Clear selected run detail when suite changes
             setSelectedRunDetail(null);
             setSelectedTestCaseResultId(null);
             setCurrentCallIndex({});
+            setSuiteRunsPage(1);
+            setApiRuns([]);
+            setSuiteRunsTotal(0);
             runsInitialFetchDone.current = false;
         }
     }, [selectedSuiteId]);
@@ -586,11 +609,6 @@ export function TestSuitesContent() {
             const targetAgent = selectedSuiteDetails?.target_agent;
             const userAgent = selectedSuiteDetails?.user_agent;
             const targetAgentType = (targetAgent?.agent_type || "").toLowerCase();
-
-            if (targetAgentType === "retell") {
-                toast.error("Retell target agents are not supported for execution yet.");
-                return;
-            }
 
             if (targetAgentType === "vapi") {
                 const pc = (targetAgent as any)?.provider_config || {};
@@ -1173,17 +1191,126 @@ export function TestSuitesContent() {
                                                     <Card className="bg-card border-border/50 overflow-hidden min-w-0 w-full">
                                                         <CardContent className="p-0">
                                                             <RunHistoryTable
-                                                                runs={apiRuns.filter(run => run.test_suite_id === selectedSuiteId)}
+                                                                runs={apiRuns}
                                                                 isLoading={isRunsLoading}
                                                                 onSelectRun={(run) => {
                                                                     setSelectedRunDetail(run as any)
-                                                                    // Reset pagination when selecting a new run
                                                                     setCurrentTestCaseIndex(0)
                                                                     setCurrentCallIndex({})
                                                                 }}
                                                             />
                                                         </CardContent>
                                                     </Card>
+
+                                                    {/* Pagination: rows per page + Page X of Y + First/Prev/Next/Last */}
+                                                    <div className="flex flex-col gap-4 mt-4 w-full min-w-0">
+                                                        <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-between gap-3">
+                                                            <div className="flex items-center gap-2 text-sm text-muted-foreground shrink-0">
+                                                                <span className="whitespace-nowrap">Rows per page</span>
+                                                                <Select
+                                                                    value={String(suiteRunsPageSize)}
+                                                                    onValueChange={(v) => {
+                                                                        setSuiteRunsPageSize(Number(v))
+                                                                        setSuiteRunsPage(1)
+                                                                    }}
+                                                                >
+                                                                    <SelectTrigger className="w-[70px] h-8">
+                                                                        <SelectValue />
+                                                                    </SelectTrigger>
+                                                                    <SelectContent>
+                                                                        {RUNS_PAGE_SIZE_OPTIONS.map((n) => (
+                                                                            <SelectItem key={n} value={String(n)}>
+                                                                                {n}
+                                                                            </SelectItem>
+                                                                        ))}
+                                                                    </SelectContent>
+                                                                </Select>
+                                                                <span className="whitespace-nowrap">
+                                                                    {suiteRunsTotal === 0
+                                                                        ? "0 runs"
+                                                                        : `${(suiteRunsPage - 1) * suiteRunsPageSize + 1}-${Math.min(suiteRunsPage * suiteRunsPageSize, suiteRunsTotal)} of ${suiteRunsTotal}`}
+                                                                </span>
+                                                            </div>
+                                                            <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 min-w-0">
+                                                                <span className="text-sm text-muted-foreground whitespace-nowrap order-2 sm:order-1">
+                                                                    Page {suiteRunsPage} of {suiteRunsTotalPages}
+                                                                </span>
+                                                                <Pagination className="order-1 sm:order-2">
+                                                                    <PaginationContent className="flex-wrap gap-1 sm:gap-2 justify-center">
+                                                                        <PaginationItem>
+                                                                            <PaginationFirst
+                                                                                onClick={() => setSuiteRunsPage(1)}
+                                                                                className={suiteRunsPage <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                                                                            />
+                                                                        </PaginationItem>
+                                                                        <PaginationItem>
+                                                                            <PaginationPrevious
+                                                                                onClick={() => setSuiteRunsPage((p) => Math.max(1, p - 1))}
+                                                                                className={suiteRunsPage <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                                                                            />
+                                                                        </PaginationItem>
+                                                                        {suiteRunsTotalPages <= 5 ? (
+                                                                            Array.from({ length: suiteRunsTotalPages }, (_, i) => i + 1).map((p) => (
+                                                                                <PaginationItem key={p}>
+                                                                                    <PaginationLink
+                                                                                        isActive={p === suiteRunsPage}
+                                                                                        onClick={() => setSuiteRunsPage(p)}
+                                                                                        className="cursor-pointer"
+                                                                                    >
+                                                                                        {p}
+                                                                                    </PaginationLink>
+                                                                                </PaginationItem>
+                                                                            ))
+                                                                        ) : (
+                                                                            <>
+                                                                                <PaginationItem>
+                                                                                    <PaginationLink
+                                                                                        isActive={suiteRunsPage === 1}
+                                                                                        onClick={() => setSuiteRunsPage(1)}
+                                                                                        className="cursor-pointer"
+                                                                                    >
+                                                                                        1
+                                                                                    </PaginationLink>
+                                                                                </PaginationItem>
+                                                                                {suiteRunsPage > 3 && <PaginationItem><PaginationEllipsis /></PaginationItem>}
+                                                                                {suiteRunsPage > 2 && suiteRunsPage < suiteRunsTotalPages && (
+                                                                                    <PaginationItem>
+                                                                                    <PaginationLink isActive className="pointer-events-none">
+                                                                                        {suiteRunsPage}
+                                                                                    </PaginationLink>
+                                                                                </PaginationItem>
+                                                                                )}
+                                                                                {suiteRunsPage < suiteRunsTotalPages - 1 && <PaginationItem><PaginationEllipsis /></PaginationItem>}
+                                                                                {suiteRunsTotalPages > 1 && (
+                                                                                    <PaginationItem>
+                                                                                        <PaginationLink
+                                                                                            isActive={suiteRunsPage === suiteRunsTotalPages}
+                                                                                            onClick={() => setSuiteRunsPage(suiteRunsTotalPages)}
+                                                                                            className="cursor-pointer"
+                                                                                        >
+                                                                                            {suiteRunsTotalPages}
+                                                                                        </PaginationLink>
+                                                                                    </PaginationItem>
+                                                                                )}
+                                                                            </>
+                                                                        )}
+                                                                        <PaginationItem>
+                                                                            <PaginationNext
+                                                                                onClick={() => setSuiteRunsPage((p) => Math.min(suiteRunsTotalPages, p + 1))}
+                                                                                className={suiteRunsPage >= suiteRunsTotalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                                                                            />
+                                                                        </PaginationItem>
+                                                                        <PaginationItem>
+                                                                            <PaginationLast
+                                                                                onClick={() => setSuiteRunsPage(suiteRunsTotalPages)}
+                                                                                className={suiteRunsPage >= suiteRunsTotalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                                                                            />
+                                                                        </PaginationItem>
+                                                                    </PaginationContent>
+                                                                </Pagination>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             )}
                                         </div>
