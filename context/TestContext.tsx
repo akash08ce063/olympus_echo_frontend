@@ -55,10 +55,6 @@ const MOCK_DATASETS: Dataset[] = [
                 id: "case-1",
                 test_suite_id: "ds-1",
                 name: "Too Expensive",
-                goals: [
-                    { text: "Ask for the price." },
-                    { text: "When they tell you, say it's too expensive and ask for a discount." }
-                ],
                 evaluation_criteria: [
                     { expected: "Agent justifies value" },
                     { expected: "response_contains: monthly installments" }

@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { TestCase } from "@/types/test-suite";
-import { Plus, Trash2, MessageSquare, ClipboardCheck, Timer, RefreshCw } from "lucide-react";
+import { Plus, Trash2, ClipboardCheck, Timer, RefreshCw, Users } from "lucide-react";
 import { TestCaseService } from "@/services/testCases";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -22,7 +22,6 @@ interface TestCaseSheetProps {
 
 const EMPTY_CASE: Partial<TestCase> = {
     name: "",
-    goals: [{ text: "" }],
     evaluation_criteria: [{ expected: "" }],
     timeout_seconds: 30,
     attempts: 3,
@@ -38,27 +37,17 @@ export function TestCaseSheet({ isOpen, onClose, onSave, initialData, testSuiteI
     useEffect(() => {
         if (isOpen) {
             if (initialData) {
-                // Normalize goals and evaluation_criteria to objects
-                const goals = Array.isArray(initialData.goals)
-                    ? initialData.goals.map(g => typeof g === 'string' ? { text: g } : g)
-                    : [{ text: initialData.goals || "" }];
-
+                // Normalize evaluation_criteria to objects
                 const criteria = initialData.evaluation_criteria?.map(c =>
                     typeof c === 'string' ? { expected: c } : (c as any)
                 ) || [];
-                setFormData({ ...initialData, goals, evaluation_criteria: criteria });
+                setFormData({ ...initialData, evaluation_criteria: criteria });
             } else {
                 setFormData({ ...EMPTY_CASE, order_index: defaultOrderIndex });
             }
         }
     }, [isOpen, initialData]);
 
-    const handleGoalChange = (value: string) => {
-        setFormData(prev => ({
-            ...prev,
-            goals: [{ text: value }]
-        }));
-    };
 
     const handleAddCriteria = () => {
         setFormData(prev => ({
@@ -84,13 +73,6 @@ export function TestCaseSheet({ isOpen, onClose, onSave, initialData, testSuiteI
         // Validate test name
         if (!formData.name?.trim()) {
             toast.error("Test case name is required");
-            return;
-        }
-
-        // Validate goals
-        const goalText = formData.goals?.[0]?.text?.trim();
-        if (!goalText) {
-            toast.error("Test goals are required");
             return;
         }
 
@@ -146,7 +128,7 @@ export function TestCaseSheet({ isOpen, onClose, onSave, initialData, testSuiteI
                         {initialData ? "Edit Test Case" : "Add New Test Case"}
                     </DialogTitle>
                     <DialogDescription className="text-muted-foreground mt-1">
-                        Configure your test scenario&apos;s goals and evaluation criteria for reliable agent assessment.
+                        Configure your test scenario&apos;s evaluation criteria for reliable agent assessment.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -208,7 +190,7 @@ export function TestCaseSheet({ isOpen, onClose, onSave, initialData, testSuiteI
                                 </div>
                                 <div className="space-y-2.5">
                                     <Label className="flex items-center gap-2 text-sm font-bold text-foreground uppercase tracking-wider">
-                                        <MessageSquare className="w-3.5 h-3.5 text-primary" /> Concurrency
+                                        <Users className="w-3.5 h-3.5 text-primary" /> Concurrency
                                     </Label>
                                     <Input
                                         type="number"
@@ -232,31 +214,8 @@ export function TestCaseSheet({ isOpen, onClose, onSave, initialData, testSuiteI
 
                         <Separator className="opacity-80" />
 
-                        {/* Goals and Evaluation Layout */}
+                        {/* Evaluation Layout */}
                         <div className="grid grid-cols-1 lg:grid-cols-1 gap-12">
-                            {/* Goals Section */}
-                            <div className="space-y-6">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2.5">
-                                        <div className="bg-primary/10 p-1.5 rounded-lg">
-                                            <MessageSquare className="w-4 h-4 text-primary" />
-                                        </div>
-                                        <h3 className="font-bold text-sm tracking-widest uppercase text-muted-foreground">Test Goals</h3>
-                                    </div>
-                                </div>
-                                <div className="p-4 rounded-xl border border-border bg-background/50 transition-all hover:bg-muted/30 hover:border-primary/30 hover:shadow-md">
-                                    <div className="flex items-center justify-between mb-3">
-                                        <span className="text-[10px] font-bold text-primary uppercase tracking-widest">Main Scenario</span>
-                                    </div>
-                                    <Textarea
-                                        placeholder="Describe the agent's goal and the conversation flow..."
-                                        value={formData.goals?.[0]?.text || ""}
-                                        onChange={(e) => handleGoalChange(e.target.value)}
-                                        className="min-h-50 text-sm resize-none bg-background border-input focus:border-primary ring-0 shadow-sm rounded-lg"
-                                    />
-                                </div>
-                            </div>
-
                             {/* Evaluation Section */}
                             <div className="space-y-6">
                                 <div className="flex items-center justify-between">
