@@ -21,7 +21,6 @@ export type TestCase = {
   id?: string;
   test_suite_id: string;
   name: string;
-  goals: { text: string }[];
   evaluation_criteria: { expected: string }[];
   timeout_seconds: number;
   order_index: number;

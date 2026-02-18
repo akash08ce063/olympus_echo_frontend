@@ -206,7 +206,6 @@ export default function SuiteDetailPage() {
                                     <TableHeader>
                                         <TableRow>
                                             <TableHead>Name</TableHead>
-                                            <TableHead>Steps</TableHead>
                                             <TableHead>Rules</TableHead>
                                             <TableHead>Expected Outcome</TableHead>
                                             <TableHead>Attempts</TableHead>
@@ -218,9 +217,6 @@ export default function SuiteDetailPage() {
                                         {dataset.cases.map(tCase => (
                                             <TableRow key={tCase.id}>
                                                 <TableCell className="font-medium">{tCase.name}</TableCell>
-                                                <TableCell>
-                                                    <Badge variant="outline" className="text-[10px]">{tCase.goals?.length || 0} Steps</Badge>
-                                                </TableCell>
                                                 <TableCell>
                                                     <Badge variant="secondary" className="text-[10px] bg-primary/10 text-primary">{tCase.evaluation_criteria?.length || 0} Rules</Badge>
                                                 </TableCell>

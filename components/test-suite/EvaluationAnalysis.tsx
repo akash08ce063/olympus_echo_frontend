@@ -16,7 +16,6 @@ export function EvaluationAnalysis({ evaluationResult }: EvaluationAnalysisProps
     // Determine the first available accordion item to open by default
     const defaultAccordionValue = useMemo(() => {
         if (evaluationResult.summary) return "summary"
-        if (evaluationResult.goals_analysis && evaluationResult.goals_analysis.length > 0) return "goals"
         if (evaluationResult.criteria_evaluated && evaluationResult.criteria_evaluated.length > 0) return "criteria"
         if (evaluationResult.strengths && evaluationResult.strengths.length > 0) return "strengths"
         if (evaluationResult.weaknesses && evaluationResult.weaknesses.length > 0) return "weaknesses"
@@ -75,11 +74,7 @@ export function EvaluationAnalysis({ evaluationResult }: EvaluationAnalysisProps
             </div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-3 gap-3">
-                <div className="bg-card rounded-xl p-3 text-center border border-border/20 shadow-sm">
-                    <div className="text-xs text-card-foreground uppercase tracking-wider font-semibold mb-1">Goals</div>
-                    <div className="text-base font-bold">{evaluationResult.goals_analysis?.length || 0}</div>
-                </div>
+            <div className="grid grid-cols-2 gap-3">
                 <div className="bg-card rounded-xl p-3 text-center border border-border/20 shadow-sm">
                     <div className="text-xs text-card-foreground uppercase tracking-wider font-semibold mb-1">Criteria</div>
                     <div className="text-base font-bold">
@@ -107,53 +102,7 @@ export function EvaluationAnalysis({ evaluationResult }: EvaluationAnalysisProps
                         </AccordionTrigger>
                         <AccordionContent className="px-4 pb-4 pt-2">
                             <div className="text-sm text-foreground/90 leading-relaxed font-medium">
-                                {evaluationResult.summary}
-                            </div>
-                        </AccordionContent>
-                    </AccordionItem>
-                )}
-
-                {/* Goals Analysis */}
-                {evaluationResult.goals_analysis && evaluationResult.goals_analysis.length > 0 && (
-                    <AccordionItem value="goals" className="border border-border/30 rounded-xl overflow-hidden shadow-sm">
-                        <AccordionTrigger className="text-sm font-bold hover:no-underline px-4 py-4 bg-card">
-                            <div className="flex items-center gap-2.5">
-                                <Activity className="w-4 h-4 text-primary" />
-                                <span>Goals Analysis ({evaluationResult.goals_analysis.length})</span>
-                            </div>
-                        </AccordionTrigger>
-                        <AccordionContent className="px-4 pb-4 pt-2">
-                            <div className="space-y-3">
-                                {evaluationResult.goals_analysis.map((goal: any, idx: number) => (
-                                    <div key={idx} className={cn(
-                                        "text-sm p-4 rounded-xl border transition-all duration-200",
-                                        goal.status === 'passed' ? "bg-green-500/5 border-green-500/20 shadow-sm" :
-                                            goal.status === 'partial' ? "bg-yellow-500/5 border-yellow-500/20 shadow-sm" : "bg-red-500/5 border-red-500/20 shadow-sm"
-                                    )}>
-                                        <div className="flex items-start justify-between mb-2">
-                                            <span className="font-bold text-foreground/90">{goal.goal_description || `Goal ${idx + 1}`}</span>
-                                            <div className="flex items-center gap-2 shrink-0 ml-3">
-                                                <Badge variant="outline" className="text-[10px] h-6 px-2 font-bold bg-background/50">
-                                                    {((goal.score || 0) * 100).toFixed(0)}%
-                                                </Badge>
-                                                {goal.status && (
-                                                    <Badge
-                                                        variant={goal.status === 'passed' ? 'default' : goal.status === 'partial' ? 'secondary' : 'destructive'}
-                                                        className="text-[10px] h-6 px-2 font-bold"
-                                                    >
-                                                        {goal.status === 'passed' ? '✓' : goal.status === 'partial' ? '~' : '✗'}
-                                                    </Badge>
-                                                )}
-                                            </div>
-                                        </div>
-                                        <div className="text-muted-foreground text-sm leading-relaxed mb-2">{goal.analysis || goal.details}</div>
-                                        {goal.evidence && (
-                                            <div className="mt-2 p-3 bg-card rounded-lg text-xs text-muted-foreground italic border border-border/40 shadow-inner">
-                                                "{goal.evidence}"
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
+                                {typeof evaluationResult.summary === 'string' ? evaluationResult.summary : JSON.stringify(evaluationResult.summary)}
                             </div>
                         </AccordionContent>
                     </AccordionItem>
@@ -179,9 +128,13 @@ export function EvaluationAnalysis({ evaluationResult }: EvaluationAnalysisProps
                                     )}>
                                         <div className="flex items-start justify-between mb-2">
                                             <div className="flex-1">
-                                                <span className="font-bold text-foreground/90">{criterion.type || `Criterion ${idx + 1}`}</span>
+                                                <span className="font-bold text-foreground/90">
+                                                    {typeof criterion.type === 'string' ? criterion.type : `Criterion ${idx + 1}`}
+                                                </span>
                                                 {criterion.expected && (
-                                                    <div className="text-xs text-muted-foreground mt-1 font-medium">Expected: {criterion.expected}</div>
+                                                    <div className="text-xs text-muted-foreground mt-1 font-medium">
+                                                        Expected: {typeof criterion.expected === 'string' ? criterion.expected : JSON.stringify(criterion.expected)}
+                                                    </div>
                                                 )}
                                             </div>
                                             <Badge
@@ -195,11 +148,13 @@ export function EvaluationAnalysis({ evaluationResult }: EvaluationAnalysisProps
                                             </Badge>
                                         </div>
                                         {criterion.details && (
-                                            <div className="text-muted-foreground text-sm leading-relaxed mt-2 mb-2">{criterion.details}</div>
+                                            <div className="text-muted-foreground text-sm leading-relaxed mt-2 mb-2">
+                                                {typeof criterion.details === 'string' ? criterion.details : JSON.stringify(criterion.details)}
+                                            </div>
                                         )}
                                         {criterion.evidence && (
                                             <div className="mt-2 p-3 bg-card rounded-lg text-xs text-muted-foreground italic border border-border/40 shadow-inner">
-                                                "{criterion.evidence}"
+                                                "{typeof criterion.evidence === 'string' ? criterion.evidence : JSON.stringify(criterion.evidence)}"
                                             </div>
                                         )}
                                     </div>
@@ -222,9 +177,32 @@ export function EvaluationAnalysis({ evaluationResult }: EvaluationAnalysisProps
                                 </AccordionTrigger>
                                 <AccordionContent className="px-4 pb-4 pt-2">
                                     <div className="space-y-3">
-                                        {evaluationResult.strengths.map((strength: string, idx: number) => (
-                                            <div key={idx} className="text-sm text-foreground/90 p-4 bg-green-500/5 rounded-xl border border-green-500/20 leading-relaxed font-medium shadow-sm">
-                                                {strength}
+                                        {evaluationResult.strengths.map((strength: any, idx: number) => (
+                                            <div key={idx} className="text-sm p-4 bg-card border border-border/40 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                                                {typeof strength === 'string' ? (
+                                                    <div className="font-medium text-foreground/90">{strength}</div>
+                                                ) : strength && typeof strength === 'object' && strength.trait ? (
+                                                    <div className="space-y-3">
+                                                        <div className="flex items-center gap-2">
+                                                            <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
+                                                            <div className="font-semibold text-foreground/90 text-base">{strength.trait}</div>
+                                                        </div>
+                                                        {strength.analysis && (
+                                                            <div className="text-sm text-foreground/80 ml-6 leading-relaxed">{strength.analysis}</div>
+                                                        )}
+                                                        {strength.evidence && (
+                                                            <div className="mt-3 p-3 bg-card border border-green-200/50 rounded-lg ml-6 shadow-sm">
+                                                                <div className="text-xs font-medium text-green-700 mb-1 flex items-center gap-1">
+                                                                    <span className="w-1 h-1 bg-green-500 rounded-full"></span>
+                                                                    Evidence
+                                                                </div>
+                                                                <div className="text-sm text-foreground/90 italic leading-relaxed">"{strength.evidence}"</div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <div className="font-medium text-foreground/90">{JSON.stringify(strength)}</div>
+                                                )}
                                             </div>
                                         ))}
                                     </div>
@@ -241,9 +219,32 @@ export function EvaluationAnalysis({ evaluationResult }: EvaluationAnalysisProps
                                 </AccordionTrigger>
                                 <AccordionContent className="px-4 pb-4 pt-2">
                                     <div className="space-y-3">
-                                        {evaluationResult.weaknesses.map((weakness: string, idx: number) => (
-                                            <div key={idx} className="text-sm text-foreground/90 p-4 bg-red-500/5 rounded-xl border border-red-500/20 leading-relaxed font-medium shadow-sm">
-                                                {weakness}
+                                        {evaluationResult.weaknesses.map((weakness: any, idx: number) => (
+                                            <div key={idx} className="text-sm p-4 bg-card border border-border/40 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                                                {typeof weakness === 'string' ? (
+                                                    <div className="font-medium text-foreground/90">{weakness}</div>
+                                                ) : weakness && typeof weakness === 'object' && weakness.trait ? (
+                                                    <div className="space-y-3">
+                                                        <div className="flex items-center gap-2">
+                                                            <XCircle className="w-4 h-4 text-red-600 flex-shrink-0" />
+                                                            <div className="font-semibold text-foreground/90 text-base">{weakness.trait}</div>
+                                                        </div>
+                                                        {weakness.analysis && (
+                                                            <div className="text-sm text-foreground/80 ml-6 leading-relaxed">{weakness.analysis}</div>
+                                                        )}
+                                                        {weakness.evidence && (
+                                                            <div className="mt-3 p-3 bg-card border border-red-200/50 rounded-lg ml-6 shadow-sm">
+                                                                <div className="text-xs font-medium text-red-700 mb-1 flex items-center gap-1">
+                                                                    <span className="w-1 h-1 bg-red-500 rounded-full"></span>
+                                                                    Evidence
+                                                                </div>
+                                                                <div className="text-sm text-foreground/90 italic leading-relaxed">"{weakness.evidence}"</div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <div className="font-medium text-foreground/90">{JSON.stringify(weakness)}</div>
+                                                )}
                                             </div>
                                         ))}
                                     </div>
@@ -264,10 +265,10 @@ export function EvaluationAnalysis({ evaluationResult }: EvaluationAnalysisProps
                         </AccordionTrigger>
                         <AccordionContent className="px-4 pb-4 pt-2">
                             <div className="space-y-3">
-                                {evaluationResult.recommendations.map((rec: string, idx: number) => (
+                                {evaluationResult.recommendations.map((rec: any, idx: number) => (
                                     <div key={idx} className="text-sm text-foreground/90 p-4 bg-primary/5 rounded-xl border border-primary/20 leading-relaxed flex gap-3 font-medium shadow-sm">
                                         <span className="text-primary font-bold shrink-0">{idx + 1}.</span>
-                                        <span>{rec}</span>
+                                        <span>{typeof rec === 'string' ? rec : JSON.stringify(rec)}</span>
                                     </div>
                                 ))}
                             </div>
@@ -282,7 +283,9 @@ export function EvaluationAnalysis({ evaluationResult }: EvaluationAnalysisProps
                             <span>Evaluation Error</span>
                         </AccordionTrigger>
                         <AccordionContent className="px-3 pb-3">
-                            <div className="text-xs text-red-400 leading-relaxed">{evaluationResult.error}</div>
+                            <div className="text-xs text-red-400 leading-relaxed">
+                                {typeof evaluationResult.error === 'string' ? evaluationResult.error : JSON.stringify(evaluationResult.error)}
+                            </div>
                         </AccordionContent>
                     </AccordionItem>
                 )}
