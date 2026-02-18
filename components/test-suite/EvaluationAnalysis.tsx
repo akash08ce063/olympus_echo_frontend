@@ -178,8 +178,31 @@ export function EvaluationAnalysis({ evaluationResult }: EvaluationAnalysisProps
                                 <AccordionContent className="px-4 pb-4 pt-2">
                                     <div className="space-y-3">
                                         {evaluationResult.strengths.map((strength: any, idx: number) => (
-                                            <div key={idx} className="text-sm text-foreground/90 p-4 bg-green-500/5 rounded-xl border border-green-500/20 leading-relaxed font-medium shadow-sm">
-                                                {typeof strength === 'string' ? strength : JSON.stringify(strength)}
+                                            <div key={idx} className="text-sm p-4 bg-card border border-border/40 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                                                {typeof strength === 'string' ? (
+                                                    <div className="font-medium text-foreground/90">{strength}</div>
+                                                ) : strength && typeof strength === 'object' && strength.trait ? (
+                                                    <div className="space-y-3">
+                                                        <div className="flex items-center gap-2">
+                                                            <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
+                                                            <div className="font-semibold text-foreground/90 text-base">{strength.trait}</div>
+                                                        </div>
+                                                        {strength.analysis && (
+                                                            <div className="text-sm text-foreground/80 ml-6 leading-relaxed">{strength.analysis}</div>
+                                                        )}
+                                                        {strength.evidence && (
+                                                            <div className="mt-3 p-3 bg-card border border-green-200/50 rounded-lg ml-6 shadow-sm">
+                                                                <div className="text-xs font-medium text-green-700 mb-1 flex items-center gap-1">
+                                                                    <span className="w-1 h-1 bg-green-500 rounded-full"></span>
+                                                                    Evidence
+                                                                </div>
+                                                                <div className="text-sm text-foreground/90 italic leading-relaxed">"{strength.evidence}"</div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <div className="font-medium text-foreground/90">{JSON.stringify(strength)}</div>
+                                                )}
                                             </div>
                                         ))}
                                     </div>
@@ -197,8 +220,31 @@ export function EvaluationAnalysis({ evaluationResult }: EvaluationAnalysisProps
                                 <AccordionContent className="px-4 pb-4 pt-2">
                                     <div className="space-y-3">
                                         {evaluationResult.weaknesses.map((weakness: any, idx: number) => (
-                                            <div key={idx} className="text-sm text-foreground/90 p-4 bg-red-500/5 rounded-xl border border-red-500/20 leading-relaxed font-medium shadow-sm">
-                                                {typeof weakness === 'string' ? weakness : JSON.stringify(weakness)}
+                                            <div key={idx} className="text-sm p-4 bg-card border border-border/40 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                                                {typeof weakness === 'string' ? (
+                                                    <div className="font-medium text-foreground/90">{weakness}</div>
+                                                ) : weakness && typeof weakness === 'object' && weakness.trait ? (
+                                                    <div className="space-y-3">
+                                                        <div className="flex items-center gap-2">
+                                                            <XCircle className="w-4 h-4 text-red-600 flex-shrink-0" />
+                                                            <div className="font-semibold text-foreground/90 text-base">{weakness.trait}</div>
+                                                        </div>
+                                                        {weakness.analysis && (
+                                                            <div className="text-sm text-foreground/80 ml-6 leading-relaxed">{weakness.analysis}</div>
+                                                        )}
+                                                        {weakness.evidence && (
+                                                            <div className="mt-3 p-3 bg-card border border-red-200/50 rounded-lg ml-6 shadow-sm">
+                                                                <div className="text-xs font-medium text-red-700 mb-1 flex items-center gap-1">
+                                                                    <span className="w-1 h-1 bg-red-500 rounded-full"></span>
+                                                                    Evidence
+                                                                </div>
+                                                                <div className="text-sm text-foreground/90 italic leading-relaxed">"{weakness.evidence}"</div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <div className="font-medium text-foreground/90">{JSON.stringify(weakness)}</div>
+                                                )}
                                             </div>
                                         ))}
                                     </div>
