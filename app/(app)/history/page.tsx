@@ -253,9 +253,9 @@ function TestHistoryContent() {
                 </CardContent>
             </Card>
 
-            {/* Pagination: rows per page + Page X of Y + First/Prev/Next/Last */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            {/* Pagination: rows per page + Page X of Y + First/Prev/Next/Last (shadcn) */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 mt-6 px-1">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground order-2 sm:order-1">
                     <span>Rows per page</span>
                     <Select
                         value={String(pageSize)}
@@ -281,11 +281,11 @@ function TestHistoryContent() {
                             : `${(page - 1) * pageSize + 1}-${Math.min(page * pageSize, totalRunsCount)} of ${totalRunsCount}`}
                     </span>
                 </div>
-                <div className="flex items-center gap-4">
-                    <span className="text-sm text-muted-foreground">
+                <div className="flex items-center gap-3 flex-wrap order-1 sm:order-2">
+                    <span className="text-sm text-muted-foreground shrink-0">
                         Page {page} of {totalPages}
                     </span>
-                    <Pagination>
+                    <Pagination className="w-full sm:w-auto justify-center sm:justify-start">
                         <PaginationContent>
                             <PaginationItem>
                                 <PaginationFirst

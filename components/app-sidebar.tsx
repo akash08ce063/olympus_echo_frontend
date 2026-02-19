@@ -10,6 +10,7 @@ import {
   IconHistory,
   IconRobot,
   IconUsers,
+  IconFileSearch,
 } from "@tabler/icons-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -51,6 +52,11 @@ const navMain = [
     title: "Test History",
     url: "/history",
     icon: IconHistory,
+  },
+  {
+    title: "Log Tracer",
+    url: "/log-tracer",
+    icon: IconFileSearch,
   },
   // {
   //   title: "Analytics",

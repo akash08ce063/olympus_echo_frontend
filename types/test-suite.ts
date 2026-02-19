@@ -27,7 +27,7 @@ export type TestCase = {
   is_active: boolean;
   attempts: number;
   default_concurrent_calls: number;
-  status?: 'pass' | 'passed' | 'running' | 'failed' | 'pending' | string;
+  status?: 'pass' | 'passed' | 'running' | 'failed' | 'not-started' | string;
 };
 
 export type TargetAgent = {
@@ -70,7 +70,7 @@ export type RubricResult = {
 
 export type CaseResult = {
   caseId: string;
-  status: 'passed' | 'failed' | 'running' | 'pending';
+  status: 'passed' | 'failed' | 'running' | 'not-started';
   transcript: TestMessage[];
   rubricResults: RubricResult[];
   duration: number;

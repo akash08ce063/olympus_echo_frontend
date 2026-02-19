@@ -291,6 +291,35 @@ export function TestSuitesContent() {
                 toast.error("Phone target agent is missing connection_metadata.phone_number.");
                 return;
             }
+
+            // For phone tests:
+            // - Each individual test case's concurrency must not exceed phone count (both modes)
+            // - Total concurrency across active cases is only restricted in PARALLEL mode
+            const activeCases = testCases.filter(tc => tc.is_active);
+
+            // Per–test case guard
+            const offendingCase = activeCases.find(
+                tc => (tc.default_concurrent_calls || 1) > phoneList.length
+            );
+            if (offendingCase) {
+                toast.error(
+                    `Test case "${offendingCase.name}" has concurrency ${offendingCase.default_concurrent_calls || 1}, but tester agent has only ${phoneList.length} phone number(s). Reduce this test's concurrency.`
+                );
+                return;
+            }
+
+            // Suite-level guard only when running in parallel mode
+            if (executionMode === "parallel") {
+                const totalConcurrency = activeCases.length > 0
+                    ? activeCases.reduce((sum, tc) => sum + (tc.default_concurrent_calls || 1), 0)
+                    : 0;
+                if (totalConcurrency > phoneList.length) {
+                    toast.error(
+                        `In parallel mode, total concurrency across test cases (${totalConcurrency}) cannot exceed tester phone numbers (${phoneList.length}). Either switch to Sequential mode or reduce per-test concurrency.`
+                    );
+                    return;
+                }
+            }
         }
 
         // Calculate maximum concurrent calls needed across all active test cases
@@ -639,6 +668,12 @@ export function TestSuitesContent() {
                 const targetPhone = (targetAgent as any)?.connection_metadata?.phone_number;
                 if (!targetPhone) {
                     toast.error("Phone target agent is missing connection_metadata.phone_number.");
+                    return;
+                }
+                if (concurrentCalls > phoneList.length) {
+                    toast.error(
+                        `Reduce concurrency to ${phoneList.length} or fewer. Tester agent has ${phoneList.length} phone number(s).`
+                    );
                     return;
                 }
             }
