@@ -26,6 +26,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { useAuth } from "@/hooks/useAuth"
+import { SHOW_LOG_TRACER } from "@/lib/config"
 
 const navMain = [
   {
@@ -53,11 +54,15 @@ const navMain = [
     url: "/history",
     icon: IconHistory,
   },
-  {
-    title: "Log Tracer",
-    url: "/log-tracer",
-    icon: IconFileSearch,
-  },
+  ...(SHOW_LOG_TRACER
+    ? [
+        {
+          title: "Log Tracer",
+          url: "/log-tracer",
+          icon: IconFileSearch,
+        },
+      ]
+    : []),
   // {
   //   title: "Analytics",
   //   url: "/dashboard/agents",

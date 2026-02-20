@@ -168,7 +168,7 @@ export function TestSuitesContent() {
     const [isCreatingSuite, setIsCreatingSuite] = useState(false)
     const [isRunningTests, setIsRunningTests] = useState(false)
     const [agentTypeForDialog, setAgentTypeForDialog] = useState<"target" | "tester">("target")
-    const [executionMode, setExecutionMode] = useState<"sequential" | "parallel">("sequential")
+    const [executionMode, setExecutionMode] = useState<"sequential" | "parallel">("parallel")
     const [currentTestCaseIndex, setCurrentTestCaseIndex] = useState(0)
     const [currentCallIndex, setCurrentCallIndex] = useState<Record<number, number>>({})
     const [selectedTestCaseResultId, setSelectedTestCaseResultId] = useState<string | null>(null)
@@ -182,6 +182,12 @@ export function TestSuitesContent() {
 
     const suiteHistory = history.filter(h => h.datasetId === selectedSuiteId)
 
+    // When target agent is phone, only sequential mode is allowed
+    const isPhoneTargetAgent = (selectedSuiteDetails?.target_agent?.agent_type || "").toLowerCase() === "phone"
+    const effectiveExecutionMode = isPhoneTargetAgent ? "sequential" : executionMode
+    useEffect(() => {
+        if (isPhoneTargetAgent) setExecutionMode("sequential")
+    }, [isPhoneTargetAgent])
 
 
     const [selectedRunDetail, setSelectedRunDetail] = useState<any | null>(null)
@@ -309,7 +315,7 @@ export function TestSuitesContent() {
             }
 
             // Suite-level guard only when running in parallel mode
-            if (executionMode === "parallel") {
+            if (effectiveExecutionMode === "parallel") {
                 const totalConcurrency = activeCases.length > 0
                     ? activeCases.reduce((sum, tc) => sum + (tc.default_concurrent_calls || 1), 0)
                     : 0;
@@ -332,9 +338,9 @@ export function TestSuitesContent() {
         try {
             // Pass maxConcurrentCalls to ensure we send enough request IDs
             // The backend will use each test case's own default_concurrent_calls, but having enough IDs ensures all calls work
-            await TestSuitesService.runTestSuite(selectedSuiteId, user.id, maxConcurrentCalls, executionMode)
+            await TestSuitesService.runTestSuite(selectedSuiteId, user.id, maxConcurrentCalls, effectiveExecutionMode)
             runExperiment(selectedSuiteId)
-            toast.success(`Test run started in ${executionMode} mode`)
+            toast.success(`Test run started in ${effectiveExecutionMode} mode`)
 
             // Silently refresh details to update status
             fetchSuiteDetails(selectedSuiteId, true);
@@ -869,9 +875,9 @@ export function TestSuitesContent() {
                             </div>
                             <div className="flex items-center gap-2">
                                 <Select
-                                    value={executionMode}
-                                    onValueChange={(value: "sequential" | "parallel") => setExecutionMode(value)}
-                                    disabled={isRunningTests || selectedSuiteDetails?.suite_status === 'running' || (activeExperiment?.status === 'running' && activeExperiment.datasetId === selectedSuiteId)}
+                                    value={effectiveExecutionMode}
+                                    onValueChange={(value: "sequential" | "parallel") => !isPhoneTargetAgent && setExecutionMode(value)}
+                                    disabled={isPhoneTargetAgent || isRunningTests || selectedSuiteDetails?.suite_status === 'running' || (activeExperiment?.status === 'running' && activeExperiment.datasetId === selectedSuiteId)}
                                 >
                                     <SelectTrigger className="w-[140px]">
                                         <SelectValue placeholder="Execution Mode" />
