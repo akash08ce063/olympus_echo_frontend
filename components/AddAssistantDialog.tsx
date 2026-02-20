@@ -503,7 +503,6 @@ export function AddAssistantDialog({
                     </TabsTrigger>
                     <TabsTrigger
                       value="retell"
-                      disabled
                       className="flex items-center gap-2 py-2.5 data-[state=active]:bg-purple-500/10 data-[state=active]:border-purple-500/30 cursor-not-allowed opacity-70"
                     >
                       <div className="flex items-center gap-2">
