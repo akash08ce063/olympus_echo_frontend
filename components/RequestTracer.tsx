@@ -673,6 +673,10 @@ export default function RequestTracer() {
                     const svcInfo = svc ? pipeline.find((s) => s.id === svc) : null
                     const matchedViaField = (log.request_id as string) === activeReq
                     const matchedViaMessage = !matchedViaField
+                    const logLevel = (log.level as string) || ""
+                    const logTimestamp = String(log.timestamp || "")
+                    const logMessage = String(log.message ?? "")
+                    const logTag = log.tag as string | null | undefined
                     return (
                       <div
                         key={i}
@@ -684,9 +688,9 @@ export default function RequestTracer() {
                           fontSize: 11,
                           alignItems: "flex-start",
                           background:
-                            (log.level as string) === "ERROR"
+                            logLevel === "ERROR"
                               ? "#1a0808"
-                              : (log.level as string) === "WARNING"
+                              : logLevel === "WARNING"
                                 ? "#1a1408"
                                 : matchedViaMessage
                                   ? "#0a0f1a"
@@ -701,7 +705,7 @@ export default function RequestTracer() {
                             minWidth: 80,
                           }}
                         >
-                          {String(log.timestamp || "").split(" ")[1]}
+                          {logTimestamp.split(" ")[1]}
                         </div>
                         <div
                           style={{
@@ -714,7 +718,7 @@ export default function RequestTracer() {
                             paddingTop: 1,
                           }}
                         >
-                          {(log.level as string) || "—"}
+                          {logLevel || "—"}
                         </div>
                         {matchedViaMessage && (
                           <div
@@ -754,9 +758,9 @@ export default function RequestTracer() {
                             lineHeight: 1.5,
                           }}
                         >
-                          {String(log.message ?? "")}
+                          {logMessage}
                         </div>
-                        {log.tag && (
+                        {logTag && (
                           <div
                             style={{
                               fontSize: 9,
@@ -764,7 +768,7 @@ export default function RequestTracer() {
                               flexShrink: 0,
                             }}
                           >
-                            [{String(log.tag)}]
+                            [{logTag}]
                           </div>
                         )}
                       </div>
