@@ -86,9 +86,9 @@ export const TestSuitesService = {
         );
     },
 
-    // Get all test runs
-    getAllRuns: (userId: string) =>
-        apiClient.get(TESTSUITS.run_test.getAllRuns(userId)),
+    // Get all test runs (with optional pagination and optional suite filter)
+    getAllRuns: (userId: string, limit?: number, offset?: number, suiteId?: string) =>
+        apiClient.get(TESTSUITS.run_test.getAllRuns(userId, limit, offset, suiteId)),
 
 
 

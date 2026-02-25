@@ -11,13 +11,37 @@ interface AudioPlayerProps {
     className?: string
 }
 
+/** Strip surrounding quotes/backslashes that can come from JSON or DB (e.g. "\"https://...\""). */
+function normalizeAudioUrl(raw: string): string {
+    if (!raw || typeof raw !== "string") return ""
+    let s = raw.trim()
+    // Remove escaped quotes around the URL (e.g. "\"https://...\"")
+    s = s.replace(/^\\"/, "").replace(/\\"$/, "")
+    // Remove any remaining surrounding quotes
+    while ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
+        s = s.slice(1, -1).trim()
+    }
+    return s.trim()
+}
+
 export function AudioPlayer({ url, className }: AudioPlayerProps) {
+    const normalizedUrl = React.useMemo(() => normalizeAudioUrl(url), [url])
     const [isPlaying, setIsPlaying] = React.useState(false)
     const [duration, setDuration] = React.useState(0)
     const [currentTime, setCurrentTime] = React.useState(0)
-    const [isLoading, setIsLoading] = React.useState(true)
-    const [error, setError] = React.useState<string | null>(null)
+    const [isLoading, setIsLoading] = React.useState(!!normalizedUrl)
+    const [error, setError] = React.useState<string | null>(normalizedUrl ? null : "No recording available")
     const audioRef = React.useRef<HTMLAudioElement>(null)
+
+    React.useEffect(() => {
+        if (!normalizedUrl) {
+            setIsLoading(false)
+            setError("No recording available")
+        } else {
+            setIsLoading(true)
+            setError(null)
+        }
+    }, [normalizedUrl])
 
     const togglePlay = () => {
         if (audioRef.current && !error) {
@@ -50,7 +74,7 @@ export function AudioPlayer({ url, className }: AudioPlayerProps) {
     const handleError = () => {
         setIsLoading(false)
         setError("Failed to load audio")
-        console.error("Audio playback error for URL:", url)
+        console.error("Audio playback error for URL:", normalizedUrl)
     }
 
     const handleSliderChange = (value: number[]) => {
@@ -69,13 +93,11 @@ export function AudioPlayer({ url, className }: AudioPlayerProps) {
 
     const handleDownload = () => {
         try {
-            // Extract filename from URL (remove query parameters first)
-            const urlWithoutQuery = url.split("?")[0]
+            const urlWithoutQuery = normalizedUrl.split("?")[0]
             const filename = urlWithoutQuery.split("/").pop() || "audio.wav"
-            
-            // Use direct download link - browser handles it natively (faster, no memory issues)
+
             const link = document.createElement("a")
-            link.href = url
+            link.href = normalizedUrl
             link.download = filename
             link.target = "_blank"
             link.rel = "noopener noreferrer"
@@ -90,9 +112,10 @@ export function AudioPlayer({ url, className }: AudioPlayerProps) {
     return (
         <div className={cn("flex flex-col gap-1 bg-muted rounded-lg p-3 border min-w-[200px]", className)}>
             <div className="flex items-center gap-3">
+                {/* Only set src when we actually have a URL to avoid browser re-requesting the page for src="" */}
                 <audio
                     ref={audioRef}
-                    src={url}
+                    src={normalizedUrl || undefined}
                     onTimeUpdate={handleTimeUpdate}
                     onLoadedMetadata={handleLoadedMetadata}
                     onCanPlay={handleCanPlay}

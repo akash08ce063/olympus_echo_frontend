@@ -40,13 +40,29 @@ export function EvaluationResultsTable({
                             {testCaseResults.map((result: any) => {
                                 const tcName = testCases.find(tc => tc.id === result.test_case_id)?.name || "Test Case";
 
-                                // Fallback to the first call's evaluation if top-level is missing
-                                const evalResult = result.evaluation_result || result.calls?.[0]?.evaluation_result || {}
+                                const calls = result.calls || [];
+                                const callEvals = calls
+                                    .map((c: any) => c.evaluation_result)
+                                    .filter((e: any) => e && typeof e.overall_score === "number");
 
-                                const overallScore = evalResult.overall_score || 0
-                                const passedCriteria = evalResult.passed_criteria || 0
-                                const totalCriteria = evalResult.total_criteria || 0
-                                const overallStatus = evalResult.overall_status || result.status
+                                let overallScore = 0;
+                                let passedCriteria = 0;
+                                let totalCriteria = 0;
+                                let overallStatus = result.status;
+
+                                if (callEvals.length > 0) {
+                                    overallScore = callEvals.reduce((s: number, e: any) => s + (e.overall_score || 0), 0) / callEvals.length;
+                                    passedCriteria = callEvals.reduce((s: number, e: any) => s + (e.passed_criteria || 0), 0);
+                                    totalCriteria = callEvals.reduce((s: number, e: any) => s + (e.total_criteria || 0), 0);
+                                    const passedCount = callEvals.filter((e: any) => e.overall_status === "passed").length;
+                                    overallStatus = passedCount === callEvals.length ? "passed" : passedCount > 0 ? "partial" : "failed";
+                                } else {
+                                    const fallback = result.evaluation_result || {};
+                                    overallScore = fallback.overall_score || 0;
+                                    passedCriteria = fallback.passed_criteria || 0;
+                                    totalCriteria = fallback.total_criteria || 0;
+                                    overallStatus = fallback.overall_status || result.status;
+                                }
 
                                 return (
                                     <TableRow
@@ -73,6 +89,9 @@ export function EvaluationResultsTable({
                                         </TableCell>
                                         <TableCell className="text-center text-xs font-bold">
                                             {(overallScore * 100).toFixed(1)}%
+                                            {callEvals.length > 1 && (
+                                                <span className="text-[9px] text-muted-foreground ml-1">(avg)</span>
+                                            )}
                                         </TableCell>
                                         <TableCell className="text-center text-xs">
                                             {passedCriteria}/{totalCriteria}

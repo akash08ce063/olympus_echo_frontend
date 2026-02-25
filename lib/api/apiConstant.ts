@@ -46,7 +46,13 @@ export const TESTSUITS = {
         runAll: (test_suit_id: string, user_id: string) => GLOBAL + "test-execution/" + RUN_SUITE + `/${test_suit_id}?user_id=${user_id}`,
         runSingleTest: (test_case_id: string, user_id: string) => GLOBAL + "test-execution/" + RUN_CASE + `/${test_case_id}?user_id=${user_id}`,
         // Runs, recordings, transcripts endpoints (moved to test-runs)
-        getAllRuns: (user_id: string) => GLOBAL + "test-runs" + `?user_id=${user_id}`,
+        getAllRuns: (user_id: string, limit?: number, offset?: number, suite_id?: string) => {
+            const params = new URLSearchParams({ user_id: user_id });
+            if (limit != null) params.set("limit", String(limit));
+            if (offset != null) params.set("offset", String(offset));
+            if (suite_id != null && suite_id !== "") params.set("suite_id", suite_id);
+            return GLOBAL + "test-runs" + "?" + params.toString();
+        },
 
         getTestRecordingsById: (test_suit_id: string, user_id: string) => GLOBAL + "test-runs" + "/recordings/suite" + `/${test_suit_id}?user_id=${user_id}`,
     },
