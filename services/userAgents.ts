@@ -6,6 +6,10 @@ export interface CreateUserAgentPayload {
     system_prompt: string;
     temperature: number;
     user_id: string;
+    // Optional phone_numbers JSON payload: { phone_numbers: ["+1555...", ...] }
+    phone_numbers?: {
+        phone_numbers: string[];
+    };
 }
 
 export const UserAgentsService = {

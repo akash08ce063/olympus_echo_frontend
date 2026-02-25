@@ -133,26 +133,6 @@ export function TestCasesSection({
             }
         },
         {
-            accessorKey: "goals",
-            header: "Goal",
-            cell: ({ row }) => {
-                const goals = row.original.goals || []
-                const goalText = goals[0]?.text || (typeof goals[0] === 'string' ? goals[0] : "---")
-                return (
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <div className="text-sm text-foreground truncate max-w-[200px] md:max-w-[300px] cursor-default">
-                                {goalText}
-                            </div>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom" className="max-w-[400px] break-words">
-                            <p>{goalText}</p>
-                        </TooltipContent>
-                    </Tooltip>
-                )
-            }
-        },
-        {
             accessorKey: "evaluation_criteria",
             header: "Evaluation",
             cell: ({ row }) => {
