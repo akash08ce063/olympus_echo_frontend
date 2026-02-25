@@ -1,6 +1,7 @@
 export const APP_BASE_URL = "https://olympusecho-backend.firstpeak.ai";
 export const NEXT_PUBLIC_SUPABASE_URL = "https://kwmfuhsqcussyphmhlgz.supabase.co";
-export const NEXT_PUBLIC_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3bWZ1aHNxY3Vzc3lwaG1obGd6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk1NjIzNDgsImV4cCI6MjA4NTEzODM0OH0.JUDX2qQG8qLC8rZJ7vGJ86WDpd97hvJXJ3wEB4d5ugo";
+export const NEXT_PUBLIC_SUPABASE_ANON_KEY =
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3bWZ1aHNxY3Vzc3lwaG1obGd6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk1NjIzNDgsImV4cCI6MjA4NTEzODM0OH0.JUDX2qQG8qLC8rZJ7vGJ86WDpd97hvJXJ3wEB4d5ugo";
 
 /** When true, show the "Log Tracer" tab in the sidebar. Default false. */
 export const SHOW_LOG_TRACER = false;
