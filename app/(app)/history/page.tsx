@@ -254,39 +254,42 @@ function TestHistoryContent() {
             </Card>
 
             {/* Pagination: rows per page + Page X of Y + First/Prev/Next/Last (shadcn) */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 mt-6 px-1">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground order-2 sm:order-1">
-                    <span>Rows per page</span>
-                    <Select
-                        value={String(pageSize)}
-                        onValueChange={(v) => {
-                            setPageSize(Number(v))
-                            setPage(1)
-                        }}
-                    >
-                        <SelectTrigger className="w-[70px] h-8">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {PAGE_SIZE_OPTIONS.map((n) => (
-                                <SelectItem key={n} value={String(n)}>
-                                    {n}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4 mt-6 px-1 pb-4">
+                <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-sm text-muted-foreground w-full md:w-auto">
+                    <div className="flex items-center gap-2">
+                        <span>Rows per page</span>
+                        <Select
+                            value={String(pageSize)}
+                            onValueChange={(v) => {
+                                setPageSize(Number(v))
+                                setPage(1)
+                            }}
+                        >
+                            <SelectTrigger className="w-[70px] h-8">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {PAGE_SIZE_OPTIONS.map((n) => (
+                                    <SelectItem key={n} value={String(n)}>
+                                        {n}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
                     <span>
                         {totalRunsCount === 0
                             ? "0 runs"
                             : `${(page - 1) * pageSize + 1}-${Math.min(page * pageSize, totalRunsCount)} of ${totalRunsCount}`}
                     </span>
                 </div>
-                <div className="flex items-center gap-3 flex-wrap order-1 sm:order-2">
-                    <span className="text-sm text-muted-foreground shrink-0">
+                
+                <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+                    <span className="text-sm text-muted-foreground whitespace-nowrap">
                         Page {page} of {totalPages}
                     </span>
-                    <Pagination className="w-full sm:w-auto justify-center sm:justify-start">
-                        <PaginationContent>
+                    <Pagination className="w-auto mx-0">
+                        <PaginationContent className="flex-wrap justify-center gap-2">
                             <PaginationItem>
                                 <PaginationFirst
                                     onClick={() => setPage(1)}
@@ -299,51 +302,51 @@ function TestHistoryContent() {
                                     className={page <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
                                 />
                             </PaginationItem>
-                        {totalPages <= 7 ? (
-                            Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                                <PaginationItem key={p}>
-                                    <PaginationLink
-                                        isActive={p === page}
-                                        onClick={() => setPage(p)}
-                                        className="cursor-pointer"
-                                    >
-                                        {p}
-                                    </PaginationLink>
-                                </PaginationItem>
-                            ))
-                        ) : (
-                            <>
-                                <PaginationItem>
-                                    <PaginationLink
-                                        isActive={page === 1}
-                                        onClick={() => setPage(1)}
-                                        className="cursor-pointer"
-                                    >
-                                        1
-                                    </PaginationLink>
-                                </PaginationItem>
-                                {page > 3 && <PaginationItem><PaginationEllipsis /></PaginationItem>}
-                                {page > 2 && page < totalPages && (
-                                    <PaginationItem>
-                                        <PaginationLink isActive onClick={() => {}}>
-                                            {page}
-                                        </PaginationLink>
-                                    </PaginationItem>
-                                )}
-                                {page < totalPages - 1 && <PaginationItem><PaginationEllipsis /></PaginationItem>}
-                                {totalPages > 1 && (
-                                    <PaginationItem>
+                            {totalPages <= 5 ? (
+                                Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                                    <PaginationItem key={p}>
                                         <PaginationLink
-                                            isActive={page === totalPages}
-                                            onClick={() => setPage(totalPages)}
+                                            isActive={p === page}
+                                            onClick={() => setPage(p)}
                                             className="cursor-pointer"
                                         >
-                                            {totalPages}
+                                            {p}
                                         </PaginationLink>
                                     </PaginationItem>
-                                )}
-                            </>
-                        )}
+                                ))
+                            ) : (
+                                <>
+                                    <PaginationItem>
+                                        <PaginationLink
+                                            isActive={page === 1}
+                                            onClick={() => setPage(1)}
+                                            className="cursor-pointer"
+                                        >
+                                            1
+                                        </PaginationLink>
+                                    </PaginationItem>
+                                    {page > 3 && <PaginationItem><PaginationEllipsis /></PaginationItem>}
+                                    {page > 2 && page < totalPages && (
+                                        <PaginationItem>
+                                            <PaginationLink isActive onClick={() => {}} className="cursor-default">
+                                                {page}
+                                            </PaginationLink>
+                                        </PaginationItem>
+                                    )}
+                                    {page < totalPages - 2 && <PaginationItem><PaginationEllipsis /></PaginationItem>}
+                                    {totalPages > 1 && (
+                                        <PaginationItem>
+                                            <PaginationLink
+                                                isActive={page === totalPages}
+                                                onClick={() => setPage(totalPages)}
+                                                className="cursor-pointer"
+                                            >
+                                                {totalPages}
+                                            </PaginationLink>
+                                        </PaginationItem>
+                                    )}
+                                </>
+                            )}
                             <PaginationItem>
                                 <PaginationNext
                                     onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
