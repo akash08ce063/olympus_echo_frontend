@@ -1244,9 +1244,9 @@ export function TestSuitesContent() {
                                                     </Card>
 
                                                     {/* Pagination: rows per page + Page X of Y + First/Prev/Next/Last */}
-                                                    <div className="flex flex-col gap-4 mt-4 w-full min-w-0">
-                                                        <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-between gap-3">
-                                                            <div className="flex items-center gap-2 text-sm text-muted-foreground shrink-0">
+                                                    <div className="flex flex-col md:flex-row items-center justify-between gap-4 mt-6 px-1 pb-4">
+                                                        <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-sm text-muted-foreground w-full md:w-auto">
+                                                            <div className="flex items-center gap-2">
                                                                 <span className="whitespace-nowrap">Rows per page</span>
                                                                 <Select
                                                                     value={String(suiteRunsPageSize)}
@@ -1266,90 +1266,90 @@ export function TestSuitesContent() {
                                                                         ))}
                                                                     </SelectContent>
                                                                 </Select>
-                                                                <span className="whitespace-nowrap">
-                                                                    {suiteRunsTotal === 0
-                                                                        ? "0 runs"
-                                                                        : `${(suiteRunsPage - 1) * suiteRunsPageSize + 1}-${Math.min(suiteRunsPage * suiteRunsPageSize, suiteRunsTotal)} of ${suiteRunsTotal}`}
-                                                                </span>
                                                             </div>
-                                                            <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 min-w-0">
-                                                                <span className="text-sm text-muted-foreground whitespace-nowrap order-2 sm:order-1">
-                                                                    Page {suiteRunsPage} of {suiteRunsTotalPages}
-                                                                </span>
-                                                                <Pagination className="order-1 sm:order-2">
-                                                                    <PaginationContent className="flex-wrap gap-1 sm:gap-2 justify-center">
-                                                                        <PaginationItem>
-                                                                            <PaginationFirst
-                                                                                onClick={() => setSuiteRunsPage(1)}
-                                                                                className={suiteRunsPage <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                                                                            />
-                                                                        </PaginationItem>
-                                                                        <PaginationItem>
-                                                                            <PaginationPrevious
-                                                                                onClick={() => setSuiteRunsPage((p) => Math.max(1, p - 1))}
-                                                                                className={suiteRunsPage <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                                                                            />
-                                                                        </PaginationItem>
-                                                                        {suiteRunsTotalPages <= 5 ? (
-                                                                            Array.from({ length: suiteRunsTotalPages }, (_, i) => i + 1).map((p) => (
-                                                                                <PaginationItem key={p}>
-                                                                                    <PaginationLink
-                                                                                        isActive={p === suiteRunsPage}
-                                                                                        onClick={() => setSuiteRunsPage(p)}
-                                                                                        className="cursor-pointer"
-                                                                                    >
-                                                                                        {p}
-                                                                                    </PaginationLink>
-                                                                                </PaginationItem>
-                                                                            ))
-                                                                        ) : (
-                                                                            <>
+                                                            <span className="whitespace-nowrap">
+                                                                {suiteRunsTotal === 0
+                                                                    ? "0 runs"
+                                                                    : `${(suiteRunsPage - 1) * suiteRunsPageSize + 1}-${Math.min(suiteRunsPage * suiteRunsPageSize, suiteRunsTotal)} of ${suiteRunsTotal}`}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+                                                            <span className="text-sm text-muted-foreground whitespace-nowrap">
+                                                                Page {suiteRunsPage} of {suiteRunsTotalPages}
+                                                            </span>
+                                                            <Pagination className="w-auto mx-0">
+                                                                <PaginationContent className="flex-wrap justify-center gap-2">
+                                                                    <PaginationItem>
+                                                                        <PaginationFirst
+                                                                            onClick={() => setSuiteRunsPage(1)}
+                                                                            className={suiteRunsPage <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                                                                        />
+                                                                    </PaginationItem>
+                                                                    <PaginationItem>
+                                                                        <PaginationPrevious
+                                                                            onClick={() => setSuiteRunsPage((p) => Math.max(1, p - 1))}
+                                                                            className={suiteRunsPage <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                                                                        />
+                                                                    </PaginationItem>
+                                                                    {suiteRunsTotalPages <= 5 ? (
+                                                                        Array.from({ length: suiteRunsTotalPages }, (_, i) => i + 1).map((p) => (
+                                                                            <PaginationItem key={p}>
+                                                                                <PaginationLink
+                                                                                    isActive={p === suiteRunsPage}
+                                                                                    onClick={() => setSuiteRunsPage(p)}
+                                                                                    className="cursor-pointer"
+                                                                                >
+                                                                                    {p}
+                                                                                </PaginationLink>
+                                                                            </PaginationItem>
+                                                                        ))
+                                                                    ) : (
+                                                                        <>
+                                                                            <PaginationItem>
+                                                                                <PaginationLink
+                                                                                    isActive={suiteRunsPage === 1}
+                                                                                    onClick={() => setSuiteRunsPage(1)}
+                                                                                    className="cursor-pointer"
+                                                                                >
+                                                                                    1
+                                                                                </PaginationLink>
+                                                                            </PaginationItem>
+                                                                            {suiteRunsPage > 3 && <PaginationItem><PaginationEllipsis /></PaginationItem>}
+                                                                            {suiteRunsPage > 2 && suiteRunsPage < suiteRunsTotalPages && (
+                                                                                <PaginationItem>
+                                                                                <PaginationLink isActive className="cursor-default">
+                                                                                    {suiteRunsPage}
+                                                                                </PaginationLink>
+                                                                            </PaginationItem>
+                                                                            )}
+                                                                            {suiteRunsPage < suiteRunsTotalPages - 2 && <PaginationItem><PaginationEllipsis /></PaginationItem>}
+                                                                            {suiteRunsTotalPages > 1 && (
                                                                                 <PaginationItem>
                                                                                     <PaginationLink
-                                                                                        isActive={suiteRunsPage === 1}
-                                                                                        onClick={() => setSuiteRunsPage(1)}
+                                                                                        isActive={suiteRunsPage === suiteRunsTotalPages}
+                                                                                        onClick={() => setSuiteRunsPage(suiteRunsTotalPages)}
                                                                                         className="cursor-pointer"
                                                                                     >
-                                                                                        1
+                                                                                        {suiteRunsTotalPages}
                                                                                     </PaginationLink>
                                                                                 </PaginationItem>
-                                                                                {suiteRunsPage > 3 && <PaginationItem><PaginationEllipsis /></PaginationItem>}
-                                                                                {suiteRunsPage > 2 && suiteRunsPage < suiteRunsTotalPages && (
-                                                                                    <PaginationItem>
-                                                                                    <PaginationLink isActive className="pointer-events-none">
-                                                                                        {suiteRunsPage}
-                                                                                    </PaginationLink>
-                                                                                </PaginationItem>
-                                                                                )}
-                                                                                {suiteRunsPage < suiteRunsTotalPages - 1 && <PaginationItem><PaginationEllipsis /></PaginationItem>}
-                                                                                {suiteRunsTotalPages > 1 && (
-                                                                                    <PaginationItem>
-                                                                                        <PaginationLink
-                                                                                            isActive={suiteRunsPage === suiteRunsTotalPages}
-                                                                                            onClick={() => setSuiteRunsPage(suiteRunsTotalPages)}
-                                                                                            className="cursor-pointer"
-                                                                                        >
-                                                                                            {suiteRunsTotalPages}
-                                                                                        </PaginationLink>
-                                                                                    </PaginationItem>
-                                                                                )}
-                                                                            </>
-                                                                        )}
-                                                                        <PaginationItem>
-                                                                            <PaginationNext
-                                                                                onClick={() => setSuiteRunsPage((p) => Math.min(suiteRunsTotalPages, p + 1))}
-                                                                                className={suiteRunsPage >= suiteRunsTotalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                                                                            />
-                                                                        </PaginationItem>
-                                                                        <PaginationItem>
-                                                                            <PaginationLast
-                                                                                onClick={() => setSuiteRunsPage(suiteRunsTotalPages)}
-                                                                                className={suiteRunsPage >= suiteRunsTotalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                                                                            />
-                                                                        </PaginationItem>
-                                                                    </PaginationContent>
-                                                                </Pagination>
-                                                            </div>
+                                                                            )}
+                                                                        </>
+                                                                    )}
+                                                                    <PaginationItem>
+                                                                        <PaginationNext
+                                                                            onClick={() => setSuiteRunsPage((p) => Math.min(suiteRunsTotalPages, p + 1))}
+                                                                            className={suiteRunsPage >= suiteRunsTotalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                                                                        />
+                                                                    </PaginationItem>
+                                                                    <PaginationItem>
+                                                                        <PaginationLast
+                                                                            onClick={() => setSuiteRunsPage(suiteRunsTotalPages)}
+                                                                            className={suiteRunsPage >= suiteRunsTotalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                                                                        />
+                                                                    </PaginationItem>
+                                                                </PaginationContent>
+                                                            </Pagination>
                                                         </div>
                                                     </div>
                                                 </div>

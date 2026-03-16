@@ -44,7 +44,7 @@ type PaginationLinkProps = {
 const PaginationLink = ({
   className,
   isActive,
-  size = "icon",
+  size,
   type = "button",
   ...props
 }: PaginationLinkProps) => (
@@ -52,9 +52,9 @@ const PaginationLink = ({
     type={type as "button"}
     aria-current={isActive ? "page" : undefined}
     variant={isActive ? "default" : "outline"}
-    size={size}
+    size={size || (isActive ? "icon" : "icon")}
     className={cn(
-      "min-w-8",
+      "min-w-9 h-9",
       isActive && "pointer-events-none",
       className
     )}
@@ -69,7 +69,8 @@ const PaginationPrevious = ({
 }: React.ComponentProps<typeof PaginationLink>) => (
   <PaginationLink
     aria-label="Go to previous page"
-    className={cn("gap-1 pl-2.5", className)}
+    size="default"
+    className={cn("gap-1 px-3 sm:px-4", className)}
     {...props}
   >
     <ChevronLeft className="h-4 w-4" />
@@ -84,7 +85,8 @@ const PaginationNext = ({
 }: React.ComponentProps<typeof PaginationLink>) => (
   <PaginationLink
     aria-label="Go to next page"
-    className={cn("gap-1 pr-2.5", className)}
+    size="default"
+    className={cn("gap-1 px-3 sm:px-4", className)}
     {...props}
   >
     <span className="hidden sm:inline">Next</span>
